@@ -1,9 +1,0 @@
-# Copyright (c) 2026 Infineon Technologies AG
-# SPDX-License-Identifier: Apache-2.0
-
-west-commands:
-  - file: initlevels.py
-    commands:
-      - name: initlevels
-        class: InitLevels
-        help: list SYS_INIT / DEVICE_DEFINE init order from a build
