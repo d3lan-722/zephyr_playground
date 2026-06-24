@@ -14,7 +14,7 @@
 #include "indicator.h"
 
 #define BLINK_ON_MS              200
-#define SLEEP_BETWEEN_BLINKS_MS 1000
+#define SLEEP_BETWEEN_BLINKS_MS  5
 
 int main(void)
 {
