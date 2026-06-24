@@ -13,8 +13,12 @@
 
 #include "indicator.h"
 
-#define BLINK_ON_MS              200
-#define SLEEP_BETWEEN_BLINKS_MS  5
+#define BLINK_ON_MS 200
+/* Phase 5 system_deep_sleep window: 1000 ms <= residency < 2000 ms.
+ * Expected indicator: magenta (red+blue) between green flashes,
+ * dispatched as PM_STATE_STANDBY substate 2.
+ */
+#define SLEEP_BETWEEN_BLINKS_MS 1500
 
 int main(void)
 {
