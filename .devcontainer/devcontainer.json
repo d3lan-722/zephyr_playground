@@ -1,0 +1,120 @@
+// More information:
+// https://code.visualstudio.com/docs/devcontainers/tutorial
+// https://containers.dev/implementors/json_reference/
+// https://blog.noser.com/vscode-devcontainer-im-embedded-software-umfeld/
+// https://github.com/islandcontroller/armcm-devcontainer/tree/master
+{
+        "name": "Radar development environment",
+        "waitFor": "initializeCommand",
+        "initializeCommand": "bash ${localWorkspaceFolder}/.devcontainer/scripts/configure_usb.sh",
+        "build": {
+                "dockerfile": "Dockerfile"
+        },
+        // Privileged container in order to access /dev
+        "privileged": true,
+        "remoteUser": "ubuntu",
+        // Mount USB devices (debug probes, UART interfaces, ...)
+        // Mount ssh folder to be used for git
+        // Mount gitconfig in order to use the name and email of used in git on the host
+        "mounts": [
+                "source=/dev/bus/usb/,target=/dev/bus/usb/,type=bind",
+                "source=/dev,target=/dev,type=bind",
+                "source=${localEnv:HOME}/.ssh,target=/home/ubuntu/.ssh,type=bind,consistency=cached",
+                "source=${localEnv:HOME}/.gitconfig,target=/home/ubuntu/.gitconfig,type=bind"
+        ],
+        "runArgs": [
+                "--hostname=devcontainer",
+                "--network=host",
+                "--add-host",
+                "devcontainer:127.0.0.1"
+        ],
+        "customizations": {
+                "vscode": {
+                        "settings": {
+                                "C_Cpp.default.includePath": [
+                                        "/home/ubuntu/zephyrproject/zephyr/include",
+                                        "/home/ubuntu/zephyrproject/zephyr/dts",
+                                        "/home/ubuntu/zephyrproject/zephyr/include/zephyr",
+                                        "/home/ubuntu/zephyrproject/zephyr/include/zephyr/dt-bindings",
+                                        "/home/ubuntu/zephyrproject/zephyr/include/zephyr/dt-bindings/**",
+                                        "/home/ubuntu/zephyrproject/modules/hal/infineon/**",
+                                        "/home/ubuntu/zephyrproject/modules/hal/**"
+                                ],
+                                "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
+                                "C_Cpp.default.browse.path": [
+                                        "/home/ubuntu/zephyrproject/zephyr/include",
+                                        "/home/ubuntu/zephyrproject/zephyr/dts",
+                                        "/home/ubuntu/zephyrproject/zephyr/include/zephyr/dt-bindings",
+                                        "/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/include",
+                                        "/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/devices/include",
+                                        "/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/hal/include",
+                                        "/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-srf/include"
+                                ],
+                                "python.testing.pytestEnabled": true,
+                                "[python]": {
+                                        "editor.defaultFormatter": "ms-python.black-formatter"
+                                },
+                                "editor.formatOnSave": true,
+                                "editor.codeActionsOnSave": {
+                                        "source.organizeImports": true
+                                },
+                                "editor.rulers": [
+                                        80
+                                ],
+                                "editor.tabSize": 8,
+                                "editor.insertSpaces": false,
+                                "[c]": {
+                                        "editor.insertSpaces": false,
+                                        "editor.tabSize": 8,
+                                        "editor.defaultFormatter": "xaver.clang-format"
+                                },
+                                "[cpp]": {
+                                        "editor.insertSpaces": false,
+                                        "editor.tabSize": 8,
+                                        "editor.defaultFormatter": "xaver.clang-format"
+                                },
+                                "files.associations": {
+                                        "*.dtsi": "dts",
+                                        "*.dts": "dts",
+                                        "*.overlay": "dts"
+                                },
+                                "dts.zephyr.project-root": "/home/ubuntu/zephyrproject"
+                        },
+                        "extensions": [
+                                "mhutchie.git-graph",
+                                "ms-vscode.cpptools-extension-pack",
+                                "mcu-debug.debug-tracker-vscode",
+                                "ms-vscode.cmake-tools",
+                                "alphabotsec.vscode-eclipse-keybindings",
+                                "streetsidesoftware.code-spell-checker",
+                                "ms-python.python",
+                                "ms-python.isort",
+                                "ms-python.flake8",
+                                "ms-python.black-formatter",
+                                "ms-azuretools.vscode-docker",
+                                "vincent-templier.vscode-netron",
+                                "repreng.csv",
+                                "ms-vscode.hexeditor",
+                                "gaborv.flatbuffers",
+                                "llvm-vs-code-extensions.vscode-clangd",
+                                "marus25.cortex-debug",
+                                "luveti.kconfig",
+                                "tht13.rst-vscode",
+                                "ms-vscode.vscode-serial-monitor",
+                                "ctcuff.test-results",
+                                "xaver.clang-format",
+                                "nordic-semiconductor.nrf-devicetree"
+                        ]
+                }
+        },
+        // Use 'forwardPorts' to make a list of ports inside the container available locally.
+        "forwardPorts": [
+                61234
+        ],
+        //        "containerEnv": {
+        //                "LANG": "en_US.UTF-8",
+        //                "LANGUAGE": "en_US:en",
+        //               "LC_ALL": "en_US.UTF-8"
+        //        },
+        "postStartCommand": "sudo chown -R ubuntu:ubuntu /home/ubuntu/.ssh && chmod 700 /home/ubuntu/.ssh && chmod 600 /home/ubuntu/.ssh/*"
+}

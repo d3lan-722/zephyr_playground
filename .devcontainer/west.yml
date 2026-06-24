@@ -1,0 +1,68 @@
+# Custom west manifest for radar project devcontainer.
+# Imports only the Zephyr modules needed by this project to reduce
+# container build time and size.
+#
+# To add support for new hardware, add the required HAL to name-allowlist
+# below, then sync and pull the new module:
+#   cp /workspaces/radar/.devcontainer/west.yml /home/ubuntu/zephyrproject/manifest-repo/west.yml
+#   cd /home/ubuntu/zephyrproject && west update
+manifest:
+  remotes:
+    - name: zephyrproject-rtos
+      url-base: https://github.com/zephyrproject-rtos
+    - name: sensor-xensiv-bgt60trxx
+      url-base: https://github.com/Infineon
+    - name: coremark-pro
+      url-base: https://github.com/eembc
+    - name: mtb-example-psoc-edge-power-measurements
+      url-base: https://github.com/Infineon
+    - name: mtb-example-psoc-edge-secure-power-management
+      url-base: https://github.com/Infineon
+    - name: se-rt-services-utils
+      url-base: https://github.com/Infineon
+    - name: ifx-l1-boot
+      url-base: https://gitlab.intra.infineon.com/repo/cy_mcuboot_project
+  projects:
+    - name: zephyr
+      remote: zephyrproject-rtos
+      revision: main
+      clone-depth: 1
+      import:
+        name-allowlist:
+          - cmsis                # ARM CMSIS headers (required for all ARM targets)
+          - cmsis_6              # CMSIS v6 core headers (cmsis_core.h, required for Cortex-M)
+          - hal_infineon         # Infineon PSoC 6 + PSE84 HAL
+          - mcuboot              # MCUboot bootloader (provides imgtool for image signing)
+          - mbedtls              # TLS/crypto library
+          - net-tools            # Networking utilities (used by PPP app)
+          - picolibc             # C library
+          - tf-m-tests           # TF-M test sources (required by trusted-firmware-m module)
+          - tf-psa-crypto        # PSA crypto implementation (required by mbedtls)
+          - trusted-firmware-m   # TF-M secure firmware (required for PSOC_EDGE_M55_SRF_SUPPORT)
+    - name: sensor-xensiv-bgt60trxx
+      remote: sensor-xensiv-bgt60trxx
+      revision: master
+      clone-depth: 1
+    - name: coremark-pro
+      remote: coremark-pro
+      revision: main
+      clone-depth: 1
+    - name: mtb-example-psoc-edge-power-measurements
+      remote: mtb-example-psoc-edge-power-measurements
+      revision: master
+      clone-depth: 1
+    - name: mtb-example-psoc-edge-secure-power-management
+      remote: mtb-example-psoc-edge-secure-power-management
+      revision: master
+      clone-depth: 1
+    - name: se-rt-services-utils
+      remote: se-rt-services-utils
+      revision: release-v1.2.0
+      clone-depth: 1
+    - name: L1-boot
+      remote: ifx-l1-boot
+      revision: develop
+      clone-depth: 1
+
+  self:
+    path: manifest-repo

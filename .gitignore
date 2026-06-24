@@ -1,0 +1,62 @@
+# Build artifacts
+**/build/
+build/
+
+# Test results
+testing/results/
+results/
+
+# Twister output
+**/twister-out/
+twister-out/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# CMake generated files
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+
+# Ninja build files
+*.ninja
+build.ninja
+
+# Zephyr specific
+*.elf
+*.hex
+*.bin
+*.map
+*.lst
+
+# IDE and editor files
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+# Stray workspace dirs (not part of the repo)
+/home/
+/tmp/
+
+# Presentations: generated artefacts
+presentations/deck.pptx
+presentations/deck.pdf
+presentations/template_pandoc.pptx
+presentations/.soffice-profile/
+
+# Logging
+logs/
+*.log
