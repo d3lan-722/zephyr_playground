@@ -1,0 +1,80 @@
+/*
+ * Copyright (c) 2026 Infineon Technologies AG
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * CM33 Non-Secure overlay for the 02_pse84_tfm_m33_m55_pm template.
+ * Phase 3 of the porting plan: declare Zephyr power-states and route
+ * the kernel tick onto MCWDT0 (LPTIMER), which survives DeepSleep.
+ *
+ * Numbers are placeholders chosen to keep
+ * (min_residency_us + exit_latency_us) strictly increasing in the
+ * cpu-power-states chosen list, which Zephyr's default residency
+ * policy needs to pick the deepest state for any given idle window.
+ * Final residencies will be re-measured per state.
+ *
+ * The source project (tmp/16_pse84_3img_rram_pm/m33_ns) also
+ * disabled &uart2 and &peri0_group1_16bit_0 because it ran without
+ * TF-M and reused the SCB2 console programmed by its custom CM33-S.
+ * Project 02 uses TF-M with the standard Zephyr UART console, so
+ * those disables are deliberately omitted.
+ */
+
+/ {
+	power-states {
+		cpu_sleep: cpu-sleep {
+			compatible = "zephyr,power-state";
+			power-state-name = "suspend-to-idle";
+			min-residency-us = <1000>;
+			exit-latency-us = <10>;
+		};
+
+		cpu_deep_sleep: cpu-deep-sleep {
+			compatible = "zephyr,power-state";
+			power-state-name = "standby";
+			substate-id = <1>;
+			min-residency-us = <30000>;
+			exit-latency-us = <50>;
+		};
+
+		system_deep_sleep: system-deep-sleep {
+			compatible = "zephyr,power-state";
+			power-state-name = "standby";
+			substate-id = <2>;
+			min-residency-us = <1000000>;
+			exit-latency-us = <50>;
+		};
+
+		system_deep_sleep_ram: system-deep-sleep-ram {
+			compatible = "zephyr,power-state";
+			power-state-name = "suspend-to-ram";
+			min-residency-us = <2000000>;
+			exit-latency-us = <500>;
+		};
+
+		system_deep_sleep_off: system-deep-sleep-off {
+			compatible = "zephyr,power-state";
+			power-state-name = "soft-off";
+			min-residency-us = <4000000>;
+			exit-latency-us = <100000>;
+		};
+	};
+
+	cpus {
+		cpu@0 {
+			cpu-power-states = <&cpu_sleep
+					    &cpu_deep_sleep
+					    &system_deep_sleep
+					    &system_deep_sleep_ram
+					    &system_deep_sleep_off>;
+		};
+	};
+};
+
+/* Enable MCWDT0 so the Infineon LPTIMER driver binds here and
+ * provides the kernel tick. MCWDT0 keeps running across DeepSleep,
+ * which the SysTick cannot do.
+ */
+&mcwdt0 {
+	status = "okay";
+};
