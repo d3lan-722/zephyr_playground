@@ -12,27 +12,28 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/kernel.h>
 
-#define BLINK_PERIOD_MS 250
+#define BLINK_PERIOD_MS 100
 
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(DT_ALIAS(led1), gpios);
 
-int main(void) {
-  printf("CM55 blinky on %s\n", CONFIG_BOARD);
+int main(void)
+{
+	printf("CM55 blinky on %s\n", CONFIG_BOARD);
 
-  if (!gpio_is_ready_dt(&led)) {
-    printf("CM55: led1 not ready\n");
-    return 0;
-  }
+	if (!gpio_is_ready_dt(&led)) {
+		printf("CM55: led1 not ready\n");
+		return 0;
+	}
 
-  if (gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE) < 0) {
-    printf("CM55: failed to configure led1\n");
-    return 0;
-  }
+	if (gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE) < 0) {
+		printf("CM55: failed to configure led1\n");
+		return 0;
+	}
 
-  while (1) {
-    gpio_pin_toggle_dt(&led);
-    k_msleep(BLINK_PERIOD_MS);
-  }
+	while (1) {
+		gpio_pin_toggle_dt(&led);
+		k_msleep(BLINK_PERIOD_MS);
+	}
 
-  return 0;
+	return 0;
 }
