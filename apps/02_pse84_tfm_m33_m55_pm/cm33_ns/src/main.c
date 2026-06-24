@@ -3,35 +3,30 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  *
- * CM33 non-secure blinky for the kit_pse84_eval.
- * Blinks the red LED (led0) at 1 Hz.
+ * CM33 non-secure indicator-loop blinky for the kit_pse84_eval.
+ * Phase 1 of the porting plan: drive the green RGB indicator only,
+ * no PM core involvement yet.
  */
 
 #include <stdio.h>
-#include <zephyr/drivers/gpio.h>
 #include <zephyr/kernel.h>
 
-#define BLINK_PERIOD_MS 100
+#include "indicator.h"
 
-static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
+#define BLINK_ON_MS              200
+#define SLEEP_BETWEEN_BLINKS_MS 1000
 
 int main(void)
 {
-	printf("CM33-NS blinky on %s\n", CONFIG_BOARD);
+	printf("CM33-NS indicator blinky on %s\n", CONFIG_BOARD);
 
-	if (!gpio_is_ready_dt(&led)) {
-		printf("CM33-NS: led0 not ready\n");
-		return 0;
-	}
-
-	if (gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE) < 0) {
-		printf("CM33-NS: failed to configure led0\n");
-		return 0;
-	}
+	indicator_init();
 
 	while (1) {
-		gpio_pin_toggle_dt(&led);
-		k_msleep(BLINK_PERIOD_MS);
+		indicator_active_on();
+		k_busy_wait(BLINK_ON_MS * 1000U);
+		indicator_active_off();
+		k_msleep(SLEEP_BETWEEN_BLINKS_MS);
 	}
 
 	return 0;
