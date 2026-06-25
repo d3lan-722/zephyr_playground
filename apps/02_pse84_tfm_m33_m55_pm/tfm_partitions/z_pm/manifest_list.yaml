@@ -1,0 +1,37 @@
+#-------------------------------------------------------------------------------
+# Manifest list for the z_pm out-of-tree TF-M partition.
+#
+# Path `manifest` is relative to this file. `output_path` is relative to the
+# TF-M build's generated_file_root, which is ${CMAKE_BINARY_DIR}/generated/
+# under the TF-M ExternalProject build directory.
+#
+# Files emitted by tfm_parse_manifest_list.py into output_path:
+#   psa_manifest/z_pm_partition.h
+#   auto_generated/intermedia_z_pm_partition.c
+#   auto_generated/load_info_z_pm_partition.c
+#
+# Macros emitted into psa_manifest/sid.h (global, NS-visible):
+#   Z_PM_SERVICE_SID, Z_PM_SERVICE_VERSION, Z_PM_SERVICE_HANDLE
+#-------------------------------------------------------------------------------
+
+{
+  "description": "z_pm out-of-tree manifest list",
+  "type": "manifest_list",
+  "version_major": 0,
+  "version_minor": 1,
+  "manifest_list": [
+    {
+      "description": "Zephyr PM dispatcher partition",
+      "manifest": "z_pm_partition.yaml",
+      "output_path": "partitions/z_pm",
+      "version_major": 0,
+      "version_minor": 1,
+      "pid": 444,
+      "linker_pattern": {
+        "library_list": [
+          "*tfm_*partition_z_pm.*"
+        ]
+      }
+    }
+  ]
+}

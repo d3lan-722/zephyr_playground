@@ -12,6 +12,7 @@
 #include <zephyr/kernel.h>
 
 #include "indicator.h"
+#include "z_pm_client.h"
 
 #define BLINK_ON_MS 200
 /* Phase 5 system_deep_sleep window: 1000 ms <= residency < 2000 ms.
@@ -25,6 +26,20 @@ int main(void)
 	printf("CM33-NS indicator blinky on %s\n", CONFIG_BOARD);
 
 	indicator_init();
+
+	/* Phase 6 step 1: ping the z_pm secure partition to validate the
+	 * out-of-tree partition + PSA call infrastructure end-to-end.
+	 * Logs the result once at boot; does not affect the blink loop.
+	 */
+	uint32_t cookie = 0;
+	psa_status_t st = z_pm_ping(&cookie);
+
+	if (st == PSA_SUCCESS && cookie == Z_PM_PING_COOKIE) {
+		printf("z_pm ping ok: cookie=0x%08x\n", cookie);
+	} else {
+		printf("z_pm ping FAIL: status=%d cookie=0x%08x\n", (int)st,
+		       cookie);
+	}
 
 	while (1) {
 		indicator_active_on();
