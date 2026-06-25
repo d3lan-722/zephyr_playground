@@ -1,829 +1,771 @@
-# Trusted Firmware-M on PSOC™ Edge in a Zephyr workspace — a working tutorial
+# TF-M on PSOC™ Edge with Zephyr — a working tutorial
 
-> **Audience.** Engineers porting Zephyr applications to PSE84 with
-> `CONFIG_BUILD_WITH_TFM=y`, who need to reason about why a PDL call
-> bus-faults from CM33-NS, what the SRF mailbox actually does, and
-> what it takes to extend the secure side.
->
-> **Sources.** Infineon AN240096 *Getting started with TF-M on PSOC™
-> Edge* (Rev. *D, 2025-10-14), the TF-M project documentation
-> (`trustedfirmware-m-readthedocs-io-en-latest.pdf` in this repo), the
-> Zephyr `services/tfm/` rst tree, and the actual source under
-> `/home/ubuntu/zephyrproject/modules/{tee/tf-m,hal/infineon}`. Where
-> a statement is hardware- or build-specific the file path is named.
->
-> **Companion docs.**
-> [`apps/02_pse84_tfm_m33_m55_pm/PHASE6_BLOCKER.md`](../apps/02_pse84_tfm_m33_m55_pm/PHASE6_BLOCKER.md)
-> applies the framework below to a concrete failure mode (PDL `cy_syspm`
-> from NS with no TF-M-S service to receive it).
+This is a friendly guide to Trusted Firmware-M (TF-M) on PSE84 in a
+Zephyr workspace. It starts with general ideas and ends with the
+exact problem we hit in [`apps/02_pse84_tfm_m33_m55_pm/`](../apps/02_pse84_tfm_m33_m55_pm/)
+and how to fix it.
+
+The companion document is
+[`apps/02_pse84_tfm_m33_m55_pm/PHASE6_BLOCKER.md`](../apps/02_pse84_tfm_m33_m55_pm/PHASE6_BLOCKER.md).
 
 ---
 
-## 1. What TF-M is, in one paragraph
+## Contents
 
-Trusted Firmware-M is the Arm-curated reference implementation of the
-[PSA Firmware Framework for M-class](https://developer.arm.com/documentation/den0063/latest/)
-(FF-M). It runs in the **Secure Processing Environment (SPE)** of an
-Armv8(-M)/v8.1-M MCU and provides:
+**Part 1 — The big picture**
+- [1. What is TF-M?](#1-what-is-tf-m)
+- [2. Secure world vs non-secure world](#2-secure-world-vs-non-secure-world)
+- [3. How a non-secure caller reaches a secure function](#3-how-a-non-secure-caller-reaches-a-secure-function)
+- [4. What is a Secure Partition?](#4-what-is-a-secure-partition)
+- [5. The PSA API](#5-the-psa-api)
+- [6. Isolation levels and SPM backends](#6-isolation-levels-and-spm-backends)
 
-- An **isolation boundary** between SPE and the Non-Secure Processing
-  Environment (NSPE), enforced by TrustZone-M plus board-specific
-  protection controllers.
-- A **Secure Partition Manager (SPM)** that loads/schedules Secure
-  Partitions and dispatches PSA requests across the SPE/NSPE
-  boundary via Non-Secure Callable (NSC) veneers.
-- A small set of always-on **secure services** (Crypto, Internal
-  Trusted Storage, Protected Storage, Initial Attestation, Platform,
-  optional Firmware Update) exposed as **PSA APIs** to NSPE.
+**Part 2 — How the hardware enforces isolation**
+- [7. TrustZone-M, SAU, MPU](#7-trustzone-m-sau-mpu)
+- [8. MPC and PPC](#8-mpc-and-ppc)
+- [9. How TF-M programs the protection hardware](#9-how-tf-m-programs-the-protection-hardware)
 
-For PSE84, TF-M runs on the CM33-S core. The Cortex-M55 has no
-TrustZone-M so it always runs in NS mode and reaches secure services
-indirectly (see §5).
+**Part 3 — PSE84-specific details**
+- [10. The two cores and the Secure Enclave](#10-the-two-cores-and-the-secure-enclave)
+- [11. Protection Contexts (PC)](#11-protection-contexts-pc)
+- [12. The four images on one chip](#12-the-four-images-on-one-chip)
+- [13. Boot flow](#13-boot-flow)
+
+**Part 4 — Zephyr and TF-M**
+- [14. The `_ns` board variant](#14-the-_ns-board-variant)
+- [15. What `CONFIG_BUILD_WITH_TFM=y` does](#15-what-config_build_with_tfmy-does)
+- [16. What Zephyr builds and what it does not](#16-what-zephyr-builds-and-what-it-does-not)
+- [17. Useful Kconfig options](#17-useful-kconfig-options)
+- [18. Adding your own secure partition (out-of-tree)](#18-adding-your-own-secure-partition-out-of-tree)
+
+**Part 5 — Infineon's Secure Request Framework (SRF)**
+- [19. Why Infineon adds SRF on top of PSA](#19-why-infineon-adds-srf-on-top-of-psa)
+- [20. Module, submodule, operation](#20-module-submodule-operation)
+- [21. How an SRF call travels](#21-how-an-srf-call-travels)
+- [22. The CM55 path: IPC through CM33-NS](#22-the-cm55-path-ipc-through-cm33-ns)
+- [23. Security-aware PDL drivers](#23-security-aware-pdl-drivers)
+
+**Part 6 — Our power-management problem**
+- [24. What is missing in Zephyr's TF-M build](#24-what-is-missing-in-zephyrs-tf-m-build)
+- [25. Four ways to deal with it](#25-four-ways-to-deal-with-it)
+- [26. Recommended path: a custom SRF module](#26-recommended-path-a-custom-srf-module)
+
+**Part 7 — Reference**
+- [27. Debugging tips](#27-debugging-tips)
+- [28. Glossary](#28-glossary)
+- [29. Further reading](#29-further-reading)
 
 ---
 
-## 2. PSE84 hardware view that TF-M sits on top of
+## Part 1 — The big picture
 
-PSE84 is a CM33 + CM55 dual-core MCU with an immutable Secure Enclave.
-TF-M only owns the CM33-S slice, but several PSE84 protection features
-shape what an application is allowed to do across cores.
+### 1. What is TF-M?
 
-### 2.1 Execution domains
+Trusted Firmware-M is open-source firmware from Arm. It runs in the
+secure half of an Armv8-M CPU. Its job is to:
 
-| Component                | NS attribute | Protection Context (PC) | Privilege |
-| ------------------------ | ------------ | ----------------------- | --------- |
-| SE RT services (EPC4)    | S            | PC1                     | Priv      |
-| Edge Protect Bootloader  | S            | PC2                     | Priv      |
-| TF-M SPM                 | S            | PC2                     | Priv      |
-| PSA RoT partitions       | S            | PC2 (EPC2 priv / EPC4 unpriv) | mixed |
-| Application RoT partitions | S          | PC2 (EPC2) / PC4 (EPC4) | Unpriv    |
-| CM33 NSPE                | NS           | PC2 (EPC2) / PC5 (EPC4) | Priv      |
-| CM55 NSPE                | NS           | PC6                     | Priv      |
+- Keep secrets (keys, identity) away from application code.
+- Offer a small set of secure services to the application: crypto,
+  protected storage, attestation.
+- Enforce a hard boundary between trusted and untrusted code.
 
-(AN240096 §4.2 tables 1, 2)
+TF-M is the reference implementation of the **PSA Firmware Framework
+for M** (FF-M). PSA is Arm's standard for IoT security.
 
-The PCs are an **Infineon-specific** pseudo-state added on top of the
-ARMv8-M S/NS attribute. They feed the Memory Protection Controller
-(MPC) and Peripheral Protection Controller (PPC) so a peripheral can
-be declared accessible to *some* of the (S, NS, PC) tuples and not
-others. This is how PSE84 reaches three isolation levels without
-having a second TrustZone hierarchy per core.
+For PSE84, TF-M runs on the Cortex-M33 secure side. The Cortex-M55
+has no TrustZone hardware, so it always runs non-secure.
 
-### 2.2 Three protection controllers, three jobs
+### 2. Secure world vs non-secure world
 
-- **TrustZone-M (SAU/IDAU).** Splits the address map into Secure /
-  Non-Secure attribute regions. The CM33 enforces this on every
-  bus transaction.
-- **MPC.** Per-memory-block S/NS + PC + R/W bits. Used by TF-M to
-  isolate SRAM regions between partitions.
-- **PPC.** Per-peripheral S/NS + PC + privilege bits. Used to mark
-  whole peripheral regions as "secure-only PC2" or
-  "NS-readable but writes require PC2", etc. This is the controller
-  that bus-faults a CM33-NS write to a secured PWRMODE PPU register.
+Armv8-M splits the CPU into two worlds:
 
-**How TF-M consumes the PPC/MPC config.** TF-M does not define an
-abstract "protection controller API". It defines a per-platform HAL
-([`platform/include/tfm_hal_isolation.h`](../../../home/ubuntu/zephyrproject/modules/tee/tf-m/trusted-firmware-m/platform/include/tfm_hal_isolation.h))
-with three required hooks:
+- **Secure (S).** Privileged, owns the crypto keys, owns the
+  protection-controller configuration.
+- **Non-Secure (NS).** Where the application runs. Most of your
+  Zephyr code lives here.
 
-| HAL function                          | Called when             | What the PSE84 port does                                |
-| ------------------------------------- | ----------------------- | ------------------------------------------------------- |
-| `tfm_hal_set_up_static_boundaries()`  | Once, at SPM init       | Programs SAU + MPC + PPC + IDAU + EWIC from the generated `cycfg_*.h` tables |
-| `tfm_hal_activate_boundary()`         | Each partition switch   | At isolation level 3 only: per-partition MPU reload     |
-| `tfm_hal_memory_check()`              | On every PSA call       | Validates NS-side `iovec` pointers against MPC regions  |
+Names you will see:
 
-Every vendor (Infineon PSE84, Nordic nRF, ST STM32L5/U5, NXP LPC55,
-...) implements those same hooks against its own protection controllers.
-This is the **only** integration point — there is no portable
-"PPC driver" in TF-M, and a Zephyr application never calls into it
-directly.
+- **SPE** — Secure Processing Environment. The S world.
+- **NSPE** — Non-Secure Processing Environment. The NS world.
 
-The PSE84 configuration that those hooks load is **pre-generated by
-the ModusToolbox Device Configurator** (under its *System* tab — there
-is no separate "Edge Protect Configurator" tool). It writes a
-`design.modus` and produces `cycfg_ppc.h`, `cycfg_mpc.h`, `cycfg_ppc_v3.h`
-etc. into a `GeneratedSource/` folder. The Zephyr build consumes the
-copy that is **vendored into the upstream TF-M tree** at:
+The split is enforced by hardware. NS code physically cannot reach
+S memory or S peripherals. If it tries, the CPU raises a fault.
+
+### 3. How a non-secure caller reaches a secure function
+
+NS code cannot just call an S function. The CPU forbids it. There
+is exactly **one** legal way across the boundary:
+
+1. S code reserves a small block of memory as **NSC**
+   (Non-Secure Callable). This is set up once at boot.
+2. The NSC block contains tiny stubs called **veneers**. Each veneer
+   starts with the special **`SG`** instruction (Secure Gateway).
+3. NS code calls a veneer like a normal function. The `SG`
+   instruction flips the CPU into S state.
+4. S code runs, does its work, then uses `BXNS` to return to NS.
+
+Why can a malicious NS image not lie about its identity?
+
+- The CPU tracks the S/NS attribute of every instruction at fetch
+  time. It is decided by the **SAU/IDAU** based on the address.
+- The NSC region is set up by S code. NS code cannot mark its own
+  memory as NSC.
+- `SG` only works inside the NSC region. Any other `SG` causes a
+  fault.
+
+So the "credential" of a caller is its bus attribute, which is set
+by hardware. No signature, no password, no shared secret. The
+hardware decides who is who.
+
+When TF-M's Secure Partition Manager (SPM) receives a call, it tags
+the request with the **NSID** (Non-Secure Client ID). For a normal
+NS caller this is `-1`, meaning "some NS code". TF-M does not try to
+tell different NS threads apart.
+
+### 4. What is a Secure Partition?
+
+A Secure Partition is a self-contained piece of secure code with its
+own memory and its own job. Examples in TF-M:
+
+- `tfm_crypto` — provides PSA Crypto.
+- `tfm_its` — provides Internal Trusted Storage.
+- `tfm_platform` — vendor-specific helpers (reset, IOCTL).
+
+Each partition has three pieces:
+
+1. **Manifest** (a YAML file). Says the name, model (IPC or SFN),
+   stack size, which services it exposes, which interrupts it
+   handles, which memory regions it can touch.
+2. **Source code**. Either one `entry_point` function with a
+   `psa_wait()` loop (IPC model) or one function per service (SFN
+   model).
+3. **CMake glue**. Tells the build to link it in.
+
+The Secure Partition Manager (SPM) reads the manifests at build time
+and lays out memory and IDs.
+
+### 5. The PSA API
+
+When NS code wants a service from a partition, it uses the **PSA
+API**. The most general entry point is:
+
+```c
+psa_status_t psa_call(psa_handle_t handle, int32_t type,
+                      const psa_invec  *in_vec,  size_t in_len,
+                      psa_outvec       *out_vec, size_t out_len);
+```
+
+- `handle` identifies which service.
+- `in_vec` / `out_vec` are arrays of small "iovec" structs, each
+  pointing at NS memory. Up to four of each.
+- The call looks synchronous to the caller. Underneath, SPM picks
+  the target partition and runs its handler.
+
+For specific services there are nicer wrappers, e.g.
+`psa_crypto_init()`, `psa_hash_compute()`, `psa_ps_set()`. These all
+call `psa_call` under the hood.
+
+### 6. Isolation levels and SPM backends
+
+TF-M can be built in three **isolation levels**:
+
+| Level | Boundary                                      | Cost   |
+| ----- | --------------------------------------------- | ------ |
+| 1     | S vs NS only                                  | small  |
+| 2     | Adds PRoT vs ARoT inside S                    | medium |
+| 3     | Adds wall between each ARoT partition         | large  |
+
+It also has two **SPM backends** (the engine that dispatches calls):
+
+| Backend | Runs partitions as     | Works with isolation levels |
+| ------- | ---------------------- | --------------------------- |
+| **SFN** | C callbacks, no thread | 1 only                      |
+| **IPC** | One thread per partition | 1, 2, 3                   |
+
+The backend is picked **at TF-M build time** with
+`CONFIG_TFM_SPM_BACKEND=SFN|IPC`. You cannot mix them and you cannot
+plug in your own. The PSE84 port uses **IPC** with isolation level
+2 on EPC2 and level 3 on EPC4.
+
+---
+
+## Part 2 — How the hardware enforces isolation
+
+### 7. TrustZone-M, SAU, MPU
+
+These are the building blocks the CPU itself has:
+
+- **TrustZone-M.** The S/NS split described above.
+- **SAU** (Security Attribution Unit) and **IDAU** (Implementation
+  Defined AU). They tag every address as S, NS, or NSC. The SAU is
+  software-configurable; the IDAU is hard-wired by the SoC.
+- **MPU** (Memory Protection Unit). Standard Arm MPU. Used by TF-M
+  in isolation level 3 to give each partition its own memory map.
+
+### 8. MPC and PPC
+
+ARMv8-M does not, by itself, tell *which peripherals or memory blocks*
+are secure. That decision is made by extra controllers that the SoC
+vendor adds. PSE84 has two:
+
+- **MPC** — Memory Protection Controller. Looks at every SRAM/RRAM
+  access and decides "this region is S or NS" plus a few extra bits.
+- **PPC** — Peripheral Protection Controller. Same idea for
+  peripherals. If a peripheral is marked S, NS code trying to read
+  or write it gets a fault.
+
+Other vendors call these controllers different things:
+
+| Vendor       | Memory controller | Peripheral controller |
+| ------------ | ----------------- | --------------------- |
+| Infineon     | MPC               | PPC                   |
+| Nordic       | SPU (single unit) | SPU                   |
+| ST           | GTZC-MPCBB        | GTZC-TZSC             |
+| NXP          | TRDC              | TRDC                  |
+
+### 9. How TF-M programs the protection hardware
+
+TF-M does **not** try to abstract every vendor's protection
+controller. Instead it defines a tiny HAL in
+[`platform/include/tfm_hal_isolation.h`](../../home/ubuntu/zephyrproject/modules/tee/tf-m/trusted-firmware-m/platform/include/tfm_hal_isolation.h)
+with three hooks every vendor must implement:
+
+| Hook                                 | When it runs              | What PSE84 does                        |
+| ------------------------------------ | ------------------------- | -------------------------------------- |
+| `tfm_hal_set_up_static_boundaries()` | Once, at SPM startup      | Programs SAU + MPC + PPC from generated tables |
+| `tfm_hal_activate_boundary()`        | At each partition switch  | Reloads MPU (level 3 only)             |
+| `tfm_hal_memory_check()`             | On every PSA call         | Validates NS pointers against MPC      |
+
+The PSE84 implementation lives in
+`modules/tee/tf-m/trusted-firmware-m/platform/ext/target/infineon/pse84/`.
+It reads its configuration from generated header files such as
+`cycfg_ppc.h`:
 
 ```
 modules/tee/tf-m/trusted-firmware-m/platform/ext/target/infineon/pse84/
   epc2/board/shared/design/default/GeneratedSource/cycfg_ppc.h
 ```
 
-For a Zephyr application this PPC/MPC config is **effectively
-immutable**: changing it means either forking the TF-M platform port
-or pointing the build at a different `design.modus`, neither of which
-the Zephyr build exposes today. Treat the four `CYCFG_PPC_SECURED_*`
-constants as a fixed environment your application has to live with.
+Those headers are produced by the **ModusToolbox Device Configurator**
+(the same GUI used for all MTB development). On PSE84 the PPC/MPC
+settings live under its "System" tab. The output is checked in as
+part of the TF-M Infineon platform port.
 
-### 2.3 Boot flow
-
-```
-+--------------+   +-----------+   +-----------+   +-------+   +-----+
-| Secure       |-->| CM33      |-->| Edge      |-->| TF-M  |-->| CM33|
-| Enclave ROM  |   | Extended  |   | Protect   |   | (M33S)|   | NSPE|
-| + Basic/SE   |   | Boot      |   | Bootloader|   |       |   |     |
-| RT services  |   | (RRAM)    |   | (verifies |   | inits |   |     |
-|              |   |           |   | 3 images) |   | SPE,  |   |     |
-|              |   |           |   |           |   | starts|   |     |
-|              |   |           |   |           |   | NS    |   |     |
-+--------------+   +-----------+   +-----------+   +-------+   +-----+
-                                                                  |
-                                                                  v
-                                                              +-------+
-                                                              | CM55  |
-                                                              | NSPE  |
-                                                              | (M33  |
-                                                              |  NS   |
-                                                              |  enables)|
-                                                              +-------+
-```
-
-(AN240096 §2.2 figure 2)
-
-> **Zephyr build does not produce BL2 / the Edge Protect Bootloader.**
-> [`platform/ext/target/infineon/pse84/config.cmake:34`](../../../home/ubuntu/zephyrproject/modules/tee/tf-m/trusted-firmware-m/platform/ext/target/infineon/pse84/config.cmake)
-> hard-codes `set(BL2 OFF)`, so the standard TF-M MCUboot stage is
-> compiled out for PSE84. The Edge Protect Bootloader is part of the
-> device's pre-provisioned firmware (RRAM + Secure Enclave). The
-> `west flash`-produced hex contains only TF-M-S + Zephyr-NS images
-> in their EPB-expected slots; EPB itself is not (re)programmed by
-> the Zephyr flow.
-
-Key consequence for porting: **NSPE never reaches HW reset state**.
-By the time `main()` runs in your Zephyr NS image, TF-M has already
-configured SAU/MPC/PPC, set the deep-sleep mode, gated some clocks,
-and so on. Anything you want to be different at NS boot has to be
-either (a) accepted, (b) done from TF-M-S, or (c) explicitly overridden
-from NS through a permitted path.
+For a Zephyr application this configuration is effectively
+**fixed at build time**. Changing it means forking the TF-M tree or
+plumbing a new `design.modus` through the build, neither of which the
+Zephyr flow supports today.
 
 ---
 
-## 3. The PSE84 three-image build
+## Part 3 — PSE84-specific details
 
-A complete PSE84 + TF-M application is **four** images sharing one
-device:
+### 10. The two cores and the Secure Enclave
 
-| Project           | Lives where        | Core | NS/S | Role                                    |
-| ----------------- | ------------------ | ---- | ---- | --------------------------------------- |
-| `proj_bootloader` | RRAM @ 0x32011000  | CM33 | S    | Edge Protect Bootloader (MCUboot-based) |
-| `proj_cm33_s`     | RRAM / SRAM        | CM33 | S    | TF-M SPM + secure partitions            |
-| `proj_cm33_ns`    | RRAM / external    | CM33 | NS   | Application NSPE (Zephyr, in our case)  |
-| `proj_cm55`       | RRAM / external    | CM55 | NS   | Application NSPE (Zephyr, in our case)  |
+PSE84 has three execution domains you can write code for:
 
-(AN240096 §2.4.1)
+| Core           | TrustZone? | What it runs                              |
+| -------------- | ---------- | ----------------------------------------- |
+| **Cortex-M33** | yes        | TF-M-S on the S side, your app on the NS side |
+| **Cortex-M55** | no         | Your app, always non-secure               |
+| **Secure Enclave** | n/a (custom) | Infineon-provided ROM + RT services    |
 
-In ModusToolbox these are four sibling projects. In our Zephyr
-workspace they are paired differently: a single board target
-`kit_pse84_eval/pse846gps2dbzc4a/m33/ns` plus `…/m55`, with the
-secure side (`proj_cm33_s`) built **automatically by the Zephyr build**
-when `CONFIG_BUILD_WITH_TFM=y` is set on the M33-NS image.
-`proj_bootloader` is **not** built by Zephyr — the Edge Protect
-Bootloader is part of the device's pre-provisioned firmware (see
-§2.3). See [`apps/02_pse84_tfm_m33_m55_pm/run.sh`](../apps/02_pse84_tfm_m33_m55_pm/run.sh)
-for the exact build order our helper script uses.
+The Secure Enclave is a small fixed-function block. You do not run
+code on it; it runs Infineon code that handles secure boot, key
+provisioning, and a few PSA RoT services.
+
+### 11. Protection Contexts (PC)
+
+A Protection Context is a number from 0 to 7 that PSE84 attaches to
+every bus master. It is an Infineon-specific feature **in addition
+to** the standard ARMv8-M S/NS attribute.
+
+| PC | Used by                                |
+| -- | -------------------------------------- |
+| 1  | Secure Enclave Root services           |
+| 2  | TF-M, secure partitions, EPB           |
+| 4  | ARoT partitions (EPC4 builds)          |
+| 5  | CM33-NS (EPC4 builds)                  |
+| 6  | CM55-NS                                |
+
+The MPC and PPC use the PC as a key. Each region can say
+"accessible to PC2 only" or "accessible to PC2 and PC6 read-only"
+etc. This is how PSE84 gives different secure partitions different
+peripheral views without doubling up on TrustZone hardware.
+
+### 12. The four images on one chip
+
+A full PSE84 application is four firmware images sharing one chip:
+
+| Image            | Core | World | What it does                                |
+| ---------------- | ---- | ----- | ------------------------------------------- |
+| Edge Protect Bootloader (EPB) | CM33 | S | Verifies and launches the other images. MCUboot-based. |
+| TF-M secure image | CM33 | S | Runs SPM and secure partitions.            |
+| CM33 application | CM33 | NS | Your code (Zephyr).                         |
+| CM55 application | CM55 | NS | Your code (Zephyr).                         |
+
+In ModusToolbox these are four projects (`proj_bootloader`,
+`proj_cm33_s`, `proj_cm33_ns`, `proj_cm55`). In Zephyr you only
+build two: the CM33-NS image (which auto-builds the TF-M-S image
+next to it) and the CM55 image. EPB is provisioned to the device
+separately.
+
+### 13. Boot flow
+
+```
+Secure Enclave ROM
+  -> CM33 Extended Boot in RRAM
+       -> Edge Protect Bootloader
+            -> verifies + launches TF-M-S
+                 -> TF-M-S inits SPE, then launches CM33-NS
+                      -> CM33-NS app boots, then enables CM55
+                           -> CM55 app starts
+```
+
+**Two things to remember:**
+
+1. By the time your NS `main()` runs, TF-M has already programmed
+   SAU/MPC/PPC, set clocks, and configured deep-sleep mode. The chip
+   is **not** in its reset state.
+2. EPB is **not** rebuilt by the Zephyr flow. The `west flash` hex
+   contains only TF-M-S + Zephyr-NS in their EPB-expected slots.
+   EPB itself is part of the device's pre-provisioned firmware.
 
 ---
 
-## 4. Crossing the SPE/NSPE boundary — PSA calls and NSC veneers
+## Part 4 — Zephyr and TF-M
 
-### 4.1 What a PSA call physically does
+### 14. The `_ns` board variant
 
-The NS Zephyr application calls one of the **TF-M interface** APIs,
-for example `psa_crypto_init()` or `psa_call(handle, type, in_vec, …)`.
-Under the hood (see
-`modules/tee/tf-m/trusted-firmware-m/interface/src/`):
+In Zephyr, a board has a special `_ns` variant when it can run
+TF-M. The `_ns` variant hard-codes:
 
-1. NS code pushes its arguments into shared "iovec" structures.
-2. It calls a tiny **NSC veneer** (`tfm_psa_call_veneer`, etc.). The
-   veneer is the *only* code in the Non-Secure Callable region.
-3. The veneer executes the Armv8-M `SG` (Secure Gateway) instruction.
-   This is the single legal way to flip the CPU from NS to S.
-4. The CPU is now executing S code with TF-M SPM in control.
-5. SPM tags the request with the **Non-Secure Client ID (NSID)** of
-   the caller, identifies the target service, schedules the partition,
-   and eventually replies with `BXNS LR` (the return-to-NS branch).
+- Flash and RAM offsets that leave room for TF-M-S and (optionally)
+  BL2.
+- The TrustZone-related Kconfigs (`CONFIG_ARM_TRUSTZONE_M=y`,
+  `CONFIG_TRUSTED_EXECUTION_NONSECURE=y`).
+- `CONFIG_TFM_BOARD=<name>` so TF-M's build knows which port to use.
 
-The whole round trip looks synchronous to NS, but inside TF-M the SPM
-may have multiplexed the request against other secure threads
-depending on the SPM backend.
-
-#### Why NS code cannot lie about its identity
-
-Nothing in the path above is cryptographic. The "authentication" is
-**architectural**, enforced by Armv8-M TrustZone hardware:
-
-- The CPU has an `_S` / `_NS` attribute that the **SAU/IDAU**
-  determines for every fetched instruction based on its address. NS
-  code executes from NS-attributed memory; that is a hardware fact,
-  not a software claim.
-- The only legal NS→S transition is `SG`, and `SG` is only valid
-  from inside the **NSC region** of the SAU, which is configured by
-  S code at boot. NS code cannot make any memory NSC and cannot
-  execute `SG` from anywhere else (any other `SG` faults).
-- When `SG` runs, the CPU swaps to S attribute. SPM derives the
-  origin attribute of the caller from architectural state and tags
-  the request with NSID `-1` ("non-secure caller"). It does **not**
-  trust NS to identify itself further — within an isolation level,
-  all NS code is one trust domain.
-- On systems with multiple NS clients (e.g., a hypervisor or an OS
-  with per-app isolation in NSPE), the NS-side mailbox layer can
-  attach a finer-grained NSID, but that ID is only trusted as far as
-  NSPE itself is trusted.
-
-The upshot: there is no signing, MAC, or symmetric tag on PSA calls.
-The **bus master attribute is the credential**, and TrustZone hardware
-makes it unforgeable. A compromised NS image can corrupt itself but
-cannot impersonate S code; an attempt to execute S code without
-going through an SG veneer triggers a `SecureFault`.
-
-### 4.2 SFN vs IPC backend
-
-TF-M ships two SPM backends with very different runtime cost:
-
-| Backend | Concurrency model       | Isolation levels | Use when                                                   |
-| ------- | ----------------------- | ---------------- | ---------------------------------------------------------- |
-| **SFN** | Single thread, callbacks | L1 only          | Smallest footprint, no secure thread needed                |
-| **IPC** | Per-partition contexts  | L1 + L2 + L3     | Partitions need `psa_wait` / interrupts / higher isolation |
-
-(TF-M docs §10.2)
-
-The backend is **selected at TF-M build time** via
-`CONFIG_TFM_SPM_BACKEND=SFN|IPC` and is **mutually exclusive** — one
-TF-M image has exactly one backend, and there is no supported way for
-an application to plug in a third. The backend hooks into interrupt
-handling, partition scheduling, and the linker layout, so it is not a
-clean extension point.
-
-The Infineon PSE84 port runs the **IPC backend** with isolation level
-2 on EPC2 and level 3 on EPC4 (AN240096 §4.3 table 4) because
-Infineon's own secure partitions need their own thread context and
-the L2/L3 isolation buys per-ARoT MPU regions.
-
-### 4.3 Anatomy of a Secure Partition
-
-A Secure Partition is the unit of code that runs inside the SPE. It
-consists of three things on disk:
-
-1. **Manifest** (`*.yaml`) declaring partition name, model (IPC/SFN),
-   stack, priority, MMIO regions it needs access to, IRQs it owns,
-   the list of RoT services it exposes (each with a SID), and its
-   dependencies on other services.
-2. **Source code** implementing the entry point (IPC) or one SFN per
-   service (SFN). The entry point is the canonical `while (1) { signals
-   = psa_wait(...); ... }` dispatcher; the SFN form is just `psa_status_t
-   foo_sfn(const psa_msg_t *msg)` callbacks.
-3. **CMake glue** linking the partition into `tfm_partitions` and
-   adding the manifest path to `tools/tfm_manifest_list.yaml`.
-
-(TF-M docs §10.10 *Adding a new secure partition*)
-
-The SPM uses the manifest at build time to allocate IDs (PID, SID,
-stateless-handle index), generate per-partition `psa_manifest/*.h`
-headers with signal symbols, and lay out memory.
-
-### 4.4 PSA wire format
-
-Every PSA call carries up to four input vectors and four output
-vectors:
-
-```c
-typedef struct { const void *base; size_t len; } psa_invec;
-typedef struct { void       *base; size_t len; } psa_outvec;
-
-psa_status_t psa_call(psa_handle_t handle, int32_t type,
-                      const psa_invec  *in_vec,  size_t in_len,
-                      psa_outvec       *out_vec, size_t out_len);
-```
-
-The vectors live in NS memory. SPM and the partition use
-`psa_read()` / `psa_write()` (with MMIOVEC optimization where allowed)
-to access them; partitions are **not** supposed to dereference NS
-pointers directly.
-
----
-
-## 5. The CM55 problem and the SRF mailbox
-
-On a single-core M33 system the story ends at §4. PSE84 is dual-core
-and CM55 has **no TrustZone-M**, so CM55 cannot execute `SG` to reach
-TF-M. Three solutions get layered on top:
-
-### 5.1 Layer 1 — CM55 always runs as NSPE
-
-CM55 boots in NS mode and stays there. Anything it cannot do directly
-(touching a secured peripheral, modifying PWRMODE, etc.) has to go
-through CM33-S.
-
-### 5.2 Layer 2 — IPC relay through CM33-NS
-
-CM55 packages its PSA-or-equivalent request and shoves it through the
-**Inter-Processor Communication (IPC)** mailbox to CM33-NS. CM33-NS
-acts as a forwarder: it dequeues the IPC message and re-submits it
-through its own NSC veneer into TF-M-S. The reply walks back the same
-way. (AN240096 §4.1)
-
-With RTOS:
-
-```
-CM55-NS  --IPC--> CM33-NS thread "SRF receive"
-                  CM33-NS thread "SRF process"  --SG--> TF-M-S --> reply
-                                                                       |
-                  CM55-NS  <--IPC--  CM33-NS thread "SRF process"  <---+
-```
-
-Bare-metal CM33-NS has to call `mtb_srf_ipc_receive_request()` and
-`mtb_srf_ipc_process_pending_request()` from its main loop manually.
-
-### 5.3 Layer 3 — Secure Request Framework (SRF)
-
-The SRF is **Infineon-specific** glue (`modules/hal/infineon/mtb-srf/`)
-that hides Layer 1 + Layer 2 from driver code. It is **not part of
-TF-M**, and it does not require TF-M to function:
-
-- In a ModusToolbox **native** secure-firmware build, `proj_cm33_s`
-  is a plain CMSE secure application and SRF requests cross the
-  S/NS boundary via Arm CMSE `cmse_nonsecure_entry` veneers
-  (`mtb_srf_request_submit` is declared with
-  `__attribute__((cmse_nonsecure_entry))` on the S side). No PSA, no
-  TF-M.
-- In a **TF-M-integrated** build (Zephyr's case, or the
-  `ifx-tf-m-pse84epc2` library route), the same SRF wire format is
-  carried over a PSA service \u2014 i.e. `mtb_srf_request_submit` on the\n  NS side becomes a `psa_call` whose handler in TF-M-S unpacks the\n  SRF input vector and dispatches.\n\nEither way, from NS the caller invokes a normal C function; the SRF\ntransparently:\n\n1. Allocates a request/response pair from a pre-sized pool\n   (`cy_pdl_srf_default_pool`, `mtb_srf_pool_init`).\n2. Packs scalar inputs (`mtb_srf_invec_ns_t`) and pointer descriptors.\n3. Submits the request \u2014 via CMSE on CM33-NS in MTB native, via\n   `psa_call` on CM33-NS under TF-M, via IPC + CM33-NS relay on CM55.\n4. Waits for the reply, copies scalar outputs out, frees the pool entry.\n\n**SRF identifier hierarchy:** every operation is identified by a\nthree-level tuple `(module_id, submodule_id, op_id)` carried in the\nfirst input vector (`mtb_srf_input_ns_t`). A *module* is a logical\ngroup of operations; the BSP ships one (`MTB_SRF_MODULE_PDL`), and\napplications are explicitly expected to define their own\n(`MTB_SRF_MODULE_USER` is the canonical name used in Infineon's own\nexamples). The SRF user guide \u00a73 documents this as the primary\ncustomization point.\n\nThe Infineon **security-aware PDL** drivers (cy_syspm, cy_syslib,\ncy_sysclk, cy_rtc, cy_smif\u2026) decide *at compile time* whether to use\nSRF based on the `CY_PDL_*_ENABLE_SRF_INTEG` family of macros, which\nin turn are gated on the generated `CYCFG_PPC_SECURED_*` constants.\nIf the PPC region a driver touches is configured as secured, the\ndriver flips into \"SRF\" mode and the call goes through whichever\ntransport the build has wired up.\n\n### 5.4 What \"out of the box\" SRF actually covers in our build\n\nAN240096 \u00a74 lists the Infineon-supported SRF modules under the PDL\numbrella: **SMIF, RTC, SysClk, SysPM**. Their *client-side* stubs\nlive in the PDL header pairs and are present in our build:\n\n```\nmodules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/include/\n  cy_syspm.h           cy_syspm_srf.h\n  cy_sysclk.h          cy_sysclk_srf.h\n  cy_smif.h            cy_smif_srf.h\n  cy_rtc.h             cy_rtc_srf.h\n```\n\nThe companion `_srf.h` declares the per-driver SRF operation table\n(`_cy_pdl_syspm_srf_operations[]`, etc.) that the **secure side** is\nexpected to register \u2014 either inside TF-M's Platform partition or in\na plain CMSE secure firmware.\n\n> **PSE84 + Zephyr specific gotcha.** The PDL client stubs are\n> compiled, but the matching **server-side handlers are missing** from\n> Zephyr's TF-M build. AN240096 describes the ModusToolbox\n> `ifx-tf-m-pse84epc2` / `pse84epc4` *library* which ships those\n> handlers as part of a customized TF-M distribution. The Zephyr\n> module tree (`modules/tee/tf-m/trusted-firmware-m/`) is an upstream\n> TF-M snapshot whose Infineon platform port contributes only the\n> `tfm_hal_*` plumbing, *not* the PDL SRF handlers. A grep of\n> `secure_fw/partitions/platform/` returns no\n> `_cy_pdl_*_srf_operations` definitions and no `SECURE_SUBMODULE_*`\n> handler. Per the SRF user guide \u00a75 \"Customization\", filling that\n> gap is **expected to be done by the application** (or by a vendor\n> library), not by upstream TF-M. This is the root of the syspm\n> blocker described in `PHASE6_BLOCKER.md`.
-
----
-
-## 6. Zephyr-specific TF-M integration
-
-### 6.1 The `_ns` board target convention
-
-In Zephyr you never enable TF-M on an arbitrary board. The board
-itself must define an `_ns` variant that hard-codes the right flash /
-SRAM offsets, TrustZone-related Kconfigs, and the matching
-`CONFIG_TFM_BOARD=<name>` so TF-M's CMake knows which `platform/ext/
-target/*` to build. For PSE84 the relevant targets are:
+For PSE84 the targets are:
 
 ```
 kit_pse84_eval/pse846gps2dbzc4a/m33/ns
 kit_pse84_eval/pse846gps2dbzc4a/m55
 ```
 
-(see `boards/infineon/kit_pse84_eval/` in Zephyr)
+### 15. What `CONFIG_BUILD_WITH_TFM=y` does
 
-### 6.2 What `CONFIG_BUILD_WITH_TFM=y` actually does
+When this Kconfig is set on the NS image, Zephyr's CMake does the
+following extra work:
 
-When that Kconfig is set on the NS image:
+1. Invokes TF-M's CMake (out-of-tree) with the right platform,
+   profile, and isolation level.
+2. Builds `tfm_s.bin` and the NS-interface install tree (NSC
+   veneers, `psa_manifest/*.h` headers, signing helpers).
+3. Builds your Zephyr image against that install tree.
+4. Signs and assembles the final hex.
 
-1. Zephyr's CMake invokes the TF-M CMake (out-of-tree) with the right
-   `TFM_PLATFORM`, `TFM_PROFILE`, `TFM_ISOLATION_LEVEL`,
-   `CONFIG_TFM_BL2`, etc.
-2. The TF-M build produces `bl2.bin`, `tfm_s.bin`, and an installable
-   NS interface (`install/` tree) with the NSC veneer prototypes,
-   `psa_manifest/*.h` headers, and signing helpers.
-3. The Zephyr image is built against that NS interface and signed
-   with the TF-M-supplied tooling.
-4. A `tfm_merged.hex` is produced that concatenates BL2 + TF-M-S +
-   Zephyr-NS, in the order MCUboot can verify. The flash tool writes
-   that single hex.
+The flag is **not** something you set in an application Kconfig. It
+is set by the `_ns` board variant.
 
-You can see this in the build log of the `02_…` app: the
-`Generating files from … for board: kit_pse84_eval/.../m55` line is
-the post-link step that re-assembles the multi-image hex.
+### 16. What Zephyr builds and what it does not
 
-### 6.3 The Kconfig knobs that matter for power management
-
-| Kconfig                              | Effect                                                                                            |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------- |
-| `CONFIG_BUILD_WITH_TFM`              | Pairs the NS image with a TF-M-S build                                                            |
-| `CONFIG_TFM_PROFILE`                 | `medium` (default) / `large` — picks crypto + partition set                                       |
-| `CONFIG_TFM_ISOLATION_LEVEL`         | 1 / 2 / 3 — affects partition memory layout                                                       |
-| `CONFIG_TFM_BL2`                     | Enable MCUboot stage (defaults `y`)                                                               |
-| `CONFIG_PSOC_EDGE_M55_SRF_SUPPORT`   | (Infineon-specific) Enable SRF pool + IPC relay threads on CM33-NS so CM55 can submit PSA calls   |
-
-Setting `CONFIG_PSOC_EDGE_M55_SRF_SUPPORT=y` on the NS image is what
-trips the SRF pool initialisation in `soc_pse84_m33_ns.c` and brings in
-the IPC relay threads. Without it the CM55 cannot reach TF-M at all;
-with it, the NS code itself starts routing certain PDL calls through
-SRF as well (because the PDL's conditional definition of
-`CY_PDL_*_ENABLE_SRF_INTEG` is independent of the Kconfig — it is
-controlled purely by the PPC config).
-
-### 6.4 PSA APIs from Zephyr code
-
-Zephyr exposes the same PSA APIs that the TF-M NS interface defines.
-The headers come in via the TF-M install step and look like:
-
-```c
-#include <psa/crypto.h>
-#include <psa/protected_storage.h>
-#include <psa/internal_trusted_storage.h>
-```
-
-Use them directly from your `main.c`. The Zephyr build wires them
-through the NSC veneers automatically. There is **no Zephyr wrapper
-layer** — the calls are just TF-M's NS API.
-
-### 6.5 Special peripherals the secure side owns
-
-TF-M typically owns SCB2 (the KitProg UART) on PSE84 because secure
-fault dumps need to log. If your NS application also wants to print,
-you must either:
-
-- accept the PSA platform partition's logging service
-  (`ifx_platform_log_msg`) — this round-trips every line through SPM,
-  or
-- enable a different SCB instance for NS use and mark it
-  NS-accessible in PPC config (AN240096 §2.5).
-
-For our `02_…` app Zephyr's printk goes through the secure UART
-already wired by the platform; no PSA call is needed.
-
----
-
-## 7. Security-aware PDL: how a driver call decides where to run
-
-Worked example for `Cy_SysPm_CpuEnterSleep` from CM33-NS:
-
-```c
-/* mtb-dsl-pse8xxgp/pdl/drivers/source/cy_syspm_v4.c (abridged) */
-cy_en_syspm_status_t Cy_SysPm_CpuEnterSleep(...) {
-    Cy_SysPm_ExecuteCallback(CY_SYSPM_SLEEP, CY_SYSPM_CHECK_READY);
-    ...
-
-#if !defined(COMPONENT_SECURE_DEVICE) && \
-    defined(CY_PDL_SYSPM_ENABLE_SRF_INTEG) && \
-    !(CY_CPU_CORTEX_M55)
-    /* (A) SRF path: NS on CM33 with secured PPC */
-    mtb_srf_invec_ns_t  *inVec  = NULL;
-    mtb_srf_outvec_ns_t *outVec = NULL;
-    if (mtb_srf_pool_allocate(&cy_pdl_srf_default_pool, &inVec, &outVec,
-                              CY_PDL_SYSPM_SRF_POOL_TIMEOUT)
-        != CY_RSLT_SUCCESS) return CY_SYSPM_FAIL;
-    invoke_args.op_id        = CY_PDL_SYSPM_OP_CPUENTERSLEEP;
-    invoke_args.submodule_id = CY_PDL_SECURE_SUBMODULE_SYSPM;
-    _Cy_PDL_Invoke_SRF(&invoke_args);   /* PSA call into TF-M-S */
-    mtb_srf_pool_free(&cy_pdl_srf_default_pool, inVec, outVec);
-#endif
-
-    interruptState = Cy_SysLib_EnterCriticalSection();
-
-#if defined(COMPONENT_SECURE_DEVICE) || \
-    !defined(CY_PDL_SYSPM_ENABLE_SRF_INTEG) || (CY_CPU_CORTEX_M55)
-    /* (B) Direct WFI path: secure device, NS on CM55, or PPC not secured */
-    SCB_SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
-    __DSB();
-    if (waitFor != CY_SYSPM_WAIT_FOR_EVENT) __WFI();
-    SCB_SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
-#else
-    /* (C) Nothing — the WFI happened inside TF-M-S in branch (A) */
-#endif
-
-    Cy_SysLib_ExitCriticalSection(interruptState);
-    ...
-}
-```
-
-Three concrete paths, picked at PDL build time:
-
-| Path | Compile predicate                                       | Build               | Result                                |
-| ---- | ------------------------------------------------------- | ------------------- | ------------------------------------- |
-| A+C  | NS on CM33, PPC secured, SRF_INTEG set                  | our `02_…` build    | SRF submit; needs TF-M-S handler      |
-| B    | COMPONENT_SECURE_DEVICE                                 | TF-M-S itself       | Direct PPU/PWRMODE access from S      |
-| B    | NS on CM55                                              | our `cm55` build    | Direct WFI; SoC handles voter logic   |
-| B    | NS on CM33, PPC NOT secured (SRF_INTEG undefined)       | non-TF-M source 16  | Direct WFI; no SRF dependency         |
-
-Group-2 PDL functions (e.g. `Cy_SysPm_SetSysDeepSleepMode`,
-`Cy_SysPm_SetSOCMEMDeepSleepMode`, `SRSS_PWR_CTL2` direct pokes,
-core-buck helpers, oscillator DS-enable bits) **lack** the SRF
-wrapping entirely — they always do the direct register write. From
-CM33-NS with secured PPC they always bus-fault. There is no PDL-level
-fallback; the only way to call them is to either (a) reach the same
-registers from TF-M-S code, or (b) widen the PPC config so NS can
-write them.
-
----
-
-## 8. Idiomatic ways to deal with the syspm gap
-
-This section maps the four options in
-`PHASE6_BLOCKER.md` onto concrete TF-M concepts so the trade-offs are
-explicit.
-
-### Option A — stop calling syspm from NS
-
-Keep the NS code at CMSIS-only primitives (`SCB->SCR.SLEEPDEEP`,
-`__WFI`, `__WFE`). Accept whatever PWRMODE / PPU configuration TF-M
-established at boot. This is what our Phase 4/5 dispatcher does today
-and it is **idiomatic for TF-M**: NS is not supposed to be the
-authority on system power state.
-
-### Option B — add a small **out-of-tree TF-M partition** that does the static Layer-B bias at S boot
-
-Write a new partition (call it `pse84_pm_init`), SFN model, no exposed
-services. Its `psa_framework_*` entry-point function runs once at SPM
-startup and does:
-
-```c
-Cy_SysPm_SetDeepSleepMode(CY_SYSPM_MODE_DEEPSLEEP);
-SRSS_PWR_CTL2 |= SRSS_PWR_CTL2_BGREF_LPMODE_Msk;
-Cy_SysPm_CoreBuckDpslpSetVoltage(CY_SYSPM_CORE_BUCK_VOLTAGE_0_70V);
-Cy_SysPm_CoreBuckDpslpSetMode(CY_SYSPM_CORE_BUCK_MODE_LP);
-Cy_SysPm_CoreBuckDpslpEnableOverride(true);
-Cy_SysClk_IhoDeepsleepDisable();
-SRSS_CLK_IMO_CONFIG &= ~SRSS_CLK_IMO_CONFIG_DPSLP_ENABLE_Msk;
-Cy_SysClk_ClkBakSetSource(CY_SYSCLK_BAK_IN_PILO);
-```
-
-All of this runs in S so the PPC does not get in the way and no SRF
-is needed. NS keeps using SLEEPDEEP+WFI; the difference is that the
-SoC now actually collapses to its configured deep-sleep mode at the
-right bias, so the current drops.
-
-This is the minimum-effort change that delivers real power savings
-without touching the SRF gap. Concrete recipe — **the partition lives
-outside the TF-M tree** (no upstream files touched):
-
-```
-apps/02_pse84_tfm_m33_m55_pm/tfm_partitions/
-  pse84_pm_init/
-    manifest_list.yaml        # one-line index to pse84_pm_init.yaml
-    pse84_pm_init.yaml        # the manifest (model: SFN, type: PSA-ROT)
-    pse84_pm_init.c           # the init function
-    CMakeLists.txt            # tfm_add_secure_partition(pse84_pm_init ...)
-```
-
-Wire it in via two CMake variables documented in
-[TF-M's integration guide §"Adding a secure partition"](../../../home/ubuntu/zephyrproject/modules/tee/tf-m/trusted-firmware-m/docs/integration_guide/services/tfm_secure_partition_addition.rst):
+For PSE84, the [`platform/ext/target/infineon/pse84/config.cmake`](../../home/ubuntu/zephyrproject/modules/tee/tf-m/trusted-firmware-m/platform/ext/target/infineon/pse84/config.cmake)
+file in TF-M hard-codes:
 
 ```cmake
--DTFM_EXTRA_MANIFEST_LIST_FILES=<absolute>/manifest_list.yaml
--DTFM_EXTRA_PARTITION_PATHS=<absolute>/pse84_pm_init
+set(BL2 OFF CACHE BOOL "Whether to build BL2")
 ```
 
-Pass those through Zephyr's TF-M wrapper (via `TFM_CMAKE_OPTIONS`
-append, set by an app-level CMake file). You do **not** need NSC
-veneers or PSA services — the partition has no NS-facing API — and
-you do **not** touch any file under
-`modules/tee/tf-m/trusted-firmware-m/`.
+So **TF-M's MCUboot stage (BL2) is not built** in our flow. The
+Edge Protect Bootloader on the device handles boot verification.
+`west flash` programs only the two application slots.
 
-### Option C — ship a custom SRF module (out-of-tree partition that handles syspm requests)
+The PPC/MPC configuration is also not generated by Zephyr. It is
+already present in the TF-M source tree as `cycfg_ppc.h` (see §9).
 
-This is the change that closes the SRF gap and gives NS code real
-syspm control. Forget the earlier "PSA service vs SRF dispatch table"
-framing — that was misleading. The right model is the one used by
-[`tmp/mtb-example-psoc-edge-secure-power-management/user_srf/`](../tmp/mtb-example-psoc-edge-secure-power-management/user_srf/):
+### 17. Useful Kconfig options
 
-> **Define your own SRF module — do not try to extend the PDL's.** A
-> Zephyr application can register a new SRF module (e.g.
-> `MTB_SRF_MODULE_USER`) with its own submodule IDs, operation IDs,
-> and NS-side wrappers. The PDL's `_cy_pdl_*_srf_operations` tables
-> stay untouched (and still unimplemented — NS code just won't call
-> the unimplemented PDL paths).
+| Kconfig                              | Effect                                                 |
+| ------------------------------------ | ------------------------------------------------------ |
+| `CONFIG_BUILD_WITH_TFM`              | Build TF-M-S next to the NS image. Set by the `_ns` board. |
+| `CONFIG_TFM_PROFILE`                 | `medium` (default) or `large`. Picks the crypto + partition set. |
+| `CONFIG_TFM_ISOLATION_LEVEL`         | 1, 2, or 3.                                            |
+| `CONFIG_TFM_LOG_LEVEL`               | `DEBUG` is very useful while bringing up a new board.  |
+| `CONFIG_TFM_EXCEPTION_INFO_DUMP`     | Prints fault info on the secure UART. Turn on.         |
+| `CONFIG_PSOC_EDGE_M55_SRF_SUPPORT`   | (Infineon) Start the SRF pool and IPC relay threads.   |
 
-This matches the *Customization* chapter of the SRF user guide (§5)
-and is exactly what AN240096 demonstrates with the
-`mtb-example-psoc-edge-secure-power-management` example.
+### 18. Adding your own secure partition (out-of-tree)
 
-#### How the MTB power example does it (the pattern to follow)
+TF-M supports adding partitions **without touching the upstream
+tree**. Two CMake variables do the job:
 
-1. **NS-side stubs** — in [`user_srf/user_syspm_srf.c`](../tmp/mtb-example-psoc-edge-secure-power-management/user_srf/user_syspm_srf.c)
-   the application defines four small wrappers `Cy_USER_SysEnterHp`,
-   `Cy_USER_SysEnterLp`, `Cy_USER_SysEnterUlp`, `Cy_USER_SysEnterDS`.
-   Each one allocates an SRF buffer pair, fills in
-   `module_id=MTB_SRF_MODULE_USER`, `submodule_id=CY_USER_SECURE_SUBMODULE_SYSPM`,
-   `op_id=CY_USER_SYSPM_OP_ENTER*`, and calls `Cy_USER_Invoke_SRF`
-   (a copy-paste of `_Cy_PDL_Invoke_SRF` re-tagged for module USER).
-2. **S-side implementations** — the *same* `.c` file under
-   `#if defined(COMPONENT_SECURE_DEVICE)` provides four
-   `cy_user_syspm_srf_enter*_impl_s()` handlers and a
-   `_cy_user_syspm_srf_operations[]` table that wires op IDs to those
-   handlers. The handlers call the real PDL `Cy_SysPm_SystemEnter*`
-   functions — which in a `COMPONENT_SECURE_DEVICE` build just do
-   register writes, because the PDL's `CY_PDL_SYSPM_ENABLE_SRF_INTEG`
-   guard is bypassed when the calling core is the secure one.
-3. **Module registration** — in the secure project's `main()`,
-   `cy_user_srf_module_register(&cybsp_srf_context)` adds the new
-   module to the SRF context's list of dispatchable modules
-   ([`proj_cm33_s/main.c:271`](../tmp/mtb-example-psoc-edge-secure-power-management/proj_cm33_s/main.c)).
-4. **Pool init on NS** — `cy_user_srf_module_pool_init()` from
-   [`proj_cm33_ns/main.c:212`](../tmp/mtb-example-psoc-edge-secure-power-management/proj_cm33_ns/main.c)
-   sets up a shared-memory pool for the module's request buffers.
+```
+-DTFM_EXTRA_MANIFEST_LIST_FILES=<absolute>/manifest_list.yaml
+-DTFM_EXTRA_PARTITION_PATHS=<absolute>/path/to/your/folder
+```
 
-The MTB example's `proj_cm33_s` is a plain CMSE secure firmware, not
-a TF-M project. The transport underneath is therefore raw
-`cmse_nonsecure_entry`. For our Zephyr build we keep the same
-NS-side code and the same module/submodule/op IDs, but the secure
-side lives inside a TF-M partition.
+They are documented in
+[`docs/integration_guide/services/tfm_secure_partition_addition.rst`](../../home/ubuntu/zephyrproject/modules/tee/tf-m/trusted-firmware-m/docs/integration_guide/services/tfm_secure_partition_addition.rst)
+inside the TF-M tree.
 
-#### Mapping that pattern onto our Zephyr + TF-M build
+In a Zephyr workspace you pass them through the TF-M wrapper by
+appending to `TFM_CMAKE_OPTIONS`. The next two parts use this
+mechanism to fix our power-management problem.
+
+---
+
+## Part 5 — Infineon's Secure Request Framework (SRF)
+
+### 19. Why Infineon adds SRF on top of PSA
+
+The PSA API works, but every new secure operation needs:
+
+- A new SID.
+- A new partition entry point.
+- Hand-written packing and unpacking of `iovec`s on both sides.
+
+That gets tedious for vendor driver code that has hundreds of small
+functions. So Infineon built a thin framework called **SRF**
+(Secure Request Framework) that:
+
+- Defines one fixed request format on the wire.
+- Provides shared-memory pools for the buffers.
+- Lets the application register a table of operations once and call
+  them by ID.
+
+SRF lives in [`modules/hal/infineon/mtb-srf/`](../../home/ubuntu/zephyrproject/modules/hal/infineon/mtb-srf/).
+It is **independent of TF-M**:
+
+- In a ModusToolbox-native build, the secure side is a plain CMSE
+  firmware and SRF calls are normal CMSE veneers.
+- In a TF-M build (like ours), SRF calls are wrapped in a PSA call.
+  One PSA service per SRF module, dispatch inside.
+
+### 20. Module, submodule, operation
+
+Every SRF call is identified by a triple:
+
+```
+(module_id, submodule_id, op_id)
+```
+
+- **Module.** Top-level group. The BSP ships one named
+  `MTB_SRF_MODULE_PDL` for the PDL drivers. Applications add their
+  own (e.g. `MTB_SRF_MODULE_USER`).
+- **Submodule.** A logical area inside the module (`SYSPM`,
+  `SYSCLK`, `RTC`, `SMIF`, …).
+- **Operation.** The actual function (`ENTERDEEPSLEEP`,
+  `SETPWRMODE`, …).
+
+A module is registered on the S side with `mtb_srf_module_register`.
+The matching memory pool is initialized on the NS side with
+`mtb_srf_pool_init`. After that, NS code calls operations through a
+single helper that packs the IDs into an `iovec` and submits the
+request.
+
+### 21. How an SRF call travels
+
+On CM33-NS, with TF-M:
+
+```
+NS app                                          S world
+------                                          -------
+Cy_<X>_<op>()                                   |
+  |                                             |
+  v                                             |
+mtb_srf_pool_allocate                           |
+fill inVec[0] with (module,submodule,op,...)    |
+mtb_srf_request_submit                          |
+  |                                             |
+  +-- psa_call(SRF_SERVICE_HANDLE, ...)         |
+        |                                       |
+        +-- SG -- crosses NSC -->               TF-M SPM
+                                                  |
+                                                  v
+                                                Partition handler:
+                                                  read (module,sub,op)
+                                                  switch and dispatch
+                                                  do the work
+                                                  fill output
+                                                  psa_reply
+        <-- BXNS -- crosses back --              |
+  |                                             |
+mtb_srf_pool_free                               |
+return value to caller                          |
+```
+
+On CM33-NS in a non-TF-M ModusToolbox build, replace `psa_call` with
+a direct CMSE call into the secure firmware. The rest is the same.
+
+### 22. The CM55 path: IPC through CM33-NS
+
+CM55 has no TrustZone, so it cannot execute `SG`. It cannot reach
+TF-M-S directly. The CM55 path adds one more hop:
+
+```
+CM55 app
+  -> mtb_srf_request_submit
+       -> IPC message to CM33-NS
+            -> CM33-NS relay thread (started by Zephyr)
+                 -> psa_call into TF-M-S
+                      -> partition handler does the work
+                 <- reply
+            <- IPC reply
+  <- return value
+```
+
+The CM33-NS relay threads are started when
+`CONFIG_PSOC_EDGE_M55_SRF_SUPPORT=y` is set. Without that Kconfig,
+CM55 has no way to reach secure services.
+
+### 23. Security-aware PDL drivers
+
+Some PDL drivers (`cy_syspm`, `cy_sysclk`, `cy_rtc`, `cy_smif`) are
+**security-aware**. They have two implementations and decide at
+**compile time** which one to use:
+
+- If the peripheral the driver touches is marked secure in the PPC
+  config, the driver routes through SRF.
+- Otherwise it touches the registers directly.
+
+The decision is made by a family of macros like
+`CY_PDL_SYSPM_ENABLE_SRF_INTEG`, which are defined based on the
+constants in [`cycfg_ppc.h`](../../home/ubuntu/zephyrproject/modules/tee/tf-m/trusted-firmware-m/platform/ext/target/infineon/pse84/epc2/board/shared/design/default/GeneratedSource/cycfg_ppc.h).
+
+In the PSE84 TF-M build those macros **are** defined, because the
+relevant `CYCFG_PPC_SECURED_*` constants (PWRMODE, SRSS_MAIN,
+SRSS_HIB_DATA, M55APPCPUSS) are all `1U`. So PDL syspm calls from
+CM33-NS go through SRF.
+
+---
+
+## Part 6 — Our power-management problem
+
+### 24. What is missing in Zephyr's TF-M build
+
+The PDL provides client-side stubs for SRF (the NS half of the
+call). It also declares the matching S-side dispatch tables
+(`_cy_pdl_syspm_srf_operations[]`, etc.) in headers like
+`cy_syspm_srf.h`. But the **server-side implementation** that fills
+those tables is part of the ModusToolbox library
+`ifx-tf-m-pse84epc2`. That library is **not in the Zephyr module
+tree**.
+
+You can confirm with one grep:
+
+```
+grep -rln "_cy_pdl_syspm_srf_operations" \
+    modules/tee/tf-m/trusted-firmware-m/
+# -> no matches
+```
+
+The PDL handles this gracefully: from CM33-NS, if a secure-aware
+function is called, the PDL packages an SRF request and submits it.
+The submission then waits for a reply that never comes (no S-side
+handler).
+
+In our `02_…` build this shows up as a hang inside
+`Cy_SysPm_CpuEnterSleep`, and (once we hit deep sleep) as a hard
+reset because the SoC enters a deep-sleep mode the SPE has not
+prepared for.
+
+The SRF user guide (§5 *Customization*) is explicit: applications
+are expected to add their own SRF modules. The pattern is shown in
+the MTB example
+[`tmp/mtb-example-psoc-edge-secure-power-management/user_srf/`](../tmp/mtb-example-psoc-edge-secure-power-management/user_srf/).
+
+### 25. Four ways to deal with it
+
+| Option | What you do                                           | NS sleep control | Real power savings | Touches upstream | Effort |
+| ------ | ----------------------------------------------------- | ---------------- | ------------------ | ---------------- | ------ |
+| **A**  | Use CMSIS-only `WFI`. Never call PDL syspm from NS.   | CPU only         | small              | no               | none   |
+| **B**  | Add a tiny S-side init partition. Bias the SoC once at boot. NS keeps using `WFI`. | CPU only       | yes (static)       | no (out-of-tree) | small  |
+| **C**  | Add an out-of-tree partition with a custom SRF module that the NS app calls for every power transition. | full             | yes (dynamic)      | no (out-of-tree) | medium |
+| **D**  | Edit `cycfg_ppc.h` so PWRMODE/SRSS are non-secure. PDL falls back to direct writes from NS. | full             | yes                | **yes**          | smallest |
+
+Option D works but breaks TF-M isolation. Use it only for early
+bring-up on a development board.
+
+Option A is what our Phase 4/5 dispatcher does today. It is the
+TF-M-idiomatic answer ("NS does not own system power") but leaves
+performance on the table.
+
+### 26. Recommended path: a custom SRF module
+
+This is Option C, modeled exactly on the MTB power example. We do
+**not** try to extend the PDL's SRF tables. We define our own
+module with the operations our Zephyr app needs.
+
+#### File layout
 
 ```
 apps/02_pse84_tfm_m33_m55_pm/
-  cm33_ns/src/user_syspm_srf.c         (NS stubs, copied from MTB example)
+  cm33_ns/src/
+    user_syspm_srf.c          NS-side stubs (Cy_USER_SysEnterDS, …)
+    user_syspm_srf.h
   tfm_partitions/
     z_pm_srf/
-      manifest_list.yaml
-      z_pm_srf.yaml                    (model: IPC, type: PSA-ROT,
-                                         services: z_pm_srf,
-                                         mmio_regions: SRSS, PWRMODE)
-      z_pm_srf.c                       (PSA entry point + dispatch)
-      user_syspm_srf_impl_s.c          (S-side impls, from MTB example)
+      manifest_list.yaml      Points at z_pm_srf.yaml
+      z_pm_srf.yaml           model: IPC, type: PSA-ROT,
+                              services: [{ name: Z_PM_SRF, sid: 0x... }]
+      z_pm_srf.c              PSA entry point + dispatch
+      user_syspm_srf_impl.c   S-side implementations (Cy_USER_SysEnterDS_s)
       CMakeLists.txt
 ```
 
-The `z_pm_srf.c` PSA entry point:
+#### NS-side stubs (one per operation)
 
 ```c
-static void z_pm_srf_handle(psa_msg_t *msg) {
+cy_en_user_syspm_status_t Cy_USER_SysEnterDS(void)
+{
+    cy_en_user_syspm_status_t result = CY_USER_SYSPM_FAIL;
+    /* allocate, pack (MODULE_USER, SUBMOD_SYSPM, OP_ENTERDEEPSLEEP),
+       psa_call, copy output, free. */
+    _Cy_USER_SysPm_Invoke_SRF(CY_USER_SYSPM_OP_ENTERDEEPSLEEP, &result);
+    return result;
+}
+```
+
+Direct copy of the MTB example's pattern, just routed over PSA
+instead of CMSE.
+
+#### S-side handler
+
+```c
+static psa_status_t z_pm_srf_call(psa_msg_t *msg)
+{
     mtb_srf_input_ns_t  in;
     mtb_srf_output_ns_t out = {0};
     psa_read(msg->handle, 0, &in, sizeof(in));
+
     switch (in.request.submodule_id) {
     case CY_USER_SECURE_SUBMODULE_SYSPM:
         switch (in.request.op_id) {
         case CY_USER_SYSPM_OP_ENTERDEEPSLEEP:
-            out.output_values[0] = Cy_USER_SysEnterDS_s();  /* S impl */
+            out.output_values[0] = Cy_USER_SysEnterDS_s();
             break;
-        /* ... other ops ... */
+        /* more ops here */
         }
         break;
     }
     psa_write(msg->handle, 0, &out, sizeof(out));
-    psa_reply(msg->handle, PSA_SUCCESS);
+    return PSA_SUCCESS;
 }
 
-psa_status_t z_pm_srf_entry(void) {
-    psa_signal_t sigs;
-    psa_msg_t msg;
+psa_status_t z_pm_srf_entry(void)
+{
+    psa_signal_t  signals;
+    psa_msg_t     msg;
     while (1) {
-        sigs = psa_wait(PSA_WAIT_ANY, PSA_BLOCK);
-        if (sigs & Z_PM_SRF_SIGNAL) {
+        signals = psa_wait(PSA_WAIT_ANY, PSA_BLOCK);
+        if (signals & Z_PM_SRF_SIGNAL) {
             psa_get(Z_PM_SRF_SIGNAL, &msg);
-            switch (msg.type) {
-            case PSA_IPC_CALL: z_pm_srf_handle(&msg); break;
-            default:           psa_reply(msg.handle, PSA_ERROR_PROGRAMMER_ERROR);
+            if (msg.type == PSA_IPC_CALL) {
+                psa_reply(msg.handle, z_pm_srf_call(&msg));
+            } else {
+                psa_reply(msg.handle, PSA_SUCCESS);
             }
         }
     }
 }
 ```
 
-The NS-side stub then calls `psa_call(Z_PM_SRF_HANDLE, 0, &in_vec, 1,
-&out_vec, 1)` instead of `mtb_srf_request_submit`. The SRF wire format
-is preserved — we are just changing the transport from CMSE to PSA.
+The `Cy_USER_SysEnterDS_s()` function called from the S side is just
+the secure-build PDL code: `Cy_SysPm_SystemEnterLp()` and friends.
+The PDL's `COMPONENT_SECURE_DEVICE` path skips the SRF wrapping and
+writes registers directly.
 
-Wire it into Zephyr the same way Option B does:
+#### Build wiring
+
+Add to the application's CMake:
 
 ```cmake
--DTFM_EXTRA_MANIFEST_LIST_FILES=<absolute>/manifest_list.yaml
--DTFM_EXTRA_PARTITION_PATHS=<absolute>/z_pm_srf
+set(TFM_CMAKE_OPTIONS
+    ${TFM_CMAKE_OPTIONS}
+    -DTFM_EXTRA_MANIFEST_LIST_FILES=${CMAKE_CURRENT_LIST_DIR}/tfm_partitions/z_pm_srf/manifest_list.yaml
+    -DTFM_EXTRA_PARTITION_PATHS=${CMAKE_CURRENT_LIST_DIR}/tfm_partitions/z_pm_srf
+)
 ```
 
-What this buys: every syspm transition our NS code wants becomes a
-single line `Cy_USER_SysEnterDS()` (or DSRAM, DSOFF, …), routed
-through the partition, hitting the right registers from S, returning
-to NS cleanly. PSE84 PPC isolation is preserved — NS still cannot
-touch PWRMODE directly; it has to go through the partition's
-allow-list of operations.
+Done. No file under `modules/tee/tf-m/` is modified.
 
-Group-2 PDL functions (`Cy_SysPm_SetSysDeepSleepMode`,
-`Cy_SysPm_SetSOCMEMDeepSleepMode`, raw `SRSS_PWR_CTL2` pokes, core-buck
-helpers, oscillator DS bits) are simply additional `op_id`s in the
-same module — add a handler, add an NS wrapper, done. No need to
-mirror the PDL's full SRF table; only what our application needs.
+#### What this gives us
 
-The maintenance burden is now bounded by **our** API surface, not by
-PDL releases.
-
-### Option D — widen the PSE84 PPC config so PWRMODE / SRSS_MAIN / SRSS_HIB_DATA become NS-accessible
-
-Edit the four constants in `cycfg_ppc.h` (see §2.2) from `1U` to
-`0U`. That single change disables `CY_PDL_SYSPM_ENABLE_SRF_INTEG` in
-the PDL build because the macro is gated on all-or-nothing of those
-four regions. The PDL falls back to direct writes for every syspm
-function, and the source-16-style code (which assumes no TF-M)
-ports nearly verbatim.
-
-What you give up: TF-M no longer prevents NS from reprogramming
-PWRMODE, the warm-boot token in BREG_SET1, the core buck, or the
-oscillator DS-enable bits. For a development board this is usually
-fine; for a production-secure build it eliminates a real isolation
-property. Treat it as a policy decision, not a workaround.
+- Every sleep transition our Zephyr app needs becomes one call,
+  e.g. `Cy_USER_SysEnterDS()`.
+- All register writes happen in S, so PPC isolation stays intact.
+- The S side can also do the Layer-B static bias work (Option B) in
+  the same partition's init function. One partition, two jobs.
+- Adding more operations later is mechanical: new op_id, new
+  handler case, new NS stub.
 
 ---
 
-## 9. Operational tips while debugging TF-M on PSE84
+## Part 7 — Reference
 
-- **Enable TF-M fault dumps.** Set in
-  `proj_cm33_s/Makefile` (MTB) or via the equivalent Zephyr Kconfig
-  `CONFIG_TFM_LOG_LEVEL=DEBUG`, `CONFIG_TFM_EXCEPTION_INFO_DUMP=y`:
+### 27. Debugging tips
 
-  ```
-  TFM_CONFIGURE_EXT_OPTIONS+= \
-    -DTFM_EXCEPTION_INFO_DUMP=ON \
-    -DPLATFORM_EXCEPTION_INFO=ON \
-    -DIFX_FAULTS_INFO_DUMP=ON \
-    -DTFM_SPM_LOG_LEVEL=TFM_SPM_LOG_LEVEL_DEBUG \
-    -DTFM_PARTITION_LOG_LEVEL=TFM_PARTITION_LOG_LEVEL_DEBUG
-  ```
-
-  An NS write to a secured PPC region then prints the offending
-  address, the bus master, and a stack frame on the secure UART
-  (AN240096 figure 15). Without this, a PPC fault just resets the
-  device with no diagnostic.
-
-- **Inspect what is secured.** Grep the generated PPC config:
-
+- **Turn on TF-M debug logs.** Set
+  `CONFIG_TFM_LOG_LEVEL=DEBUG` and
+  `CONFIG_TFM_EXCEPTION_INFO_DUMP=y`. A PPC fault then prints the
+  offending address on the secure UART instead of just resetting.
+- **Detach the debugger when measuring power.** With SWD attached
+  (`C_DEBUGEN` set), PSE84 silently downgrades DS-RAM and DS-OFF to
+  plain CPU DeepSleep. The chip never resets and the current does
+  not drop.
+- **Use `DWT->CYCCNT` for short blocking waits during PM teardown.**
+  The LPTIMER stops along with MCWDT0/CTR2 when you take down PILO,
+  so `k_busy_wait()` / `k_msleep()` will hang.
+- **Inspect what is secured.** A quick way to see which PPC regions
+  are locked down:
   ```
   grep CYCFG_PPC_SECURED_ \
        modules/tee/tf-m/trusted-firmware-m/platform/ext/target/infineon/pse84/\
-  epc2/board/shared/design/default/GeneratedSource/cycfg_ppc.h
+  epc2/board/shared/design/default/GeneratedSource/cycfg_ppc.h | grep 1U
   ```
 
-  If a peripheral your code touches comes back `= 1U`, you cannot
-  reach it from NS without going through TF-M.
-
-- **Check which PDL functions are SRF-routed.** Each PDL header has a
-  companion `*_srf.h` that lists the `CY_PDL_*_OP_*` enum. If the
-  operation you need is in that enum, the call is SRF-wrapped and
-  needs a TF-M-S handler. If not, the call is a direct register
-  write and you need to either reach the same register from S or
-  widen the PPC.
-
-- **Check that the TF-M-S handler exists.** A second grep, this time
-  on the TF-M tree:
-
-  ```
-  grep -rln "_cy_pdl_<module>_srf_operations\|SECURE_SUBMODULE_<MODULE>" \
-       modules/tee/tf-m/trusted-firmware-m/
-  ```
-
-  No match → there is no handler. NS submits will hang.
-
-- **Detach the debugger when measuring power.** With SWD attached
-  (`C_DEBUGEN` set) PSE84 silently downgrades DS-RAM and DS-OFF to
-  plain CPU DeepSleep; the chip never resets out of sleep and the
-  current does not drop. Always measure with KitProg3 unplugged
-  after XRES.
-
-- **CM55 timer hangs after PM tick changes.** The Infineon LPTIMER
-  driver clocks itself from MCWDT0/CTR2 on PILO. If you `stop_mcwdt0()`
-  before a destructive teardown, every subsequent `k_busy_wait` /
-  `k_msleep` blocks forever. Use a cycle-counter spin
-  (`DWT->CYCCNT`-based) instead.
-
----
-
-## 10. Glossary
+### 28. Glossary
 
 | Term | Meaning |
 | ---- | ------- |
-| **SPE** | Secure Processing Environment (CM33-S in our case) |
-| **NSPE** | Non-Secure Processing Environment (CM33-NS, CM55) |
-| **PRoT / ARoT** | PSA / Application Root of Trust — two privilege tiers inside SPE |
-| **SPM** | Secure Partition Manager — TF-M core that schedules partitions |
-| **NSC / Non-Secure Callable** | Tiny region of S code containing `SG` veneers that NS may enter |
-| **SG** | Armv8-M Secure Gateway instruction; only legal NS→S transition |
-| **PSA** | Arm Platform Security Architecture — the API standard TF-M implements |
-| **FF-M** | PSA Firmware Framework for M — defines IPC/SFN partition models |
-| **PSA RoT service** | A function exposed by a Secure Partition, identified by SID |
-| **SID** | 32-bit Secure Service ID |
-| **PID** | Partition ID (numeric, assigned in manifest list) |
-| **NSID** | Non-Secure Client ID; SPM tag for the calling NS context (typically `-1`) |
-| **PC** | Protection Context — Infineon-specific 3-bit isolation tag per bus master |
-| **PPC** | Peripheral Protection Controller — per-peripheral S/NS/PC/priv filter |
-| **MPC** | Memory Protection Controller — per-memory-block analogue of PPC |
-| **Device Configurator** | The ModusToolbox GUI tool that produces `cycfg_ppc.h`, `cycfg_mpc.h`, etc. from a `design.modus` file |
-| **PDL** | Infineon Peripheral Driver Library |
-| **SRF** | (MTB) Secure Request Framework — Infineon's NS→S call abstraction; uses CMSE or PSA underneath depending on build |
-| **CMSE** | Arm C Language Extensions for M-class Security — toolchain attributes (`cmse_nonsecure_entry`, etc.) that generate NSC veneers |
-| **EPB** | Edge Protect Bootloader — Infineon's MCUboot-derived stage-2 (not built by the Zephyr flow) |
-| **EPC2 / EPC4** | PSE84 Edge Protect Category 2 / 4 — different default PSA levels |
-| **IPC** | Inter-Processor Communication mailbox between CM33 and CM55 |
+| **ARoT** | Application Root of Trust. Less-privileged partitions inside SPE. |
+| **BL2** | Second-stage bootloader. TF-M's MCUboot stage. Off for PSE84. |
+| **CMSE** | Arm C language extensions for M security. Toolchain attributes that emit NSC veneers. |
+| **Device Configurator** | ModusToolbox GUI tool. Produces `cycfg_*.h` from a `design.modus` file. |
+| **EPB** | Edge Protect Bootloader. Infineon's MCUboot-derived first-stage. Not built by Zephyr. |
+| **EPC2 / EPC4** | PSE84 Edge Protect Category 2 / 4. Two ready-made TF-M profiles. |
+| **FF-M** | PSA Firmware Framework for M. Defines IPC/SFN partition models. |
+| **IPC (PSE84)** | Inter-Processor Communication mailbox between CM33 and CM55. |
+| **IPC (TF-M)** | The TF-M SPM backend that gives each partition its own thread. |
+| **MPC** | Memory Protection Controller. Per-memory-block S/NS filter on PSE84. |
+| **MPU** | Memory Protection Unit. Standard Arm MPU inside the CPU. |
+| **NSC** | Non-Secure Callable. The memory region that holds `SG` veneers. |
+| **NSID** | Non-Secure Client ID. SPM tag for the calling NS context. |
+| **NSPE** | Non-Secure Processing Environment. The NS world. |
+| **PC** | Protection Context. Infineon's per-bus-master isolation tag. |
+| **PDL** | Peripheral Driver Library. Infineon's vendor HAL. |
+| **PPC** | Peripheral Protection Controller. Per-peripheral S/NS filter on PSE84. |
+| **PRoT** | PSA Root of Trust. Most-privileged partitions inside SPE. |
+| **PSA** | Arm Platform Security Architecture. The API standard TF-M implements. |
+| **SAU** | Security Attribution Unit. Decides S/NS/NSC for each address. |
+| **SFN** | Secure Function. Lightweight TF-M SPM backend, no per-partition thread. |
+| **SG** | Secure Gateway. The Armv8-M instruction that flips NS to S. |
+| **SID** | Secure Service ID. Identifies a PSA service. |
+| **SPE** | Secure Processing Environment. The S world. |
+| **SPM** | Secure Partition Manager. Schedules partitions and routes PSA calls. |
+| **SRF** | Secure Request Framework. Infineon's NS→S abstraction. |
 
----
+### 29. Further reading
 
-## 11. Further reading
-
-- AN240096 *Getting started with Trusted Firmware-M on PSOC™ Edge* —
-  PSE84-specific build flow, isolation tables, TF-M profiles available
-  on EPC2/EPC4. ([`doc/infineon-an240096-getting-started-w-tf-m-psoc-edge-applicationnotes-en.pdf`](infineon-an240096-getting-started-w-tf-m-psoc-edge-applicationnotes-en.pdf))
-- *ModusToolbox™ Secure Request Framework user guide* (002-42149) —
-  module/submodule/op concept, pool init, ioVec packing, customization
-  via own modules. ([`doc/infineon-modustoolbox-secure-request-framework-user-guide-usermanual-en.pdf`](infineon-modustoolbox-secure-request-framework-user-guide-usermanual-en.pdf))
-- CE242113 *PSOC™ Edge MCU: Secure power management using SRF* —
-  the reference example we mirror for Option C, with a complete
-  `user_srf/` module covering Hp/Lp/Ulp/DS transitions.
-  ([`tmp/mtb-example-psoc-edge-secure-power-management/`](../tmp/mtb-example-psoc-edge-secure-power-management/))
-- AN237849 *Getting started with PSOC™ Edge security* — boot policy,
-  alternate boot location, debug provisioning.
-- AN237857 *Edge Protect Bootloader for PSOC™ Edge* — image signing,
-  primary/secondary slot, swap/overwrite semantics.
-- TF-M project documentation ([`doc/trustedfirmware-m-readthedocs-io-en-latest.pdf`](trustedfirmware-m-readthedocs-io-en-latest.pdf))
-  — full FF-M reference, partition manifest format (§10.10), SPM
-  backends (§10.2), interrupt handling models (§10.6).
-- Zephyr `services/tfm/` rst tree under
-  `/home/ubuntu/zephyrproject/zephyr/doc/services/tfm/` — how Zephyr
-  builds and packages a `_ns` image with a TF-M-S sibling.
-- FF-M v1.1 spec from Arm — the source of truth for partition
-  semantics, signal handling, and stateless services.
+- AN240096 *Getting started with Trusted Firmware-M on PSOC™ Edge*.
+  [`doc/infineon-an240096-getting-started-w-tf-m-psoc-edge-applicationnotes-en.pdf`](infineon-an240096-getting-started-w-tf-m-psoc-edge-applicationnotes-en.pdf)
+- *ModusToolbox™ Secure Request Framework user guide* (002-42149).
+  [`doc/infineon-modustoolbox-secure-request-framework-user-guide-usermanual-en.pdf`](infineon-modustoolbox-secure-request-framework-user-guide-usermanual-en.pdf)
+- CE242113 *PSOC™ Edge MCU: Secure power management using SRF*.
+  [`tmp/mtb-example-psoc-edge-secure-power-management/`](../tmp/mtb-example-psoc-edge-secure-power-management/)
+- TF-M project docs.
+  [`doc/trustedfirmware-m-readthedocs-io-en-latest.pdf`](trustedfirmware-m-readthedocs-io-en-latest.pdf)
+- Zephyr TF-M docs.
+  `/home/ubuntu/zephyrproject/zephyr/doc/services/tfm/`
