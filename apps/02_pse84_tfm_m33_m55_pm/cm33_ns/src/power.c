@@ -4,10 +4,12 @@
  *
  * Zephyr PM dispatcher for the CM33-NS image.
  *
- * Phase 5 of the porting plan: PM_STATE_SUSPEND_TO_IDLE (cpu_sleep)
- * + PM_STATE_STANDBY substate 1 (cpu_deep_sleep) + substate 2
- * (system_deep_sleep) are wired. SUSPEND_TO_RAM and SOFT_OFF still
- * call printk and return - they will be filled in in Phases 6/7.
+ * Phase 6: PM_STATE_SUSPEND_TO_IDLE, PM_STATE_STANDBY substate 1
+ * (cpu_deep_sleep), and PM_STATE_STANDBY substate 2
+ * (system_deep_sleep) all route the actual SLEEPDEEP+WFI through
+ * the out-of-tree TF-M partition z_pm. The partition calls PDL
+ * Cy_SysPm_Cpu{Enter,Deep}Sleep on the secure side, which has the
+ * privilege to touch PWRMODE/SRSS without bus-faulting.
  *
  * The SoC default pm_state_set lives in
  * soc/infineon/edge/pse84/power.c and is dropped from the build by
@@ -22,6 +24,7 @@
 #include <cmsis_core.h>
 
 #include "indicator.h"
+#include "z_pm_client.h"
 
 /**
  * @brief Switch IRQ masking from BASEPRI to PRIMASK before WFI.
@@ -41,69 +44,35 @@ static inline void pm_irq_prologue(void)
 	irq_unlock(0);
 }
 
-/* PM_STATE_SUSPEND_TO_IDLE (cpu_sleep).
- *
- * Plain Cortex-M33 sleep: SLEEPDEEP=0 + WFI.
- *
- * Deliberately NOT using Cy_SysPm_CpuEnterSleep. With TF-M
- * enabled + CONFIG_PSOC_EDGE_M55_SRF_SUPPORT=y the PDL is built
- * with CY_PDL_SYSPM_ENABLE_SRF_INTEG, which routes the NS call
- * through the MTB SRF mailbox into TF-M-S. That path needs the
- * SRF pool initialised before first use - skipping it produces
- * an immediate-return / no-wake loop and a watchdog reset. Plain
- * WFI from NS is fully supported by the M33 and needs no PDL state.
- */
+/* PM_STATE_SUSPEND_TO_IDLE (cpu_sleep): partition does SLEEPDEEP=0 + WFI. */
 static void enter_cpu_sleep(void)
 {
 	indicator_cpu_sleep_on();
 	pm_irq_prologue();
-	SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
-	__DSB();
-	__WFI();
+	(void)z_pm_cpu_sleep();
 	indicator_cpu_sleep_off();
 }
 
-/* PM_STATE_STANDBY substate 1 (cpu_deep_sleep).
- *
- * SLEEPDEEP=1 + WFI: this CPU enters Cortex-M33 deep sleep.
- * The SoC stays in active until every CPU has voted deep sleep.
- * Clear SLEEPDEEP on wake so kernel idle WFE/WFI on the way back
- * uses regular sleep.
- *
- * Same SRF-bypass rationale as enter_cpu_sleep applies to
- * Cy_SysPm_CpuEnterDeepSleep: we go straight to the CMSIS
- * primitives.
+/* PM_STATE_STANDBY substate 1 (cpu_deep_sleep): partition does
+ * Cy_SysPm_CpuEnterDeepSleep (SLEEPDEEP=1 + WFI with PDL fixups).
  */
 static void enter_cpu_deep_sleep(void)
 {
 	indicator_cpu_deep_sleep_on();
 	pm_irq_prologue();
-	SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
-	__DSB();
-	__WFI();
-	SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
+	(void)z_pm_cpu_deep_sleep();
 	indicator_cpu_deep_sleep_off();
 }
 
-/* PM_STATE_STANDBY substate 2 (system_deep_sleep).
- *
- * Mechanically identical to cpu_deep_sleep - the deeper power
- * saving comes from SRSS collapsing to system DEEPSLEEP once
- * every CPU has voted. CM55 sits in a permanent
- * Cy_SysPm_CpuEnterDeepSleep loop, so by the time the policy
- * picks substate 2 (residency >= 1 s) the SRSS sees both CPUs
- * voting and transitions automatically.
- *
- * Only the indicator differs from substate 1 (magenta vs blue).
+/* PM_STATE_STANDBY substate 2 (system_deep_sleep): same primitive as
+ * substate 1 today. Distinct op so Phase 7+ (DS-OFF, Layer-B bias)
+ * can specialise without disturbing the per-CPU deep-sleep path.
  */
 static void enter_system_deep_sleep(void)
 {
 	indicator_system_deep_sleep_on();
 	pm_irq_prologue();
-	SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
-	__DSB();
-	__WFI();
-	SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
+	(void)z_pm_system_deep_sleep();
 	indicator_system_deep_sleep_off();
 }
 

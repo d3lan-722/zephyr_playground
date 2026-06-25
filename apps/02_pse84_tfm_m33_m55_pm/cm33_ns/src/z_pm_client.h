@@ -23,7 +23,10 @@ extern "C" {
 #endif
 
 /* Op IDs - must match z_pm_partition.c */
-#define Z_PM_OP_PING 1
+#define Z_PM_OP_PING              1
+#define Z_PM_OP_CPU_SLEEP         2
+#define Z_PM_OP_CPU_DEEP_SLEEP    3
+#define Z_PM_OP_SYSTEM_DEEP_SLEEP 4
 
 #define Z_PM_PING_COOKIE 0xABCD1234u
 
@@ -36,6 +39,33 @@ extern "C" {
  * @retval PSA_ERROR_* From psa_call.
  */
 psa_status_t z_pm_ping(uint32_t *out_cookie);
+
+/**
+ * @brief Enter Cortex-M33 sleep (SLEEPDEEP=0 + WFI) on the secure side.
+ *
+ * Blocks until the next interrupt wakes the CPU. Routed through the
+ * z_pm partition so SLEEPDEEP/WFI execute at PC2 with PDL syspm. NS
+ * Zephyr should still mask via PRIMASK around the call and unmask in
+ * pm_state_exit_post_ops.
+ */
+psa_status_t z_pm_cpu_sleep(void);
+
+/**
+ * @brief Enter Cortex-M33 deep sleep (SLEEPDEEP=1 + WFI) on the secure
+ * side via Cy_SysPm_CpuEnterDeepSleep.
+ */
+psa_status_t z_pm_cpu_deep_sleep(void);
+
+/**
+ * @brief Enter system deep sleep on the secure side.
+ *
+ * Mechanically identical to z_pm_cpu_deep_sleep at this layer - SRSS
+ * collapses to system DEEPSLEEP automatically once every CPU has voted
+ * deep sleep. The dedicated op exists so Phase 7+ work (DS-OFF,
+ * Layer-B bias) can specialise it without touching the cpu_deep_sleep
+ * path.
+ */
+psa_status_t z_pm_system_deep_sleep(void);
 
 #ifdef __cplusplus
 }

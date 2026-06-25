@@ -46,6 +46,11 @@ target_link_libraries(tfm_psa_rot_partition_z_pm
         platform_s
         tfm_config
         tfm_sprt
+        # Headers + compile defs for cy_syspm.h. The actual PDL
+        # syspm symbols (Cy_SysPm_CpuEnterSleep / DeepSleep) come
+        # via ifx_pdl_s already linked into TF-M-S; we only need
+        # the includes here.
+        ifx_pdl_inc_s
 )
 
 target_link_libraries(tfm_partitions
