@@ -34,10 +34,11 @@ The companion document is
 **Part 4 — Zephyr and TF-M**
 - [14. The `_ns` board variant](#14-the-_ns-board-variant)
 - [15. What `CONFIG_BUILD_WITH_TFM=y` does](#15-what-config_build_with_tfmy-does)
+- [15a. What's actually inside `tfm_s.elf`](#15a-whats-actually-inside-tfm_self)
 - [16. What Zephyr builds and what it does not](#16-what-zephyr-builds-and-what-it-does-not)
 - [17. Useful Kconfig options](#17-useful-kconfig-options)
 - [18. Adding your own secure partition (out-of-tree)](#18-adding-your-own-secure-partition-out-of-tree)
-- [18a. Two further options for the protection configuration](#18a-two-further-options-for-the-protection-configuration)
+- [18a. Rejected structural options](#18a-rejected-structural-options)
 
 **Part 5 — Infineon's Secure Request Framework (SRF)**
 - [19. Why Infineon adds SRF on top of PSA](#19-why-infineon-adds-srf-on-top-of-psa)
@@ -47,9 +48,9 @@ The companion document is
 - [23. Security-aware PDL drivers](#23-security-aware-pdl-drivers)
 
 **Part 6 — Our power-management problem**
-- [24. What is missing in Zephyr's TF-M build](#24-what-is-missing-in-zephyrs-tf-m-build)
-- [25. Four ways to deal with it](#25-four-ways-to-deal-with-it)
-- [26. Recommended path: a custom SRF module](#26-recommended-path-a-custom-srf-module)
+- [24. What is actually wrong with the NS PM path](#24-what-is-actually-wrong-with-the-ns-pm-path)
+- [25. Options on the table](#25-options-on-the-table)
+- [26. Chosen path: a thin out-of-tree partition (Option C)](#26-chosen-path-a-thin-out-of-tree-partition-option-c)
 
 **Part 7 — Reference**
 - [27. Debugging tips](#27-debugging-tips)
@@ -470,6 +471,84 @@ following extra work:
 The flag is **not** something you set in an application Kconfig. It
 is set by the `_ns` board variant.
 
+### 15a. What's actually inside `tfm_s.elf`
+
+For a stock
+[`apps/02_pse84_tfm_m33_m55_pm/cm33_ns/`](../apps/02_pse84_tfm_m33_m55_pm/cm33_ns/)
+build (Zephyr 4.4.99, TF-M 2.x, PSE84 EPC2):
+
+```text
+$ arm-zephyr-eabi-size cm33_ns/build/tfm/bin/tfm_s.elf
+   text    data     bss     dec     hex filename
+  90976    1292   52424  144692   23534  tfm_s.elf
+
+$ ls -l cm33_ns/build/tfm/bin/tfm_s.bin
+92324 bytes
+```
+
+**\~91 KiB of code**, ~1.3 KiB of `.data`, ~52 KiB of `.bss`. The
+`.bss` is dominated by the partition stacks, the SPM heap, and the
+SRF buffer pools, not by code.
+
+**Garbage collection works.** TF-M's toolchain files set
+`-ffunction-sections -fdata-sections` and `--gc-sections`, and
+**no LTO** is used. The linker pulls in `.o` files from static
+archives by undefined-symbol resolution and then strips unreferenced
+sections. So an archive like `libifx_pdl_s.a` (the PDL secure build,
+~all PDL drivers) contributes only the translation units that
+someone actually calls.
+
+For our build the linker pulls these PDL `.o` files into `tfm_s.elf`
+(from `tfm_s.map`):
+
+```
+libifx_pdl_s.a(cy_gpio.o)
+libifx_pdl_s.a(cy_mpc.o)
+libifx_pdl_s.a(cy_ms_ctl.o)
+libifx_pdl_s.a(cy_ppc.o)
+libifx_pdl_s.a(cy_sysfault.o)
+libifx_pdl_s.a(cy_syspm_pdcm.o)
+libifx_pdl_s.a(cy_syspm_ppu.o)
+libifx_pdl_s.a(cy_syspm_v4.o)    <- syspm entry path lives here
+libifx_pdl_s.a(cy_sysclk_v2.o)
+libifx_pdl_s.a(cy_pdl_srf.o)     <- PDL SRF dispatch module
+libifx_pdl_s.a(cy_rram.o)
+libifx_pdl_s.a(cy_crypto_core_hw.o)
+libifx_pdl_s.a(cy_crypto_core_mem_v2.o)
+libifx_pdl_s.a(cy_crypto_core_trng.o)
+libifx_pdl_s.a(cy_device.o)
+libifx_pdl_s.a(cy_ipc_drv.o)
+libifx_pdl_s.a(cy_ipc_sema.o)
+libifx_pdl_s.a(cy_trigmux.o)
+libifx_pdl_s.a(cy_wdt.o)
+libifx_pdl_s.a(ppu_v1.o)
+```
+
+Drivers nobody references (e.g. `cy_scb_uart.o` when UART is wired
+elsewhere, `cy_dma.o`, `cy_canfd.o`, …) are **not** in the image.
+
+The headline TF-M static libraries (also from the map):
+
+| Library | What it provides |
+|---|---|
+| `libtfm_spm.a` | The Secure Partition Manager (PSA framework runtime) |
+| `libtfm_sprt.a` | Per-partition runtime helpers (psa_read, psa_write, …) |
+| `libplatform_s.a` | Infineon platform port: SAU/MPC/PPC init, peripheral inventory, fault handlers |
+| `libplatform_crypto_keys.a` | Platform-specific key loading for the crypto partition |
+| `libtfpsacrypto.a` | PSA Crypto / mbedTLS core |
+| `libifx_pdl_s.a` | Infineon PDL, secure build (see above for what gets pulled in) |
+| `libifx_se_rt_services_utils_s.a` | Secure Enclave runtime utilities |
+| `libtfm_psa_rot_partition_crypto.a` | Crypto service partition |
+| `libtfm_app_rot_partition_ps.a` | Protected Storage partition |
+| `libtfm_psa_rot_partition_its.a` | Internal Trusted Storage partition |
+| `libtfm_psa_rot_partition_platform.a` | TF-M `tfm_platform_*` service |
+| `libtfm_psa_rot_partition_ifx_ext_sp.a` | **Infineon SRF dispatcher partition** (see §23–§24) |
+| `libtfm_psa_rot_partition_z_pm.a` | **Our out-of-tree z_pm partition** |
+| `libgcc.a` | Toolchain runtime (only `_aeabi_uldivmod` & a couple of helpers in our build) |
+
+No libc is linked into the secure image; TF-M provides its own
+minimal string/memory helpers.
+
 ### 16. What Zephyr builds and what it does not
 
 For PSE84, the [`platform/ext/target/infineon/pse84/config.cmake`](../../home/ubuntu/zephyrproject/modules/tee/tf-m/trusted-firmware-m/platform/ext/target/infineon/pse84/config.cmake)
@@ -525,69 +604,30 @@ In a Zephyr workspace you pass them through the TF-M wrapper by
 appending to `TFM_CMAKE_OPTIONS`. The next two parts use this
 mechanism to fix our power-management problem.
 
-### 18a. Two further options for the protection configuration
+> **Hands-on tutorial:**
+> [`TFM_partition_tutorial.md`](TFM_partition_tutorial.md) walks
+> through every file (manifest, manifest-list, partition CMakeLists,
+> C source, NS-side client, Zephyr-side hookup) using the
+> [`z_pm`](../apps/02_pse84_tfm_m33_m55_pm/tfm_partitions/z_pm/)
+> partition in [`apps/02_pse84_tfm_m33_m55_pm/`](../apps/02_pse84_tfm_m33_m55_pm/)
+> as the running example, including the Zephyr- and Infineon-specific
+> gotchas (CMake ordering, manifest parser quirks, PDL header
+> linkage) that aren't in the upstream TF-M doc.
 
-Beyond the four power-management options in §25, two structural
-options exist for the underlying problem ("we need PSE84-specific
-secure services that upstream TF-M does not ship"):
+### 18a. Rejected structural options
 
-**Option E — Pull Infineon's MTB TF-M port (`ifx-tf-m-pse84epc2`) into
-the Zephyr west manifest.**
+For completeness, two more architectural moves were considered and
+rejected. They both attack the *protection-configuration* layer, not
+the per-call PM problem in Part 6.
 
-It is the MTB library that contains the missing server-side handlers
-for syspm/sysclk/rtc/smif SRF calls. If we could add it next to
-`trusted-firmware-m` in our [`.devcontainer/west.yml`](../.devcontainer/west.yml)
-and wire it into the Zephyr TF-M build, the syspm gap would disappear.
-In practice this is not a `west update` away:
+| Option | What it would do | Why rejected today |
+|---|---|---|
+| **E.** Pull the MTB TF-M port (`ifx-tf-m-pse84epc2`) into the Zephyr west manifest. | Replace the in-tree TF-M Infineon port with the upstream MTB one (which has every server-side handler the SRF integration expects). | The library overlaps/replaces parts of the in-tree port; only one can win. It uses MTB CMake assumptions and is not packaged as a Zephyr module (`zephyr/module.yml`, Kconfig.tfm hooks, `TFM_EXTRA_*` plumbing missing). Source-release status of `ifx-tf-m-pse84epc2` is unclear. **Becomes attractive only when/if Infineon publishes a Zephyr-compatible release.** |
+| **F.** Add Zephyr DT bindings and a generator for the MPC/PPC tables. | Describe PPC/MPC regions in DT overlays. A build step would emit replacement `cycfg_ppc.{h,c}`, `cycfg_mpc.{h,c}`, `cycfg_protection.c` and feed them to TF-M instead of the in-tree files. | Substantial binding-design work, no precedent in Zephyr for a generic protection-controller abstraction (Nordic's `nrf,nrf-spu` is the only related example), and TF-M's Infineon port hard-codes the include path to its `GeneratedSource/` files — that path would need a CMake redirect. Reasonable as a long-term project, not as a per-app fix. |
 
-- The library overlays/replaces parts of TF-M's Infineon platform
-  port. Two copies cannot coexist; the Zephyr TF-M wrapper has to
-  pick one. Today it always picks the in-tree one.
-- The library is an MTB project with MTB-style CMake assumptions.
-  Repackaging it as a Zephyr module (`zephyr/module.yml`,
-  Kconfig.tfm hooks, `TFM_EXTRA_*` plumbing) is real work.
-- The source release status of `ifx-tf-m-pse84epc2` is unclear.
-  Worth checking with Infineon's TF-M team before relying on it.
-
-If and when Infineon publishes a Zephyr-compatible version of this
-library, Option E becomes the cleanest path and obsoletes Options
-B/C/D below.
-
-**Option F — Add Zephyr DT bindings and a generator for the MPC and
-PPC tables.**
-
-Long-term, the Zephyr-idiomatic way to configure the PSE84 protection
-hardware would be devicetree:
-
-```
-zephyr,user {
-    /* PPC regions per peripheral */
-};
-
-&ppc0 {
-    region@0 { reg = <0x.. 0x..>; secure; pc-mask = <0x04>; };
-    region@1 { ... };
-};
-```
-
-A Zephyr build phase would then:
-
-1. Read the merged devicetree.
-2. Emit `cycfg_ppc.h`, `cycfg_mpc.h`, `cycfg_protection.c` equivalents.
-3. Drop them in a directory passed to TF-M as a CMake include override.
-4. TF-M's Infineon HAL picks them up instead of the in-tree
-   `GeneratedSource/` files.
-
-Nordic does something similar today for the SPU using their
-`nrf,nrf-spu` binding. Zephyr does not have a generic
-protection-controller abstraction. Pros: custom boards override
-protection config in their overlay, like any other peripheral. Cons:
-substantial binding-design work, and TF-M's Infineon port currently
-`#include`s its files from a hard-coded relative path — that path
-would need a CMake variable to redirect. Reasonable scope for a
-first deliverable: override only the four "Group-1" PPC regions
-(`PWRMODE_PWRMODE`, `SRSS_MAIN`, `SRSS_HIB_DATA`, `M55APPCPUSS`) that
-block our syspm work. Build out from there.
+Option F especially does not help the PM problem: even with custom
+PPC tables you still need a place to *execute* PWRMODE/SRSS writes
+from the trusted side, and that's still a secure partition.
 
 ---
 
@@ -712,174 +752,202 @@ constants in [`cycfg_ppc.h`](../../home/ubuntu/zephyrproject/modules/tee/tf-m/tr
 In the PSE84 TF-M build those macros **are** defined, because the
 relevant `CYCFG_PPC_SECURED_*` constants (PWRMODE, SRSS_MAIN,
 SRSS_HIB_DATA, M55APPCPUSS) are all `1U`. So PDL syspm calls from
-CM33-NS go through SRF.
+CM33-NS go through SRF — **but only the ones the PDL chose to wrap.**
+The coverage is partial; see §24 for the exact list of what works
+and what bus-faults.
 
 ---
 
 ## Part 6 — Our power-management problem
 
-### 24. What is missing in Zephyr's TF-M build
+### 24. What is actually wrong with the NS PM path
 
-The PDL provides client-side stubs for SRF (the NS half of the
-call). It also declares the matching S-side dispatch tables
-(`_cy_pdl_syspm_srf_operations[]`, etc.) in headers like
-`cy_syspm_srf.h`. But the **server-side implementation** that fills
-those tables is part of the ModusToolbox library
-`ifx-tf-m-pse84epc2`. That library is **not in the Zephyr module
-tree**.
+The story in §23 — "PDL syspm calls from CM33-NS go through SRF and
+then disappear" — is **only half right**. The SRF server side **is**
+actually shipped in the in-tree TF-M port. The real problem is
+narrower and worth understanding precisely, because it directly
+drives the option choice in §25.
 
-You can confirm with one grep:
+**What's present.** The in-tree Infineon port at
+`platform/ext/target/infineon/` ships a secure partition called
+[`ifx_ext_sp`](../../home/ubuntu/zephyrproject/modules/tee/tf-m/trusted-firmware-m/platform/ext/target/infineon/common/spe/services/ifx_ext_sp/)
+that owns the SID `0x00001001` and dispatches incoming SRF calls to
+`mtb_srf_request_execute()`. The PDL's secure side registers its
+SRF module via `cy_pdl_srf_module_register(&cybsp_srf_context)`,
+which is called from `cybsp_init()` inside
+`ifx_init_spm_peripherals()` at SPM startup. The platform config
+[`platform/ext/target/infineon/pse84/config.cmake`](../../home/ubuntu/zephyrproject/modules/tee/tf-m/trusted-firmware-m/platform/ext/target/infineon/pse84/config.cmake)
+sets `IFX_MTB_SRF=ON` by default for PSE84 and pulls the `mtb-srf`
+library from GitHub at configure time.
+
+You can see this in our build's map file:
 
 ```
-grep -rln "_cy_pdl_syspm_srf_operations" \
-    modules/tee/tf-m/trusted-firmware-m/
-# -> no matches
+LOAD secure_fw/partitions/partitions/ifx_ext_sp_2/libtfm_psa_rot_partition_ifx_ext_sp.a
+LOAD ifx_pdl/spe/libifx_pdl_s.a(cy_pdl_srf.o)
+LOAD ifx_pdl/spe/libifx_pdl_s.a(cy_syspm_v4.o)
 ```
 
-The PDL handles this gracefully: from CM33-NS, if a secure-aware
-function is called, the PDL packages an SRF request and submits it.
-The submission then waits for a reply that never comes (no S-side
-handler).
+And in `CMakeCache.txt`:
 
-In our `02_…` build this shows up as a hang inside
-`Cy_SysPm_CpuEnterSleep`, and (once we hit deep sleep) as a hard
-reset because the SoC enters a deep-sleep mode the SPE has not
-prepared for.
+```
+IFX_MTB_SRF:BOOL=ON
+IFX_MTB_SRF_LIB_VERSION:STRING=release-v1.1.0
+```
 
-The SRF user guide (§5 *Customization*) is explicit: applications
-are expected to add their own SRF modules. The pattern is shown in
-the MTB example
-[`tmp/mtb-example-psoc-edge-secure-power-management/user_srf/`](../tmp/mtb-example-psoc-edge-secure-power-management/user_srf/).
+So if you call `Cy_SysPm_CpuEnterDeepSleep(CY_SYSPM_WAIT_FOR_INTERRUPT)`
+from CM33-NS today, the PDL header expands to the SRF path (because
+`COMPONENT_SECURE_DEVICE` is undefined for NS but
+`CY_PDL_SYSPM_ENABLE_SRF_INTEG` is defined), submits a PSA call to
+`IFX_EXT_SP`, the partition forwards it to the registered PDL
+submodule, and the actual SLEEPDEEP+WFI happens on the secure side
+at PC2. **That part of the SRF flow works end-to-end out of the
+box.**
 
-### 25. Four ways to deal with it
+**What's broken.** Not every `Cy_SysPm_*` API is SRF-wrapped. Look
+at the Zephyr SoC's `pm_state_set` in
+[`zephyr/soc/infineon/edge/pse84/power.c`](../../home/ubuntu/zephyrproject/zephyr/soc/infineon/edge/pse84/power.c):
 
-| Option | What you do                                           | NS sleep control | Real power savings | Touches upstream | Effort |
-| ------ | ----------------------------------------------------- | ---------------- | ------------------ | ---------------- | ------ |
-| **A**  | Use CMSIS-only `WFI`. Never call PDL syspm from NS.   | CPU only         | small              | no               | none   |
-| **B**  | Add a tiny S-side init partition. Bias the SoC once at boot. NS keeps using `WFI`. | CPU only       | yes (static)       | no (out-of-tree) | small  |
-| **C**  | Add an out-of-tree partition with a custom SRF module that the NS app calls for every power transition. | full             | yes (dynamic)      | no (out-of-tree) | medium |
-| **D**  | Edit `cycfg_ppc.h` so PWRMODE/SRSS are non-secure. PDL falls back to direct writes from NS. | full             | yes                | **yes**          | smallest |
+```c
+static int ifx_pm_init(void) {
+    Cy_SysPm_SetDeepSleepMode(CY_SYSPM_MODE_DEEPSLEEP);     /* (a) */
+    Cy_SysPm_SetSOCMEMDeepSleepMode(CY_SYSPM_MODE_DEEPSLEEP); /* (b) */
+    return 0;
+}
+SYS_INIT(ifx_pm_init, PRE_KERNEL_1, ...);
+```
 
-Option D works but breaks TF-M isolation. Use it only for early
-bring-up on a development board.
+Follow (a) through `cy_syspm_v4.c`:
 
-Option A is what our Phase 4/5 dispatcher does today. It is the
-TF-M-idiomatic answer ("NS does not own system power") but leaves
-performance on the table.
+```c
+Cy_SysPm_SetDeepSleepMode
+  -> Cy_SysPm_SetSysDeepSleepMode
+       -> cy_pd_ppu_set_power_mode((struct ppu_v1_reg *)CY_PPU_MAIN_BASE, …)
+          /* direct write to a PPU register in the SRSS PSA-ROT region */
+```
 
-A fifth and sixth structural option (E: pull `ifx-tf-m-pse84epc2`,
-F: DT-driven generator) are discussed in §18a. Both are out of scope
-for this app's Phase 6 — they are project-level investments. For now,
-Option C gives us the cleanest path with the smallest blast radius.
+There is **no** `#ifdef CY_PDL_SYSPM_ENABLE_SRF_INTEG` around
+`Cy_SysPm_SetSysDeepSleepMode`. It always does the register write
+inline. Called from NS at `PRE_KERNEL_1`, that write hits a
+PSA-ROT-only address and the CPU takes a SecureFault that the NS
+world can never satisfy — boot loops.
 
-### 26. Recommended path: a custom SRF module
+The same is true of `Cy_SysPm_SetSOCMEMDeepSleepMode`,
+`Cy_SysPm_SystemEnterHibernate`, the various `Cy_SysPm_Set*` mode
+selectors, and some of the `Cy_SysPm_GetIoFreeze*` helpers. They
+are PDL APIs that the MTB platform assumes are called from secure
+code and therefore never had an SRF wrapper added.
 
-This is Option C, modeled exactly on the MTB power example. We do
-**not** try to extend the PDL's SRF tables. We define our own
-module with the operations our Zephyr app needs.
+The SoC's `ifx_pm_init` SYS_INIT would be perfectly fine in a
+flat-trust ModusToolbox build, but on a `_ns` Zephyr build it
+bus-faults before `main()` ever runs.
 
-#### File layout
+**So the actual fault matrix is:**
+
+| PDL API called from NS | SRF-wrapped? | Outcome today |
+|---|---|---|
+| `Cy_SysPm_CpuEnterSleep` | yes | works via `ifx_ext_sp` → PDL secure handler |
+| `Cy_SysPm_CpuEnterDeepSleep` | yes | works via `ifx_ext_sp` → PDL secure handler |
+| `Cy_SysPm_SystemEnterHibernate` | no | bus fault on the SRSS write |
+| `Cy_SysPm_SetDeepSleepMode` | no | bus fault on the PPU write |
+| `Cy_SysPm_SetSOCMEMDeepSleepMode` | no | bus fault on the PPU write |
+| `Cy_SysPm_SetSysDeepSleepMode` | no | bus fault on the PPU write |
+
+That's the real problem this app exists to work around.
+
+### 25. Options on the table
+
+| Option | What you do | Coverage | Notes |
+|---|---|---|---|
+| **A** | Drop the SoC's `ifx_pm_init` SYS_INIT (it's the only thing calling non-SRF-wrapped APIs at boot). Keep using `Cy_SysPm_CpuEnter{,Deep}Sleep` from NS via the in-tree SRF path. | CPU sleep + CPU deep sleep | Cleanest in principle. You inherit whatever PPU bias the platform's `cybsp_init()` set on the S side. Hibernate and DS-OFF still unreachable. No new partition. |
+| **C** | Ship a small out-of-tree partition (`z_pm`) that calls PDL syspm directly on the S side. NS calls our partition instead of PDL. | Anything we choose to expose | Bypasses SRF entirely. One narrow audited API. Lets us implement DS-OFF/hibernate later without waiting for SRF coverage. **What this app does today.** |
+| ~~B, D, E, F~~ | (see §18a and below) | — | Rejected: see table |
+
+**Why not the others, briefly:**
+
+| Option | Reason rejected |
+|---|---|
+| **B** — tiny S-side init-only partition that biases PPUs at boot | Strictly weaker than A: same coverage (CPU sleep only) but adds a partition just to call APIs the platform's own `cybsp_init` could call. |
+| **D** — edit `cycfg_ppc.h` to mark PWRMODE/SRSS non-secure | Breaks isolation. Only acceptable for one-off bring-up on a dev board. |
+| **E** — pull `ifx-tf-m-pse84epc2` (MTB TF-M port) | See §18a. |
+| **F** — DT-generated MPC/PPC tables | See §18a. Wrong layer for this problem. |
+
+**A vs C — what tipped it for us:**
+
+We picked C because:
+1. We want to evolve toward DS-OFF, hibernate, and Layer-B biasing.
+   All three need non-SRF-wrapped PDL APIs. Adding them to A means
+   either patching the PDL (out of scope) or building a partition
+   anyway.
+2. The partition gives us **one** place to put PM policy, with the
+   security boundary visible in the API. SRF mixes "forward this
+   PDL call" with our own logic.
+3. Implementation effort for the skeleton was small (see
+   [`TFM_partition_tutorial.md`](TFM_partition_tutorial.md)) — much
+   less than the cost of debugging surprise gaps in SRF coverage as
+   we add features.
+
+Option A remains valid if you only need CPU-level sleep and don't
+mind being constrained by what's currently SRF-wrapped. The two
+options are not mutually exclusive: you can call `Cy_SysPm_CpuEnter…`
+via SRF *and* call `z_pm_*` for things SRF doesn't cover, in the
+same NS image.
+
+### 26. Chosen path: a thin out-of-tree partition (Option C)
+
+The partition is documented end-to-end in
+[`TFM_partition_tutorial.md`](TFM_partition_tutorial.md). Summary
+relevant to this discussion:
 
 ```
 apps/02_pse84_tfm_m33_m55_pm/
   cm33_ns/src/
-    user_syspm_srf.c          NS-side stubs (Cy_USER_SysEnterDS, …)
-    user_syspm_srf.h
-  tfm_partitions/
-    z_pm_srf/
-      manifest_list.yaml      Points at z_pm_srf.yaml
-      z_pm_srf.yaml           model: IPC, type: PSA-ROT,
-                              services: [{ name: Z_PM_SRF, sid: 0x... }]
-      z_pm_srf.c              PSA entry point + dispatch
-      user_syspm_srf_impl.c   S-side implementations (Cy_USER_SysEnterDS_s)
-      CMakeLists.txt
+    z_pm_client.{h,c}         NS-side psa_call wrappers
+    power.c                   Zephyr pm_state_set dispatching to z_pm_*
+  tfm_partitions/z_pm/
+    z_pm_partition.yaml       PSA-ROT, SFN, service Z_PM_SERVICE
+    manifest_list.yaml        TFM_EXTRA_MANIFEST_LIST_FILES entry
+    z_pm_partition.c          Calls Cy_SysPm_CpuEnter{,Deep}Sleep on S side
+    CMakeLists.txt            Links ifx_pdl_inc_s for headers only
 ```
 
-#### NS-side stubs (one per operation)
+The partition is **not** an SRF module. It is a plain PSA service
+with opcode-dispatched operations:
 
 ```c
-cy_en_user_syspm_status_t Cy_USER_SysEnterDS(void)
-{
-    cy_en_user_syspm_status_t result = CY_USER_SYSPM_FAIL;
-    /* allocate, pack (MODULE_USER, SUBMOD_SYSPM, OP_ENTERDEEPSLEEP),
-       psa_call, copy output, free. */
-    _Cy_USER_SysPm_Invoke_SRF(CY_USER_SYSPM_OP_ENTERDEEPSLEEP, &result);
-    return result;
+switch (msg->type) {
+case Z_PM_OP_CPU_SLEEP:        return pdl_to_psa(Cy_SysPm_CpuEnterSleep(...));
+case Z_PM_OP_CPU_DEEP_SLEEP:   return pdl_to_psa(Cy_SysPm_CpuEnterDeepSleep(...));
+case Z_PM_OP_SYSTEM_DEEP_SLEEP:return pdl_to_psa(Cy_SysPm_CpuEnterDeepSleep(...));
+/* later: DS-OFF, hibernate, Layer-B bias */
 }
 ```
 
-Direct copy of the MTB example's pattern, just routed over PSA
-instead of CMSE.
+It could call PDL APIs that SRF doesn't wrap (e.g.
+`Cy_SysPm_SetDeepSleepMode`) without bus-faulting, because it runs
+at PC2 with secure privilege. That's what makes Option C strictly
+more general than Option A.
 
-#### S-side handler
+> **Linkage detail.** The PDL secure objects (`cy_syspm_v4.o`,
+> `cy_pdl_srf.o`, …) are already inside `tfm_s.elf` because the
+> Infineon platform port unconditionally adds them to the
+> `ifx_pdl_s` static library that links into TF-M. Our partition
+> only needs the *headers*; we get them via the `ifx_pdl_inc_s`
+> INTERFACE library. See §15a for the full library inventory and
+> `TFM_partition_tutorial.md` §6 for the CMake recipe.
 
-```c
-static psa_status_t z_pm_srf_call(psa_msg_t *msg)
-{
-    mtb_srf_input_ns_t  in;
-    mtb_srf_output_ns_t out = {0};
-    psa_read(msg->handle, 0, &in, sizeof(in));
+#### Old (rejected) sketch: a custom SRF module
 
-    switch (in.request.submodule_id) {
-    case CY_USER_SECURE_SUBMODULE_SYSPM:
-        switch (in.request.op_id) {
-        case CY_USER_SYSPM_OP_ENTERDEEPSLEEP:
-            out.output_values[0] = Cy_USER_SysEnterDS_s();
-            break;
-        /* more ops here */
-        }
-        break;
-    }
-    psa_write(msg->handle, 0, &out, sizeof(out));
-    return PSA_SUCCESS;
-}
-
-psa_status_t z_pm_srf_entry(void)
-{
-    psa_signal_t  signals;
-    psa_msg_t     msg;
-    while (1) {
-        signals = psa_wait(PSA_WAIT_ANY, PSA_BLOCK);
-        if (signals & Z_PM_SRF_SIGNAL) {
-            psa_get(Z_PM_SRF_SIGNAL, &msg);
-            if (msg.type == PSA_IPC_CALL) {
-                psa_reply(msg.handle, z_pm_srf_call(&msg));
-            } else {
-                psa_reply(msg.handle, PSA_SUCCESS);
-            }
-        }
-    }
-}
-```
-
-The `Cy_USER_SysEnterDS_s()` function called from the S side is just
-the secure-build PDL code: `Cy_SysPm_SystemEnterLp()` and friends.
-The PDL's `COMPONENT_SECURE_DEVICE` path skips the SRF wrapping and
-writes registers directly.
-
-#### Build wiring
-
-Add to the application's CMake:
-
-```cmake
-set(TFM_CMAKE_OPTIONS
-    ${TFM_CMAKE_OPTIONS}
-    -DTFM_EXTRA_MANIFEST_LIST_FILES=${CMAKE_CURRENT_LIST_DIR}/tfm_partitions/z_pm_srf/manifest_list.yaml
-    -DTFM_EXTRA_PARTITION_PATHS=${CMAKE_CURRENT_LIST_DIR}/tfm_partitions/z_pm_srf
-)
-```
-
-Done. No file under `modules/tee/tf-m/` is modified.
-
-#### What this gives us
-
-- Every sleep transition our Zephyr app needs becomes one call,
-  e.g. `Cy_USER_SysEnterDS()`.
-- All register writes happen in S, so PPC isolation stays intact.
-- The S side can also do the Layer-B static bias work (Option B) in
-  the same partition's init function. One partition, two jobs.
-- Adding more operations later is mechanical: new op_id, new
-  handler case, new NS stub.
+An earlier revision of this tutorial suggested building a custom
+SRF module along the lines of
+[`tmp/mtb-example-psoc-edge-secure-power-management/user_srf/`](../tmp/mtb-example-psoc-edge-secure-power-management/user_srf/).
+That path is *also* viable — `ifx_ext_sp` supports a user-registered
+SRF module via `IFX_EXT_SP_REGISTER_USER_SRF_MODULE` — but it adds
+the SRF wire-format machinery (modules, submodules, op tables, pool
+allocation) without buying anything for an app that already controls
+both ends. A plain PSA service with a `msg->type` switch is simpler
+to write and to audit. Keep SRF where it genuinely earns its keep:
+forwarding a large surface of vendor-driver calls.
 
 ---
 
