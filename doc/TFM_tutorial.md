@@ -8,7 +8,9 @@ narrows down to the exact problem we hit in
 and how we fixed it.
 
 The companion document is
-[`apps/02_pse84_tfm_m33_m55_pm/PHASE6_BLOCKER.md`](../apps/02_pse84_tfm_m33_m55_pm/PHASE6_BLOCKER.md).
+[`apps/02_pse84_tfm_m33_m55_pm/porting_plan.md`](../apps/02_pse84_tfm_m33_m55_pm/porting_plan.md)
+— the phased implementation plan and status board for the app that this
+tutorial's Part 7 is about.
 For a hands-on partition walk-through see
 [`TFM_partition_tutorial.md`](TFM_partition_tutorial.md).
 

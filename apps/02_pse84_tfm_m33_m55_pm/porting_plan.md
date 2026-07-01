@@ -1,444 +1,274 @@
-# Porting plan: `tmp/16_pse84_3img_rram_pm` → `apps/02_pse84_tfm_m33_m55_pm`
+# Porting plan: PSE84 power management with TF-M
 
-This plan describes how to bring the PSE84 power-management behavior from the
-three-image RRAM reference (`tmp/16_pse84_3img_rram_pm`) into the existing
-TF-M paired-build app (`apps/02_pse84_tfm_m33_m55_pm`), with these constraints:
+Purpose: bring PSE84 power-management behaviour to a TF-M-paired NS
+Zephyr application. Reference implementation: [`tmp/16_pse84_3img_rram_pm`](../../tmp/16_pse84_3img_rram_pm)
+(no-TF-M, three-image Zephyr sysbuild). Target: [`apps/02_pse84_tfm_m33_m55_pm`](.)
+(TF-M-Secure + NS Zephyr + CM55 non-secure).
 
-| Constraint                          | Implication                                                                                     |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------- |
-| 02 runs from external flash         | The whole RRAM execution story (overlays, hex_shift, partition tables) is **out of scope**.     |
-| 02 already uses TF-M                | Source uses `CONFIG_BUILD_WITH_TFM=n` with a custom CM33-S; **all TF-M-bypass plumbing drops**. |
-| Secure side is owned by TF-M        | No CM33-S code, no PPC configuration, no `psa/client.h` stub from the source.                   |
-| CM55 image is already done by user  | Don't touch [cm55/](cm55/). CM55 already parks in `Cy_SysPm_CpuEnterDeepSleep`.                 |
-| Only work is on the CM33-NS app     | All edits land in [cm33_ns/](cm33_ns/).                                                         |
+Background architecture: see [`doc/TFM_tutorial.md`](../../doc/TFM_tutorial.md)
+Part 7 — every claim below assumes you have read at least §27, §29 and
+§31 of that document.
 
-## 1 — Reference points
+---
 
-Source tree:    [`tmp/16_pse84_3img_rram_pm/m33_ns/`](../../tmp/16_pse84_3img_rram_pm/m33_ns)
-Destination:    [`apps/02_pse84_tfm_m33_m55_pm/cm33_ns/`](cm33_ns)
+## Status board
 
-The destination already builds, flashes and blinks (see [`run.sh`](run.sh) and
-[`cm33_ns/src/main.c`](cm33_ns/src/main.c)). Verified facts from the current
-build:
+| Phase | Description                                                              | Status          |
+| ----- | ------------------------------------------------------------------------ | --------------- |
+| 0     | Baseline: `west build -b .../m33/ns` + `west flash` + green blink        | done            |
+| 1     | RGB indicator wired                                                      | done            |
+| 2     | Zephyr PM core enabled                                                   | done            |
+| 3     | Declare per-CPU power states + MCWDT0 kernel tick                        | done            |
+| 4     | `pm_state_set` override, `cpu_sleep` (SUSPEND_TO_IDLE) only              | done            |
+| 5     | `cpu_deep_sleep` (STANDBY substate 1) + `system_deep_sleep` (STANDBY substate 2), both mechanical (no PPU tuning yet) | done            |
+| 5.5   | Diagnosis infrastructure: TF-M halt-on-panic + Cortex-Debug launch.json + tutorial rewrite | done         |
+| 5.75  | z_pm slimmed to PING-only; NS calls PDL directly for the three SRF-covered ops | done       |
+| **6** | **Layer-B static bias (via z_pm at boot)**                               | **NEXT**        |
+| 7     | Per-transition PPU config for `system_deep_sleep` (via z_pm)             | after Phase 6   |
+| 8     | DS-RAM (SUSPEND_TO_RAM)                                                  | planned         |
+| 9     | DS-OFF (SOFT_OFF)                                                        | planned         |
 
-- `CONFIG_BUILD_WITH_TFM=y` → TF-M produces `tfm_merged.hex` natively; the
-  runner already points at it (see `cm33_ns/build/zephyr/runners.yaml`).
-- `CONFIG_PSOC_EDGE_M55_SRF_SUPPORT=y` is set on both CM33-NS and CM55, so
-  PSA calls from CM55 are mailboxed to TF-M on CM33-S.
-- `CONFIG_HAS_PM=y` and `CONFIG_PM_STATE_SET_IRQ_UNLOCKED=y` — Zephyr's PM
-  core will call our `pm_state_set` with IRQs unlocked (matches the source's
-  `pm_irq_prologue` BASEPRI/PRIMASK swap).
-- CM55 already implements "one-time arm `CY_SYSPM_MODE_DEEPSLEEP`, then
-  forever `Cy_SysPm_CpuEnterDeepSleep`" — this is exactly the voter pattern
-  the deep-sleep modes need. So system-deep-sleep voting **is not blocked by
-  CM55 being busy**.
+**We are entering Phase 6.**
 
-## 2 — Source inventory: what to port, what to drop
+Measurements after Phase 5.75 (idle-stack fix + direct-PDL NS dispatch):
 
-### Port (with adaptations)
+| State                    | Active current | Sleep current | Notes                            |
+| ------------------------ | -------------- | ------------- | -------------------------------- |
+| `SUSPEND_TO_IDLE`        | 14 mA          | 12 mA         | red LED between blinks           |
+| `STANDBY` substate 1     | 14 mA          | 62 µA         | blue LED between blinks          |
+| `STANDBY` substate 2     | 14 mA          | ~62 µA        | magenta; same as substate 1 today (no PPU tuning) |
 
-| Source file                                                                | Action                                                       |
-| -------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `m33_ns/src/main.c`                                                        | Port logic; **drop** `release_cm55()` and the GO/ALIVE handshake (TF-M starts CM55). |
-| `m33_ns/src/power.c`                                                       | Port wholesale; **drop** the CM55 GO/ALIVE rendezvous in `enter_system_deep_sleep_off`. |
-| `m33_ns/src/indicator.c` + `.h`                                            | Port wholesale.                                              |
-| `m33_ns/src/ds_ram_diag.c` + `.h`                                          | Port, **guarded by `CONFIG_APP_DIAG_PAUSE_BEFORE_DS`**. See §6 risks — may need an SRF/PSA path. |
-| `m33_ns/src/warm_boot.h`                                                   | Port verbatim.                                               |
-| `m33_ns/Kconfig.app`                                                       | Port the `APP_DIAG_PAUSE_BEFORE_DS` option only.             |
-| `m33_ns/boards/kit_pse84_eval_pse846gps2dbzc4a_m33_ns.overlay` — the **`power-states` block + `&cpu0 { cpu-power-states = <…>; }`** | Port these DT chunks only; create a new overlay file. |
-| `m33_ns/boards/…overlay` — `&mcwdt0 { status = "okay"; }`                  | Port (the deep-sleep tick source).                           |
-| `m33_ns/common/pse84_rendezvous.h`                                         | **Skip** — handshake is gone. (See §6.)                      |
+Phases 6 + 7 are what makes substate 2 actually different from substate 1
+in current draw.
 
-### Drop (TF-M-bypass artifacts or RRAM artifacts)
+---
 
-| Source artifact                                                            | Why we drop it                                               |
-| -------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `CONFIG_BUILD_WITH_TFM=n`                                                  | 02 keeps TF-M on.                                            |
-| `CONFIG_SERIAL=n`, `CONFIG_UART_CONSOLE=n`                                 | TF-M boots the SCB2 console; standard Zephyr UART works.     |
-| `m33_ns/src/raw_console.c`                                                 | Replaced by Zephyr's UART console.                           |
-| `m33_ns/include/psa/client.h` stub                                         | TF-M provides the real header.                               |
-| `m33_ns/cmake/hex_shift.cmake` + the `app_hex_shift(... -0x58000000 ...)` call | TF-M's LMA matches the runner; no shift needed.         |
-| `set_property(TARGET runners_yaml_props_target PROPERTY hex_file ${KERNEL_HEX_NAME})` override | TF-M already wires `tfm_merged.hex` into runners.yaml. |
-| `&uart2 { status = "disabled"; }` overlay                                  | Console must stay enabled.                                   |
-| `&peri0_group1_16bit_0 { status = "disabled"; }` overlay                   | Tied to the source's UART disable. Not needed.               |
-| RRAM overlay parts (`chosen { zephyr,flash = &m33_ns_rram; }`, `m33_ns_image` partition, `../../common/rram_layout.dtsi` include) | Out of scope — 02 runs from external flash. |
-| `common/pse84_aliases.h` MXCM55 vector aliases                             | Only used to release CM55 from CBUS without TF-M.            |
-| `release_cm55()` and the GO/ALIVE handshake                                | TF-M (or sysbuild on the source path) does CM55 launch.      |
+## What changed vs the original plan
 
-## 3 — Phased implementation steps
+The plan through mid-round-6 (see commits `902c8dd` → `d178316` → `46f1069`)
+assumed the `z_pm` partition would wrap `cpu_sleep`, `cpu_deep_sleep` and
+`system_deep_sleep`, and the initial NS-crash was assumed to be a
+PPC/security violation. Round-7 debugging (with `CONFIG_TFM_HALT_ON_CORE_PANIC=ON`
+and Cortex-Debug attach) proved:
 
-Each phase is independently testable. **Do not** jump to the next phase until
-the previous one passes its smoke test.
+1. The three SRF-covered PDL entries — `Cy_SysPm_CpuEnterSleep`,
+   `Cy_SysPm_CpuEnterDeepSleep`, CM33-side `Cy_SysPm_SystemEnterHibernate`
+   — reach TF-M-S via the PDL's built-in SRF branch (`#ifdef
+   CY_PDL_SYSPM_ENABLE_SRF_INTEG`). z_pm wrapping is redundant for them.
+2. `Cy_SysPm_SetSysDeepSleepMode`, `Cy_SysPm_SetSOCMEMDeepSleepMode` and
+   CM55-side `Cy_SysPm_SystemEnterHibernate` are *not* SRF-wrapped and
+   *do* need z_pm.
+3. The initial crashes on the direct-NS path were **stack overflow** on
+   the Zephyr idle thread inside `tfm_ns_interface_dispatch`'s prologue
+   (`sub sp, #136` for the `struct fpu_ctx_full` local). Fixed by
+   `CONFIG_IDLE_STACK_SIZE=2048`.
 
-### Phase 0 — Baseline check (no code change)
+The obsolete `PHASE6_BLOCKER.md` (which described a nonexistent
+"TF-M has no syspm service" blocker) has been deleted — the correct
+architecture lives in [`doc/TFM_tutorial.md`](../../doc/TFM_tutorial.md)
+§27–§31.
 
-1. `./run.sh all` → blinky still works. This is the regression baseline.
+---
 
-### Phase 1 — Wire the RGB indicator
+## Constraints
 
-1. Copy `indicator.c`/`indicator.h` into `cm33_ns/src/`.
-2. Add `target_sources(app PRIVATE src/indicator.c)` to
-   [cm33_ns/CMakeLists.txt](cm33_ns/CMakeLists.txt).
-3. Confirm `cm33_ns/boards/kit_pse84_eval_pse846gps2dbzc4a_m33_ns.overlay`
-   defines `led0`/`led1`/`led2` aliases (they're already in the board DTS;
-   no overlay change needed unless an override is desired).
-4. Replace `cm33_ns/src/main.c` body with: `indicator_init()` →
-   loop: `indicator_active_on()` → `k_busy_wait(200000)` →
-   `indicator_active_off()` → `k_msleep(1000)`.
+| Constraint                              | Implication                                                                        |
+| --------------------------------------- | ---------------------------------------------------------------------------------- |
+| 02 uses TF-M                            | Un-SRF-wrapped PDL entries cannot run from NS; they must be wrapped in z_pm.       |
+| 02 runs from external SMIF flash (CM55) | RRAM-execution optimisations from `tmp/16` don't apply.                            |
+| CM55 image already parks in `Cy_SysPm_CpuEnterDeepSleep` loop | System DEEPSLEEP voting is unblocked from CM55's side.                  |
+| Only work is on the CM33-NS app + z_pm partition | No CM55 changes needed until Phase 9 (DS-OFF destructive teardown).       |
+| **PPU config differs per PM state**     | `Cy_SysPm_SetDeepSleepMode(mode)` (which programs Table 2 rows of AN237976) must run **per-transition**, not once at boot. |
 
-**Smoke test:** Green LED flashes once per second; red, blue stay off.
+---
 
-### Phase 2 — Enable PM core (still no custom states)
+## Phase 6 — Layer-B static bias (add first real `z_pm` op)
 
-1. Add to [cm33_ns/prj.conf](cm33_ns/prj.conf):
-   ```
-   CONFIG_PM=y
-   CONFIG_PM_POLICY_DEFAULT=y
-   CONFIG_TICKLESS_KERNEL=y
-   CONFIG_MAIN_STACK_SIZE=4096
-   CONFIG_INIT_STACKS=y
-   CONFIG_FAULT_DUMP=2
-   ```
-2. Do **not** add `CONFIG_CORTEX_M_SYSTICK=n` yet. Verify the build still
-   completes and the LED still blinks. Zephyr will idle in WFI between
-   blinks but with no power state declared, no SoC PM work runs.
+At-boot z_pm op that runs the [`tmp/16 ifx_pm_init`](../../tmp/16_pse84_3img_rram_pm/m33_ns/src/power.c)
+calls that do **not** depend on the upcoming transition. All touch
+PSA-ROT SRSS registers → must run at PC2 → live on the S side inside
+z_pm.
 
-**Smoke test:** Same visible behavior as Phase 1, build is clean.
+**On the S side (z_pm partition):**
+```c
+#define Z_PM_OP_PING           1
+#define Z_PM_OP_LAYER_B_INIT   2    /* NEW */
 
-### Phase 3 — Declare power states + sleep tick source
-
-1. Create [cm33_ns/boards/kit_pse84_eval_pse846gps2dbzc4a_m33_ns.overlay](cm33_ns/boards/) with the **ported** sections from the source overlay:
-   - `&mcwdt0 { status = "okay"; }` — survives DeepSleep, becomes the tick.
-   - `power-states { ... }` block — the five states from the source.
-   - `&cpu0 { cpu-power-states = <…>; };` — list ordered by ascending
-     residency+latency (same order as source).
-2. Add to [cm33_ns/prj.conf](cm33_ns/prj.conf):
-   ```
-   CONFIG_CORTEX_M_SYSTICK=n
-   ```
-   (Forces Zephyr's tick onto MCWDT0/LPTIMER, which stays alive in
-   DeepSleep.)
-
-**Smoke test:** Build still clean. Blinky should still work — but tick now
-comes from MCWDT0, so timing precision changes slightly. If anything weird
-happens, suspect the `cpu-power-states` ordering or the MCWDT enable.
-
-### Phase 4 — Port the SoC `pm_state_set` override (CPU-sleep only)
-
-1. Copy `power.c` and `warm_boot.h` into `cm33_ns/src/`.
-2. In [cm33_ns/CMakeLists.txt](cm33_ns/CMakeLists.txt), add the SoC
-   override BEFORE `find_package(Zephyr ...)`:
-   ```cmake
-   # We provide our own pm_state_set; drop the SoC default.
-   list(REMOVE_ITEM zephyr_sources
-        ${ZEPHYR_BASE}/soc/infineon/edge/pse84/power.c)
-   ```
-   (See lines 23–34 of the source `m33_ns/CMakeLists.txt` for the exact
-   pattern.)
-3. Add `target_sources(app PRIVATE src/power.c)`.
-4. In `power.c`, initially keep only the `PM_STATE_SUSPEND_TO_IDLE`
-   (`enter_cpu_sleep`) branch active; stub the others as `printk` +
-   `return`. This isolates the first sleep path.
-5. In main.c, hard-code `SLEEP_BETWEEN_BLINKS_MS = 5` so the policy
-   selects `cpu_sleep`.
-
-**Smoke test:** Blinky cadence: green ~200 ms, red between blinks. Red is
-the indicator color for `cpu_sleep` (set in `indicator_pre_wfi(state, 0)`).
-
-**Risk to verify here:** TF-M's NS environment must not block `WFI`. It
-won't, but watch for any TF-M idle hook the SoC layer may register.
-
-### Phase 5 — Enable CPU DeepSleep substates (substates 1 & 2 of STANDBY)
-
-1. Wire up `enter_cpu_deep_sleep` and `enter_system_deep_sleep` in
-   `power.c`.
-2. Step `SLEEP_BETWEEN_BLINKS_MS` through `100`, `1500`, `2500` to walk
-   the policy down to `cpu_deep_sleep` and then `system_deep_sleep`.
-3. The dispatcher writes PWR_CTL.DEEPSLEEP_MODE via
-   `Cy_SysPm_SetDeepSleepMode` / `Cy_SysPm_SetAppDeepSleepMode` /
-   `Cy_SysPm_SetSOCMEMDeepSleepMode`. These touch SRSS_MAIN.
-   - **Risk gate:** If TF-M's PPC config makes SRSS_MAIN secure-only,
-     these writes will bus-fault from NS. See §6.1.
-
-**Smoke tests:**
-
-- `SLEEP_BETWEEN_BLINKS_MS = 100`: green flash, blue between (cpu_deep_sleep).
-- `SLEEP_BETWEEN_BLINKS_MS = 1500`: green flash, magenta between (system_deep_sleep).
-
-### Phase 6 — DS-RAM (warm-boot path)
-
-1. Wire up `enter_system_deep_sleep_ram`.
-2. Plant the `WARM_BOOT_TOKEN_DS_RAM` in `RTC->BREG_SET1[1]` before WFI
-   so `print_boot_banner` in `main.c` can announce the warm-boot cause
-   on the next reset.
-   - **Risk gate:** Same TF-M PPC question for `PROT_PERI0_RTC_B_BREG1`.
-     See §6.1.
-3. `enter_system_deep_sleep_ram` **does not return** — it lands in the
-   SE-ROM warm boot stub which re-enters `z_arm_reset`. Verify this with
-   `SLEEP_BETWEEN_BLINKS_MS = 2500`.
-
-**Smoke test:** Cyan between blinks; after a few cycles, the boot banner
-reports "warm boot, cause = DS_RAM".
-
-### Phase 7 — DS-OFF (destructive)
-
-1. Wire up `enter_system_deep_sleep_off`.
-2. **Drop** the CM55 GO/ALIVE rendezvous from the source's
-   `enter_system_deep_sleep_off`. CM55 in 02 is already parked in
-   `Cy_SysPm_CpuEnterDeepSleep` from boot, so there is no console-flush
-   race to serialize.
-3. `SLEEP_BETWEEN_BLINKS_MS = 5000` triggers DS-OFF. Latches white LED
-   (in the source's design) just before WFI, then the part power-cycles
-   on wake.
-
-**Smoke test:** White flash, then full cold-boot banner.
-
-### Phase 8 — Layer-B static bias
-
-1. Wire `ifx_pm_init()` as `SYS_INIT(... PRE_KERNEL_1, ...)`.
-2. This calls `enable_bgref_low_power_mode`,
-   `configure_core_buck_for_deep_sleep`, `disable_oscillators_in_deep_sleep`
-   once at boot.
-   - **Risk gate:** Same TF-M PPC question for SRSS/CLK registers. See §6.1.
-
-**Smoke test:** Same visible behavior, but DS current should drop
-measurably (out of scope to measure here — just verify the system still
-boots and blinks).
-
-### Phase 9 — Diagnostics (optional)
-
-1. Copy `ds_ram_diag.c`/`.h`.
-2. Add `Kconfig.app` with `APP_DIAG_PAUSE_BEFORE_DS` and `rsource` it
-   from a `Kconfig` next to `CMakeLists.txt`:
-   ```kconfig
-   mainmenu "PSE84 TF-M M33-NS PM app"
-   rsource "Kconfig.app"
-   source "Kconfig.zephyr"
-   ```
-3. Guard the diag calls with `#ifdef CONFIG_APP_DIAG_PAUSE_BEFORE_DS`.
-   - **Risk gate:** `ds_ram_diag.c` reads PPU registers through NS
-     aliases (`0x42xxxxxx`, `0x44xxxxxx`). Almost certainly blocked by
-     TF-M's default PPC config. See §6.1 — likely needs an SRF call
-     into TF-M to read these, or this module stays disabled under TF-M.
-
-## 4 — Concrete edit summary (when all phases land)
-
-### [cm33_ns/CMakeLists.txt](cm33_ns/CMakeLists.txt)
-
-```cmake
-cmake_minimum_required(VERSION 3.20.0)
-
-# Provide our own pm_state_set; drop the SoC default.
-list(REMOVE_ITEM zephyr_sources
-     ${ZEPHYR_BASE}/soc/infineon/edge/pse84/power.c)
-
-find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
-project(cm33_ns_pm)
-
-target_sources(app PRIVATE
-    src/main.c
-    src/indicator.c
-    src/power.c
-)
-
-# Diagnostics — optional, off by default until PPC access is sorted.
-target_sources_ifdef(CONFIG_APP_DIAG_PAUSE_BEFORE_DS app PRIVATE
-    src/ds_ram_diag.c
-)
+static psa_status_t z_pm_op_layer_b_init(const psa_msg_t *msg)
+{
+    (void)msg;
+    Cy_SysPm_Init();
+    Cy_SysClk_ClkBakSetSource(CY_SYSCLK_BAK_IN_PILO);
+    /* BGREF LP */
+    SRSS_PWR_CTL2 |= SRSS_PWR_CTL2_BGREF_LPMODE_Msk;
+    /* Core buck DS: 0.70 V, LP mode, override on */
+    Cy_SysPm_CoreBuckDpslpSetVoltage(CY_SYSPM_CORE_BUCK_VOLTAGE_0_70V);
+    Cy_SysPm_CoreBuckDpslpSetMode(CY_SYSPM_CORE_BUCK_MODE_LP);
+    Cy_SysPm_CoreBuckDpslpEnableOverride(true);
+    /* Kill IHO + IMO DS keep-alive (PILO drives MCWDT0 tick, stays up) */
+    Cy_SysClk_IhoDeepsleepDisable();
+    SRSS_CLK_IMO_CONFIG &= ~SRSS_CLK_IMO_CONFIG_DPSLP_ENABLE_Msk;
+    return PSA_SUCCESS;
+}
 ```
 
-### [cm33_ns/prj.conf](cm33_ns/prj.conf)
+**Deliberately NOT included** here (see Phase 7):
+- `Cy_SysPm_SetDeepSleepMode(CY_SYSPM_MODE_DEEPSLEEP)` — programs Table 2
+  values. Different mode per transition → per-transition.
 
-Append:
+**CMakeLists.txt** — re-add the `ifx_pdl_inc_s` PRIVATE dep that
+was dropped in commit `46f1069` (the empty-partition state).
 
-```
-CONFIG_PM=y
-CONFIG_PM_POLICY_DEFAULT=y
-CONFIG_TICKLESS_KERNEL=y
-CONFIG_CORTEX_M_SYSTICK=n
-CONFIG_MAIN_STACK_SIZE=4096
-CONFIG_INIT_STACKS=y
-CONFIG_FAULT_DUMP=2
+**On the NS side (new client wrapper):**
+```c
+psa_status_t z_pm_layer_b_init(void);   /* wraps psa_call(..., Z_PM_OP_LAYER_B_INIT, ...) */
 ```
 
-Keep existing:
-- `CONFIG_BUILD_OUTPUT_HEX=y`
-- `CONFIG_GPIO=y`
-- `CONFIG_PSOC_EDGE_M55_SRF_SUPPORT=y`
+**Boot wiring** — one NS `SYS_INIT` at `PRE_KERNEL_2` (after LPTIMER
+init, before app) calling `z_pm_layer_b_init()`.
 
-Don't add: `CONFIG_BUILD_WITH_TFM=n`, `CONFIG_SERIAL=n`, `CONFIG_UART_CONSOLE=n`
-— these would break TF-M and the console.
+**Plus one NS-only preemptive MCWDT0 disable** — earliest SoC init,
+NS-accessible, blocks silent LPTIMER init failure. Not a z_pm op.
 
-### [cm33_ns/boards/kit_pse84_eval_pse846gps2dbzc4a_m33_ns.overlay](cm33_ns/boards/) (new file)
+**Smoke test:** substate 2 sleep current should drop from ~62 µA to
+tens of µA. Substate 1 also improves for the same reason.
 
-```dts
-&mcwdt0 {
-    status = "okay";
-};
+---
 
-/ {
-    power-states {
-        cpu_sleep: cpu_sleep {
-            compatible = "zephyr,power-state";
-            power-state-name = "suspend-to-idle";
-            min-residency-us = <100>;
-            exit-latency-us  = <20>;
-        };
-        cpu_deep_sleep: cpu_deep_sleep {
-            compatible = "zephyr,power-state";
-            power-state-name = "standby";
-            substate-id = <1>;
-            min-residency-us = <1000>;
-            exit-latency-us  = <100>;
-        };
-        system_deep_sleep: system_deep_sleep {
-            compatible = "zephyr,power-state";
-            power-state-name = "standby";
-            substate-id = <2>;
-            min-residency-us = <10000>;
-            exit-latency-us  = <500>;
-        };
-        system_deep_sleep_ram: system_deep_sleep_ram {
-            compatible = "zephyr,power-state";
-            power-state-name = "suspend-to-ram";
-            min-residency-us = <100000>;
-            exit-latency-us  = <5000>;
-        };
-        system_deep_sleep_off: system_deep_sleep_off {
-            compatible = "zephyr,power-state";
-            power-state-name = "soft-off";
-            min-residency-us = <1000000>;
-            exit-latency-us  = <50000>;
-        };
-    };
-};
+## Phase 7 — Per-transition PPU config for system_deep_sleep
 
-&cpu0 {
-    cpu-power-states = <
-        &cpu_sleep
-        &cpu_deep_sleep
-        &system_deep_sleep
-        &system_deep_sleep_ram
-        &system_deep_sleep_off
-    >;
-};
+Motivation (from the round-7 discussion + AN237976 Table 2):
+
+> The mode selected by `Cy_SysPm_SetDeepSleepMode(mode)` is SRSS-global.
+> It says what the *system* will collapse to when both CPUs vote deep
+> sleep. Setting it once at boot locks the project to one variant. The
+> Zephyr residency policy decides at runtime which state to enter, so
+> the PPU programming must move into the per-state dispatchers.
+
+**On the S side (z_pm partition):**
+```c
+#define Z_PM_OP_SET_DEEP_SLEEP_MODE  3     /* NEW; arg = cy_en_syspm_deep_sleep_mode_t */
+
+static psa_status_t z_pm_op_set_deep_sleep_mode(const psa_msg_t *msg)
+{
+    uint32_t mode;
+    if (msg->in_size[0] < sizeof(mode))
+        return PSA_ERROR_INVALID_ARGUMENT;
+    psa_read(msg->handle, 0, &mode, sizeof(mode));
+    /* Bounds check: only DEEPSLEEP / DEEPSLEEP_RAM / DEEPSLEEP_OFF allowed. */
+    if (mode > CY_SYSPM_MODE_DEEPSLEEP_OFF)
+        return PSA_ERROR_INVALID_ARGUMENT;
+    return (Cy_SysPm_SetDeepSleepMode((cy_en_syspm_deep_sleep_mode_t)mode)
+            == CY_SYSPM_SUCCESS)
+        ? PSA_SUCCESS
+        : PSA_ERROR_GENERIC_ERROR;
+}
 ```
 
-**Copy exact values from the source overlay** — the numbers above are the
-shape; verify them against
-`tmp/16_pse84_3img_rram_pm/m33_ns/boards/kit_pse84_eval_pse846gps2dbzc4a_m33_ns.overlay`
-when porting.
+`Cy_SysPm_SetDeepSleepMode` internally calls
+`Cy_SysPm_SetSysDeepSleepMode` (MAIN, SRAM0/1, SYSCPU PPUs),
+`Cy_SysPm_SetAppDeepSleepMode` (PD1, APPCPUSS, APPCPU PPUs) and
+`Cy_SysPm_SetSOCMEMDeepSleepMode` (SOCMEM PPU) to program the row of
+AN237976 Table 2 that matches the requested mode. For our substate 2
+we want the DEEPSLEEP column:
 
-### Files added under [cm33_ns/src/](cm33_ns/src)
+| PPU               | Mode                    | Value |
+| ----------------- | ----------------------- | ----- |
+| MAIN              | Full Retention          | 0x05  |
+| SRAM0             | Memory Retention        | 0x02  |
+| SRAM1             | Memory Retention        | 0x02  |
+| SYSCPU            | Full Retention          | 0x05  |
+| PD1               | Full Retention          | 0x05  |
+| APPCPUSS          | Full Retention          | 0x05  |
+| APPCPU            | Full Retention          | 0x05  |
+| SOCMEM            | Memory Retention        | 0x02  |
+| U55               | Off                     | 0x00  |
 
-- `main.c` (rewritten — port from source, drop `release_cm55()`)
-- `indicator.c`, `indicator.h` (verbatim)
-- `power.c` (port — see §6 for adaptations)
-- `warm_boot.h` (verbatim)
-- `ds_ram_diag.c`, `ds_ram_diag.h` (verbatim, optional via Kconfig)
-
-### Files NOT added
-
-- `raw_console.c` — keep Zephyr UART console.
-- `psa/client.h` — TF-M provides the real one.
-- `common/pse84_aliases.h` — only the MXCM55 macros were used, and CM55
-  release is TF-M's job.
-- `common/pse84_rendezvous.h` — no GO/ALIVE handshake.
-- `cmake/hex_shift.cmake` — TF-M handles LMA.
-
-## 5 — Build & flash
-
-No change to [run.sh](run.sh). The existing flow
-
-```
-./run.sh all     # build CM33-NS, build CM55, flash CM55 then CM33-NS
+**On the NS side (client):**
+```c
+psa_status_t z_pm_set_deep_sleep_mode(cy_en_syspm_deep_sleep_mode_t mode);
 ```
 
-still applies. `tfm_merged.hex` is produced by TF-M; the runner already
-points at it.
+**In `cm33_ns/src/power.c`:**
+```c
+static void enter_system_deep_sleep(void)
+{
+    indicator_system_deep_sleep_on();
+    /* Program Table-2 DEEPSLEEP column PPUs. Un-SRF-wrapped → via z_pm. */
+    (void)z_pm_set_deep_sleep_mode(CY_SYSPM_MODE_DEEPSLEEP);
+    pm_irq_prologue();
+    (void)Cy_SysPm_CpuEnterDeepSleep(CY_SYSPM_WAIT_FOR_INTERRUPT);
+    indicator_system_deep_sleep_off();
+}
+```
 
-## 6 — Open risks & required investigations
+`enter_cpu_deep_sleep` (substate 1) stays as-is — CPU deep sleep is
+CPU-local, no system-level PPU programming needed.
 
-### 6.1 TF-M PPC may block NS access to SRSS / PPU / RTC BREG
+**Smoke test:** the two substates now have visibly different current
+profiles. Substate 2 should draw less than substate 1 because the SoC
+actually collapses to system DEEPSLEEP (all PPUs at retention) rather
+than just CPU DeepSleep.
 
-This is **the** architectural risk and the reason a phased approach is
-mandatory. The source project (`16_*`) uses a hand-rolled CM33-S that
-opens almost everything to NS (the source comments mention
-`pcMask=0xFF`). TF-M's default PSE84 PPC configuration is much tighter.
+---
 
-Registers the dispatcher pokes that MAY be secure-only under TF-M:
+## Phase 8 — DS-RAM (SUSPEND_TO_RAM)
 
-| Block        | Used by                                                     | Likely under TF-M default |
-| ------------ | ----------------------------------------------------------- | ------------------------- |
-| SRSS_MAIN PWR_CTL                | `Cy_SysPm_SetDeepSleepMode`, …       | usually NS-visible        |
-| SRSS CLK_*                       | `disable_oscillators_in_deep_sleep`  | often Secure              |
-| SRSS BGREF / BUCK                | Layer-B static bias                  | often Secure              |
-| PPU NS aliases (0x42…/0x44…)     | `ds_ram_diag.c`                      | likely Secure             |
-| RTC BREG_SET1[1], BREG_SET2[0..7]| Warm-boot token + diag snapshot      | depends on PPC            |
+Big addition. Reference: [`tmp/16 enter_system_deep_sleep_ram`](../../tmp/16_pse84_3img_rram_pm/m33_ns/src/power.c).
+TF-M-specific challenges:
 
-**Mitigation paths**:
+- `Cy_SysPm_SetDeepSleepMode(CY_SYSPM_MODE_DEEPSLEEP_RAM)` — programs
+  Table 2 DEEPSLEEP_RAM column via z_pm (`Z_PM_OP_SET_DEEP_SLEEP_MODE`
+  already exists from Phase 7; just call it with the RAM mode).
+- `Cy_SysPm_SetAppDeepSleepMode(DEEPSLEEP_RAM)` — via z_pm (may need a
+  separate op if the top-level SetDeepSleepMode doesn't cover App
+  domain fully in every PDL version; verify at implementation time).
+- `Cy_SysPm_SetSOCMEMDeepSleepMode(DEEPSLEEP_RAM)` **with PD1-up gating**
+  — via z_pm, wrapping the `Cy_System_IsEnabledPD1()` precondition.
+- `cy_pd_pdcm_clear_dependency(CY_PD_PDCM_APPCPUSS, CY_PD_PDCM_SYSCPU)`
+  — writes the secured PD dependency matrix; via z_pm.
+- `RTC->BREG_SET1[1] = WARM_BOOT_TOKEN_DS_RAM` — SRSS_HIB_DATA region
+  is secured; via z_pm.
+- **Warm-boot entry point in `BREG_SET1[0]`** — must be planted by the
+  secure boot chain, not by NS. This requires a hook in the TF-M
+  platform port (or a small addition to `ifx_init_spm_peripherals`).
+  Non-trivial; may motivate reconsidering the trade-off with Option D
+  from the tutorial.
+- MCWDT0 pending clear + NVIC clear before WFI — NS-doable.
+- `enter_system_deep_sleep_ram` **does not return**; warm-boot detection
+  in `main()` reading `BREG_SET1[1]`.
 
-1. **Test empirically per phase.** A bus-fault at the first PDL call
-   tells you which register tripped (`CONFIG_FAULT_DUMP=2` gives you
-   `SCB->BFAR`).
-2. **Open PPC from TF-M.** PSE84 TF-M platform code in
-   `modules/tee/tf-m/trusted-firmware-m/platform/ext/target/infineon/pse84/`
-   has a `target_cfg.c` that programs PPC0/1 — relax specific blocks
-   there via `TFM_CMAKE_OPTIONS` passed from
-   [cm33_ns/CMakeLists.txt](cm33_ns/CMakeLists.txt).
-3. **Use the SRF mailbox.** The PSE84 secure runtime framework
-   (already enabled via `CONFIG_PSOC_EDGE_M55_SRF_SUPPORT=y`) gives NS
-   a PSA channel to ask the secure side to touch protected registers
-   on its behalf. If TF-M provides an SRF power service, route the
-   dispatcher's secure pokes through it instead.
+Not planned in detail until Phase 7 is measured — the numbers might
+show DS-RAM is not worth the complexity for the target application.
 
-If 6.1 turns out to be a wall, the ports of `power.c` (Phase 5–8) and
-`ds_ram_diag.c` (Phase 9) become the actual engineering task — not a
-copy-paste.
+---
 
-### 6.2 SysTick under TF-M
+## Phase 9 — DS-OFF (SOFT_OFF)
 
-The destination's `.config` already shows
-`CONFIG_SYSTEM_TIMER_HAS_LPM_COMPANION_SUPPORT=y` /
-`CONFIG_SYSTEM_TIMER_LPM_COMPANION_NONE=y`. Confirm that switching to
-`CONFIG_CORTEX_M_SYSTICK=n` actually picks the MCWDT0 driver as the
-system tick (check `zephyr.dts` after build for `chosen { zephyr,sys-clock = ...; }`).
+Even bigger. Reference: [`tmp/16 enter_system_deep_sleep_off`](../../tmp/16_pse84_3img_rram_pm/m33_ns/src/power.c).
+On top of Phase 8's z_pm ops:
 
-### 6.3 SWD-attached cold-boot caveat for DS-RAM
+- CM55 destructive-teardown protocol via GO/ALIVE flags in shared memory.
+  Requires substantial CM55-side code and new secure/NS shared regions.
+- HF1/HF2 gating (`Cy_SysClk_ClkHfDisable(1)` + `(2)`) — un-SRF-wrapped
+  SRSS_MAIN writes; via z_pm.
+- MCWDT0 stop (no wake from SOFT_OFF) — NS-doable.
+- CM55 tears down PERI 1.1 + HF3-13 + PD1/SOCMEM/APPCPUSS/APPCPU PPUs.
+- Does not return; wakes via reset.
 
-The source's comments warn that DS-RAM with SWD attached can hang the
-warm-boot path. Same caveat applies in 02 — document in the README and
-unplug the debugger probe when testing DS-RAM / DS-OFF.
+Depends on Phase 8 and requires product-level justification (DS-OFF is
+destructive on the current-consumption path — no wake source configured
+short of reset).
 
-### 6.4 LED conflict
+---
 
-CM55 currently does **not** drive any LEDs. CM33-NS owns `led0`/`led1`/
-`led2`. No conflict.
+## Non-goals
 
-### 6.5 CM55 ownership of HF1/HF2
-
-Some `Cy_SysClk_ClkHfDisable` calls in Layer-B touch HF clocks that
-serve CM55. CM55 is parked in DEEPSLEEP and not fetching, so gating
-should be safe — but verify CM55 wakes cleanly after each CM33-NS
-DS-RAM cycle.
-
-## 7 — Validation matrix
-
-| Phase | `SLEEP_BETWEEN_BLINKS_MS` | Expected LED between blinks | Expected boot banner cause | Notes                          |
-| ----: | ------------------------: | --------------------------- | -------------------------- | ------------------------------ |
-| 4     | 5                         | red                         | cold                       | `pm_state_set` reached.        |
-| 5     | 100                       | blue                        | cold                       | CPU DeepSleep.                 |
-| 5     | 1500                      | magenta (R+B)               | cold                       | System DeepSleep.              |
-| 6     | 2500                      | cyan (G+B)                  | **warm: DS_RAM**           | Warm boot via SE-ROM.          |
-| 7     | 5000                      | white (R+G+B), then dark    | cold (POR-equivalent)      | Destructive DS-OFF.            |
-
-## 8 — Out of scope (call out before review)
-
-- RRAM execution. The source's `cmake/hex_shift.cmake`,
-  `chosen { zephyr,flash = &m33_ns_rram; }`, `m33_ns_image` partition,
-  and `common/rram_layout.dtsi` are deliberately not ported.
-- CM33-Secure side. TF-M owns it; no `m33_s` directory in 02.
-- CM55 application. [cm55/](cm55/) is the user's. The voter pattern it
-  already implements is exactly what this plan assumes.
-- Three-image RRAM build orchestration / `m55/sysbuild.cmake`. 02 uses
-  the TF-M paired-build flow, not sysbuild.
+- **Modifying the TF-M PSE84 platform port** (Options E, F in tutorial
+  §29). Out of scope; the current path keeps our project self-contained.
+- **Flipping the `CYCFG_PPC_SECURED_*` bits** to make SRSS/PWRMODE
+  NS-writable (Option D). Break of isolation posture; reserved for
+  bring-up experiments only.
+- **Turning z_pm into an SRF module** (via
+  `IFX_EXT_SP_REGISTER_USER_SRF_MODULE`). Plain PSA service is simpler
+  when we control both ends — see tutorial §31 rejected sketch.
