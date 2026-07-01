@@ -47,11 +47,11 @@
  * Cy_SysPm_SetSysDeepSleepMode and Cy_SysPm_SystemEnterHibernate
  * on CM55 are NOT SRF-wrapped in the PDL).
  */
-// #define SLEEP_BETWEEN_BLINKS_MS    5 /* cpu_sleep                     */
-#define SLEEP_BETWEEN_BLINKS_MS 100 /* cpu_deep_sleep — direct PDL   */
-// #define SLEEP_BETWEEN_BLINKS_MS 1500 /* system_deep_sleep             */
-// #define SLEEP_BETWEEN_BLINKS_MS 2500 /* system_deep_sleep_ram (unimpl) */
-// #define SLEEP_BETWEEN_BLINKS_MS 5000 /* system_deep_sleep_off (unimpl) */
+#define SLEEP_BETWEEN_BLINKS_MS 5 /* cpu_sleep                     */
+// #define SLEEP_BETWEEN_BLINKS_MS 100 /* cpu_deep_sleep — direct PDL   */
+//  #define SLEEP_BETWEEN_BLINKS_MS 1500 /* system_deep_sleep             */
+//  #define SLEEP_BETWEEN_BLINKS_MS 2500 /* system_deep_sleep_ram (unimpl) */
+//  #define SLEEP_BETWEEN_BLINKS_MS 5000 /* system_deep_sleep_off (unimpl) */
 
 int main(void)
 {

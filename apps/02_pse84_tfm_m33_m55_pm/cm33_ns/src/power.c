@@ -45,14 +45,17 @@
 /**
  * @brief Switch IRQ masking from BASEPRI to PRIMASK before WFI.
  *
- * Zephyr enters pm_state_set with BASEPRI set by irq_lock(), which
- * masks every maskable interrupt - including the timer that is
- * supposed to wake us. PSE84 / Cortex-M33 only honours wake from
- * standby/sleep when the masking interrupt is signalled with
- * PRIMASK set; BASEPRI keeps the wake source pending forever.
- * Match the SoC default pm_state_set: __disable_irq() sets PRIMASK,
- * irq_unlock(0) clears BASEPRI. pm_state_exit_post_ops clears
- * PRIMASK via __enable_irq().
+ * @details
+ * Zephyr enters ::pm_state_set with BASEPRI raised by
+ * @c irq_lock(), which masks every maskable interrupt including the
+ * timer that is supposed to wake us. PSE84 / Cortex-M33 only honours
+ * wake from standby/sleep when the wake source is signalled with
+ * PRIMASK set; BASEPRI keeps the interrupt pending forever.
+ *
+ * This helper matches the SoC default @c pm_state_set:
+ * @c __disable_irq() sets PRIMASK, @c irq_unlock(0) clears BASEPRI.
+ * @ref pm_state_exit_post_ops re-enables interrupts via
+ * @c __enable_irq() after WFI returns.
  */
 static inline void pm_irq_prologue(void)
 {
@@ -60,8 +63,19 @@ static inline void pm_irq_prologue(void)
 	irq_unlock(0);
 }
 
-/* PM_STATE_SUSPEND_TO_IDLE (cpu_sleep): SLEEPDEEP=0 + WFI.
- * PDL takes the SRF branch → IFX_EXT_SP → S-side execution. */
+/**
+ * @brief Enter PM_STATE_SUSPEND_TO_IDLE (SLEEPDEEP=0 + WFI).
+ *
+ * @details
+ * Toggles the red indicator LED, masks IRQs, then calls
+ * @c Cy_SysPm_CpuEnterSleep. The NS-side PDL takes the SRF branch
+ * (see file header) which packs a PSA request to @c IFX_EXT_SP;
+ * the S-side handler executes the real WFI at PC2. Returns after
+ * the wake interrupt is delivered to NS.
+ *
+ * Called by ::pm_state_set. Blocking; runs on the idle thread with
+ * PRIMASK set.
+ */
 static void enter_cpu_sleep(void)
 {
 	indicator_cpu_sleep_on();
@@ -70,8 +84,20 @@ static void enter_cpu_sleep(void)
 	indicator_cpu_sleep_off();
 }
 
-/* PM_STATE_STANDBY substate 1 (cpu_deep_sleep): SLEEPDEEP=1 + WFI
- * with PDL callback + PPU trim fixups executed on the S side. */
+/**
+ * @brief Enter PM_STATE_STANDBY substate 1 (cpu_deep_sleep).
+ *
+ * @details
+ * SLEEPDEEP=1 + WFI, plus PDL syspm callbacks and PPU-trim fixups
+ * executed on the S side. Same NS→SRF→S path as
+ * @ref enter_cpu_sleep, dispatched via
+ * @c Cy_SysPm_CpuEnterDeepSleep. Toggles the blue indicator LED
+ * around the call. Returns after the wake IRQ.
+ *
+ * SRSS collapses the system to deep-sleep automatically once every
+ * CPU has voted; a single CM33-NS caller is sufficient because CM55
+ * is either parked or has already voted its own deep-sleep.
+ */
 static void enter_cpu_deep_sleep(void)
 {
 	indicator_cpu_deep_sleep_on();
@@ -80,11 +106,18 @@ static void enter_cpu_deep_sleep(void)
 	indicator_cpu_deep_sleep_off();
 }
 
-/* PM_STATE_STANDBY substate 2 (system_deep_sleep): same primitive
- * as substate 1 today. Distinct call site so phase 7+ (DS-RAM /
- * DS-OFF, Layer-B bias) can specialise it via z_pm — those steps
- * need Cy_SysPm_SetSysDeepSleepMode et al. which are NOT SRF-wrapped
- * and therefore MUST route through the z_pm partition (or Option D).
+/**
+ * @brief Enter PM_STATE_STANDBY substate 2 (system_deep_sleep).
+ *
+ * @details
+ * Same underlying primitive as @ref enter_cpu_deep_sleep today
+ * (@c Cy_SysPm_CpuEnterDeepSleep) but kept as a distinct call site
+ * so phase 7+ can specialise it without disturbing the per-CPU
+ * deep-sleep path. Those extensions (DS-RAM / DS-OFF selection,
+ * Layer-B bias, retention patterns) will call
+ * @c Cy_SysPm_SetSysDeepSleepMode et al., which are NOT SRF-wrapped
+ * in the PDL and MUST route through the z_pm partition (or Option D,
+ * see doc/TFM_tutorial.md §29). Uses the magenta indicator LED.
  */
 static void enter_system_deep_sleep(void)
 {
@@ -94,6 +127,36 @@ static void enter_system_deep_sleep(void)
 	indicator_system_deep_sleep_off();
 }
 
+/**
+ * @brief Zephyr PM hook: enter the requested low-power state.
+ *
+ * @details
+ * Called by the Zephyr PM subsystem from the idle thread when its
+ * residency policy elects a low-power state for the current idle
+ * window. Runs with @c irq_lock() held (BASEPRI raised). Each
+ * per-state helper calls @ref pm_irq_prologue to switch to PRIMASK
+ * before WFI so the wake IRQ can actually reach the CPU.
+ *
+ * State mapping (residency thresholds live in the board overlay
+ * @c cm33_ns/boards/kit_*.overlay; LED colours are per @ref indicator.h):
+ *
+ * | State + substate         | Handler                    | LED     |
+ * |--------------------------|----------------------------|---------|
+ * | SUSPEND_TO_IDLE          | @ref enter_cpu_sleep       | red     |
+ * | STANDBY substate 1       | @ref enter_cpu_deep_sleep  | blue    |
+ * | STANDBY substate 2       | @ref enter_system_deep_sleep | magenta |
+ * | SUSPEND_TO_RAM           | not implemented — prints   | cyan    |
+ * | SOFT_OFF                 | not implemented — prints   | white   |
+ *
+ * @param state       The Zephyr PM state the residency policy picked.
+ * @param substate_id Vendor-defined substate index (only meaningful
+ *                    for @c PM_STATE_STANDBY here).
+ *
+ * @note Overrides Zephyr's weak default. The SoC-supplied
+ *       @c pm_state_set in soc/infineon/edge/pse84/power.c is dropped
+ *       from the build by cm33_ns/CMakeLists.txt because its
+ *       PRE_KERNEL_1 SYS_INIT bus-faults from NS under TF-M.
+ */
 void pm_state_set(enum pm_state state, uint8_t substate_id)
 {
 	switch (state) {
@@ -125,6 +188,19 @@ void pm_state_set(enum pm_state state, uint8_t substate_id)
 	}
 }
 
+/**
+ * @brief Zephyr PM hook: post-WFI cleanup.
+ *
+ * @details
+ * Called by the Zephyr PM subsystem after ::pm_state_set returns
+ * from WFI. Symmetric to @ref pm_irq_prologue: clears PRIMASK
+ * (which the prologue set) so normal interrupt delivery resumes.
+ * BASEPRI is left at 0 (the prologue's @c irq_unlock(0) cleared
+ * it); Zephyr's own scheduler-lock/unlock takes over from here.
+ *
+ * @param state       Same value passed to the paired ::pm_state_set.
+ * @param substate_id Same value passed to the paired ::pm_state_set.
+ */
 void pm_state_exit_post_ops(enum pm_state state, uint8_t substate_id)
 {
 	ARG_UNUSED(state);
