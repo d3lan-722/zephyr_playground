@@ -1,201 +1,168 @@
 # Porting plan: PSE84 power management with TF-M
 
 Purpose: bring PSE84 power-management behaviour to a TF-M-paired NS
-Zephyr application. Reference implementation: [`tmp/16_pse84_3img_rram_pm`](../../tmp/16_pse84_3img_rram_pm)
-(no-TF-M, three-image Zephyr sysbuild). Target: [`apps/02_pse84_tfm_m33_m55_pm`](.)
-(TF-M-Secure + NS Zephyr + CM55 non-secure).
+Zephyr application, using the SAME PDL syspm API surface as the
+Infineon reference project [`tmp/16_pse84_3img_rram_pm`](../../tmp/16_pse84_3img_rram_pm)
+(which does not run TF-M). No project-local secure partition; every
+PM call goes through the standard PDL API from CM33-NS.
 
 Background architecture: see [`doc/TFM_tutorial.md`](../../doc/TFM_tutorial.md)
-Part 7 — every claim below assumes you have read at least §27, §29 and
-§31 of that document.
+Part 7. Every claim below assumes you have read at least §27, §29 and
+§30 of that document.
 
 ---
 
 ## Status board
 
-| Phase | Description                                                              | Status          |
-| ----- | ------------------------------------------------------------------------ | --------------- |
-| 0     | Baseline: `west build -b .../m33/ns` + `west flash` + green blink        | done            |
-| 1     | RGB indicator wired                                                      | done            |
-| 2     | Zephyr PM core enabled                                                   | done            |
-| 3     | Declare per-CPU power states + MCWDT0 kernel tick                        | done            |
-| 4     | `pm_state_set` override, `cpu_sleep` (SUSPEND_TO_IDLE) only              | done            |
-| 5     | `cpu_deep_sleep` (STANDBY substate 1) + `system_deep_sleep` (STANDBY substate 2), both mechanical (no PPU tuning yet) | done            |
-| 5.5   | Diagnosis infrastructure: TF-M halt-on-panic + Cortex-Debug launch.json + tutorial rewrite | done         |
-| 5.75  | z_pm slimmed to PING-only; NS calls PDL directly for the three SRF-covered ops | done       |
-| **6** | **Layer-B static bias (via z_pm at boot)**                               | **NEXT**        |
-| 7     | Per-transition PPU config for `system_deep_sleep` (via z_pm)             | after Phase 6   |
-| 8     | DS-RAM (SUSPEND_TO_RAM)                                                  | planned         |
-| 9     | DS-OFF (SOFT_OFF)                                                        | planned         |
+| Phase | Description                                                                  | Status          |
+| ----- | ---------------------------------------------------------------------------- | --------------- |
+| 0     | Baseline: `west build -b .../m33/ns` + `west flash` + green blink            | done            |
+| 1     | RGB indicator wired                                                          | done            |
+| 2     | Zephyr PM core enabled                                                       | done            |
+| 3     | Declare per-CPU power states + MCWDT0 kernel tick                            | done            |
+| 4     | `pm_state_set` override, `cpu_sleep` (SUSPEND_TO_IDLE) only                  | done            |
+| 5     | `cpu_deep_sleep` (STANDBY 1) + `system_deep_sleep` (STANDBY 2), mechanical   | done            |
+| 5.5   | Diagnosis infrastructure: TF-M halt-on-panic + Cortex-Debug + tutorial refresh | done         |
+| 5.75  | z_pm partition slimmed to PING; NS calls PDL directly for SRF-covered ops    | done            |
+| 5.9   | **Option D applied — TF-M PPC narrowed so PDL syspm calls from NS just work** | **done**       |
+| 6     | **Layer-B static bias in NS `ifx_pm_init` (BGREF LP, core-buck DS, IHO/IMO DS-off, CLK_BAK on PILO)** | **done — awaiting measurement**        |
+| 7     | Per-transition PPU config: `enter_system_deep_sleep` calls `Cy_SysPm_SetDeepSleepMode(DEEPSLEEP)` before WFI | gated on Phase 6 measurement |
+| 8     | DS-RAM (SUSPEND_TO_RAM)                                                      | planned         |
+| 9     | DS-OFF (SOFT_OFF)                                                            | planned         |
 
-**We are entering Phase 6.**
-
-Measurements after Phase 5.75 (idle-stack fix + direct-PDL NS dispatch):
+Measurements after Phase 5.75 (idle-stack fix + direct-PDL NS dispatch,
+SRF-covered):
 
 | State                    | Active current | Sleep current | Notes                            |
 | ------------------------ | -------------- | ------------- | -------------------------------- |
 | `SUSPEND_TO_IDLE`        | 14 mA          | 12 mA         | red LED between blinks           |
 | `STANDBY` substate 1     | 14 mA          | 62 µA         | blue LED between blinks          |
-| `STANDBY` substate 2     | 14 mA          | ~62 µA        | magenta; same as substate 1 today (no PPU tuning) |
+| `STANDBY` substate 2     | 14 mA          | ~62 µA        | magenta; = substate 1 (no PPU tuning yet) |
 
-Phases 6 + 7 are what makes substate 2 actually different from substate 1
-in current draw.
+Phase 6 is expected to lower substate 1 + substate 2 uniformly (Layer-B
+biases the SRSS/buck/oscillators regardless of which PM state fires).
+Phase 7 is what makes substate 2 draw less than substate 1.
 
 ---
 
-## What changed vs the original plan
+## Strategy: PDL-native, no project-local secure partition
 
-The plan through mid-round-6 (see commits `902c8dd` → `d178316` → `46f1069`)
-assumed the `z_pm` partition would wrap `cpu_sleep`, `cpu_deep_sleep` and
-`system_deep_sleep`, and the initial NS-crash was assumed to be a
-PPC/security violation. Round-7 debugging (with `CONFIG_TFM_HALT_ON_CORE_PANIC=ON`
-and Cortex-Debug attach) proved:
+Option C from the tutorial (a project-local secure partition, `z_pm`,
+that wraps un-SRF-wrapped PDL calls) is deliberately not used. The
+project is a **workaround** on top of the standard Infineon software
+package — every runtime PM call must go through the PDL syspm API
+exactly as it does in `tmp/16` and in AN237976, so that a future
+switch to the eventual Infineon-supported PDL-SRF integration is a
+subtractive change.
 
-1. The three SRF-covered PDL entries — `Cy_SysPm_CpuEnterSleep`,
-   `Cy_SysPm_CpuEnterDeepSleep`, CM33-side `Cy_SysPm_SystemEnterHibernate`
-   — reach TF-M-S via the PDL's built-in SRF branch (`#ifdef
-   CY_PDL_SYSPM_ENABLE_SRF_INTEG`). z_pm wrapping is redundant for them.
-2. `Cy_SysPm_SetSysDeepSleepMode`, `Cy_SysPm_SetSOCMEMDeepSleepMode` and
-   CM55-side `Cy_SysPm_SystemEnterHibernate` are *not* SRF-wrapped and
-   *do* need z_pm.
-3. The initial crashes on the direct-NS path were **stack overflow** on
-   the Zephyr idle thread inside `tfm_ns_interface_dispatch`'s prologue
-   (`sub sp, #136` for the `struct fpu_ctx_full` local). Fixed by
-   `CONFIG_IDLE_STACK_SIZE=2048`.
+To make that possible under TF-M we apply **Option D** from tutorial
+§29–§30: narrow the TF-M-Secure PPC configuration so the SRSS,
+PWRMODE, RAMC PPU, CM33-SYSCPU and APPCPUSS-group regions become
+NS-accessible. Every PDL syspm entry point then works from NS
+directly. See [`util/apply_option_d.sh`](util/apply_option_d.sh) and
+[`cm33_ns/src/power.c`](cm33_ns/src/power.c) file header for the
+mechanics.
 
-The obsolete `PHASE6_BLOCKER.md` (which described a nonexistent
-"TF-M has no syspm service" blocker) has been deleted — the correct
-architecture lives in [`doc/TFM_tutorial.md`](../../doc/TFM_tutorial.md)
-§27–§31.
+The z_pm partition survives only as a PING proof-of-life for the
+partition-tutorial demo — it plays no role in PM.
+
+### Isolation cost of Option D
+
+Any NS code (bugs, exploits, driver mistakes) can now reprogram:
+
+- SRSS clocks (PLLs, HF roots, PILO, WCO)
+- Hibernate (SRSS_HIB_DATA)
+- PWRMODE PPU (crash sleep policies)
+- SRAM0/1 PPUs (data-retention behaviour)
+- CM55 subsystem PPUs (bring PD1 up/down)
+- CM33 SYSCPU + MSC/DDFT/AP debug windows (biggest single loss)
+
+Acceptable for a dev board. **Revert before production** with
+`git checkout` of `apply_option_d.sh` in reverse, a `west update`, or
+manual reset of the two `cycfg_ppc.h` files. See tutorial §30 "What
+wrapping actually buys you" for a fuller analysis of what this trade
+costs vs. leaving isolation on.
 
 ---
 
 ## Constraints
 
-| Constraint                              | Implication                                                                        |
-| --------------------------------------- | ---------------------------------------------------------------------------------- |
-| 02 uses TF-M                            | Un-SRF-wrapped PDL entries cannot run from NS; they must be wrapped in z_pm.       |
-| 02 runs from external SMIF flash (CM55) | RRAM-execution optimisations from `tmp/16` don't apply.                            |
-| CM55 image already parks in `Cy_SysPm_CpuEnterDeepSleep` loop | System DEEPSLEEP voting is unblocked from CM55's side.                  |
-| Only work is on the CM33-NS app + z_pm partition | No CM55 changes needed until Phase 9 (DS-OFF destructive teardown).       |
-| **PPU config differs per PM state**     | `Cy_SysPm_SetDeepSleepMode(mode)` (which programs Table 2 rows of AN237976) must run **per-transition**, not once at boot. |
+| Constraint                                          | Implication                                                                                         |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| 02 uses TF-M with the in-tree Infineon platform port | PPC config lives in TF-M source tree, not in our repo → Option D is applied via a checked-in shell script. |
+| 02 runs from external SMIF flash (CM55) + RRAM (CM33) | RRAM-execution optimisations from `tmp/16` don't apply.                                            |
+| CM55 image already parks in `Cy_SysPm_CpuEnterDeepSleep` loop | System DEEPSLEEP voting is unblocked from CM55's side.                                     |
+| **PPU config differs per PM state**                 | `Cy_SysPm_SetDeepSleepMode(mode)` (programs AN237976 Table 2 rows) must run **per-transition**, not once at boot. |
 
 ---
 
-## Phase 6 — Layer-B static bias (add first real `z_pm` op)
+## Phase 5.9 — Apply Option D
 
-At-boot z_pm op that runs the [`tmp/16 ifx_pm_init`](../../tmp/16_pse84_3img_rram_pm/m33_ns/src/power.c)
-calls that do **not** depend on the upcoming transition. All touch
-PSA-ROT SRSS registers → must run at PC2 → live on the S side inside
-z_pm.
+Done. Run once per fresh worktree / after each `west update`:
 
-**On the S side (z_pm partition):**
-```c
-#define Z_PM_OP_PING           1
-#define Z_PM_OP_LAYER_B_INIT   2    /* NEW */
-
-static psa_status_t z_pm_op_layer_b_init(const psa_msg_t *msg)
-{
-    (void)msg;
-    Cy_SysPm_Init();
-    Cy_SysClk_ClkBakSetSource(CY_SYSCLK_BAK_IN_PILO);
-    /* BGREF LP */
-    SRSS_PWR_CTL2 |= SRSS_PWR_CTL2_BGREF_LPMODE_Msk;
-    /* Core buck DS: 0.70 V, LP mode, override on */
-    Cy_SysPm_CoreBuckDpslpSetVoltage(CY_SYSPM_CORE_BUCK_VOLTAGE_0_70V);
-    Cy_SysPm_CoreBuckDpslpSetMode(CY_SYSPM_CORE_BUCK_MODE_LP);
-    Cy_SysPm_CoreBuckDpslpEnableOverride(true);
-    /* Kill IHO + IMO DS keep-alive (PILO drives MCWDT0 tick, stays up) */
-    Cy_SysClk_IhoDeepsleepDisable();
-    SRSS_CLK_IMO_CONFIG &= ~SRSS_CLK_IMO_CONFIG_DPSLP_ENABLE_Msk;
-    return PSA_SUCCESS;
-}
+```sh
+apps/02_pse84_tfm_m33_m55_pm/util/apply_option_d.sh
 ```
 
-**Deliberately NOT included** here (see Phase 7):
-- `Cy_SysPm_SetDeepSleepMode(CY_SYSPM_MODE_DEEPSLEEP)` — programs Table 2
-  values. Different mode per transition → per-transition.
+Two `cycfg_ppc.h` files are patched in the modules tree:
 
-**CMakeLists.txt** — re-add the `ifx_pdl_inc_s` PRIVATE dep that
-was dropped in commit `46f1069` (the empty-partition state).
+- `~/zephyrproject/modules/tee/tf-m/trusted-firmware-m/…/GeneratedSource/cycfg_ppc.h` — consumed by the TF-M-Secure image build.
+- `~/zephyrproject/modules/hal/infineon/zephyr-ifx-cycfg/pse84/kit_pse84_eval/cycfg_ppc.h` — consumed by the CM33-NS Zephyr build for the NS-side PDL syspm compile.
 
-**On the NS side (new client wrapper):**
-```c
-psa_status_t z_pm_layer_b_init(void);   /* wraps psa_call(..., Z_PM_OP_LAYER_B_INIT, ...) */
-```
+Both must move together; the script does that atomically. Idempotent.
 
-**Boot wiring** — one NS `SYS_INIT` at `PRE_KERNEL_2` (after LPTIMER
-init, before app) calling `z_pm_layer_b_init()`.
-
-**Plus one NS-only preemptive MCWDT0 disable** — earliest SoC init,
-NS-accessible, blocks silent LPTIMER init failure. Not a z_pm op.
-
-**Smoke test:** substate 2 sleep current should drop from ~62 µA to
-tens of µA. Substate 1 also improves for the same reason.
+Effect: `CY_PDL_SYSPM_ENABLE_SRF_INTEG` becomes undefined on both
+sides. Every `Cy_SysPm_*` call takes the direct-register branch.
+`ifx_ext_sp` still exists but its PDL-SYSPM submodule is no longer
+reachable from NS (harmless — nothing points at it any more).
 
 ---
 
-## Phase 7 — Per-transition PPU config for system_deep_sleep
+## Phase 6 — Layer-B static bias (implemented, awaiting measurement)
 
-Motivation (from the round-7 discussion + AN237976 Table 2):
+At-boot `SYS_INIT` in [`cm33_ns/src/power.c`](cm33_ns/src/power.c)
+that runs the state-independent SRSS bias tmp/16's `ifx_pm_init`
+does:
 
-> The mode selected by `Cy_SysPm_SetDeepSleepMode(mode)` is SRSS-global.
-> It says what the *system* will collapse to when both CPUs vote deep
-> sleep. Setting it once at boot locks the project to one variant. The
-> Zephyr residency policy decides at runtime which state to enter, so
-> the PPU programming must move into the per-state dispatchers.
+- `Cy_SysPm_Init()` — PDL syspm SW state.
+- `Cy_SysClk_ClkBakSetSource(CY_SYSCLK_BAK_IN_PILO)` — CLK_BAK on PILO so backup domain (RTC, BREGs) stays clocked through every DS variant.
+- `SRSS_PWR_CTL2 |= SRSS_PWR_CTL2_BGREF_LPMODE_Msk` — BGREF low-power mode during DS.
+- `Cy_SysPm_CoreBuckDpslpSetVoltage(0.70 V)` + `SetMode(LP)` + `EnableOverride(true)` — core buck in low-power DS regulation.
+- `Cy_SysClk_IhoDeepsleepDisable()` + `SRSS_CLK_IMO_CONFIG &= ~DPSLP_ENABLE_Msk` — kill IHO/IMO DS keep-alive. PILO stays running (kernel tick).
 
-**On the S side (z_pm partition):**
-```c
-#define Z_PM_OP_SET_DEEP_SLEEP_MODE  3     /* NEW; arg = cy_en_syspm_deep_sleep_mode_t */
+Deliberately NOT included in `ifx_pm_init`:
 
-static psa_status_t z_pm_op_set_deep_sleep_mode(const psa_msg_t *msg)
-{
-    uint32_t mode;
-    if (msg->in_size[0] < sizeof(mode))
-        return PSA_ERROR_INVALID_ARGUMENT;
-    psa_read(msg->handle, 0, &mode, sizeof(mode));
-    /* Bounds check: only DEEPSLEEP / DEEPSLEEP_RAM / DEEPSLEEP_OFF allowed. */
-    if (mode > CY_SYSPM_MODE_DEEPSLEEP_OFF)
-        return PSA_ERROR_INVALID_ARGUMENT;
-    return (Cy_SysPm_SetDeepSleepMode((cy_en_syspm_deep_sleep_mode_t)mode)
-            == CY_SYSPM_SUCCESS)
-        ? PSA_SUCCESS
-        : PSA_ERROR_GENERIC_ERROR;
-}
-```
+- `Cy_SysPm_SetDeepSleepMode(CY_SYSPM_MODE_DEEPSLEEP)` — the SRSS-global deep-sleep mode is per-transition state (see Phase 7). Setting it at boot would prevent DS-RAM / DS-OFF from ever being selectable at runtime.
 
-`Cy_SysPm_SetDeepSleepMode` internally calls
-`Cy_SysPm_SetSysDeepSleepMode` (MAIN, SRAM0/1, SYSCPU PPUs),
-`Cy_SysPm_SetAppDeepSleepMode` (PD1, APPCPUSS, APPCPU PPUs) and
-`Cy_SysPm_SetSOCMEMDeepSleepMode` (SOCMEM PPU) to program the row of
-AN237976 Table 2 that matches the requested mode. For our substate 2
-we want the DEEPSLEEP column:
+Runs at `PRE_KERNEL_1`, replaces the SoC-supplied `ifx_pm_init`
+(dropped by `cm33_ns/CMakeLists.txt`).
 
-| PPU               | Mode                    | Value |
-| ----------------- | ----------------------- | ----- |
-| MAIN              | Full Retention          | 0x05  |
-| SRAM0             | Memory Retention        | 0x02  |
-| SRAM1             | Memory Retention        | 0x02  |
-| SYSCPU            | Full Retention          | 0x05  |
-| PD1               | Full Retention          | 0x05  |
-| APPCPUSS          | Full Retention          | 0x05  |
-| APPCPU            | Full Retention          | 0x05  |
-| SOCMEM            | Memory Retention        | 0x02  |
-| U55               | Off                     | 0x00  |
+**Expected measurement:** substate 1 (`cpu_deep_sleep`) and substate 2
+(`system_deep_sleep`) both drop by a measurable amount vs the
+Phase 5.75 baseline of 62 µA. They will still be equal to each other
+— that's what Phase 7 fixes.
 
-**On the NS side (client):**
-```c
-psa_status_t z_pm_set_deep_sleep_mode(cy_en_syspm_deep_sleep_mode_t mode);
-```
+---
 
-**In `cm33_ns/src/power.c`:**
+## Phase 7 — Per-transition PPU config for `system_deep_sleep`
+
+**Not implemented yet — gated on Phase 6 measurement + user go-ahead.**
+
+Modify [`cm33_ns/src/power.c`](cm33_ns/src/power.c)
+`enter_system_deep_sleep`:
+
 ```c
 static void enter_system_deep_sleep(void)
 {
     indicator_system_deep_sleep_on();
-    /* Program Table-2 DEEPSLEEP column PPUs. Un-SRF-wrapped → via z_pm. */
-    (void)z_pm_set_deep_sleep_mode(CY_SYSPM_MODE_DEEPSLEEP);
+    /* Program Table 2 (AN237976) DEEPSLEEP column PPUs:
+     *   MAIN=Full Retention (0x05), SRAM0/1=Memory Retention (0x02),
+     *   SYSCPU=Full Retention, PD1/APPCPUSS/APPCPU=Full Retention,
+     *   SOCMEM=Memory Retention, U55=Off.
+     * Dispatches internally to SetSysDeepSleepMode + SetAppDeepSleepMode
+     * + SetSOCMEMDeepSleepMode. All un-SRF-wrapped; reachable from NS
+     * thanks to Option D (§5.9). */
+    (void)Cy_SysPm_SetDeepSleepMode(CY_SYSPM_MODE_DEEPSLEEP);
     pm_irq_prologue();
     (void)Cy_SysPm_CpuEnterDeepSleep(CY_SYSPM_WAIT_FOR_INTERRUPT);
     indicator_system_deep_sleep_off();
@@ -203,72 +170,44 @@ static void enter_system_deep_sleep(void)
 ```
 
 `enter_cpu_deep_sleep` (substate 1) stays as-is — CPU deep sleep is
-CPU-local, no system-level PPU programming needed.
+CPU-local, no system-level PPU programming needed. The SRSS collapses
+to system deep sleep only when both CPUs vote AND the PPUs are
+programmed to their retention values.
 
-**Smoke test:** the two substates now have visibly different current
-profiles. Substate 2 should draw less than substate 1 because the SoC
-actually collapses to system DEEPSLEEP (all PPUs at retention) rather
-than just CPU DeepSleep.
+**Expected measurement:** substate 2 draws noticeably less than
+substate 1.
 
 ---
 
 ## Phase 8 — DS-RAM (SUSPEND_TO_RAM)
 
 Big addition. Reference: [`tmp/16 enter_system_deep_sleep_ram`](../../tmp/16_pse84_3img_rram_pm/m33_ns/src/power.c).
-TF-M-specific challenges:
+With Option D in place, all the un-SRF-wrapped calls
+(`SetDeepSleepMode(DEEPSLEEP_RAM)`, `SetAppDeepSleepMode(DEEPSLEEP_RAM)`,
+`SetSOCMEMDeepSleepMode(DEEPSLEEP_RAM)`, `cy_pd_pdcm_clear_dependency`,
+`WARM_BOOT_TOKEN_DS_RAM` write to `RTC->BREG_SET1[1]`) are direct-NS
+callable — same as `tmp/16`.
 
-- `Cy_SysPm_SetDeepSleepMode(CY_SYSPM_MODE_DEEPSLEEP_RAM)` — programs
-  Table 2 DEEPSLEEP_RAM column via z_pm (`Z_PM_OP_SET_DEEP_SLEEP_MODE`
-  already exists from Phase 7; just call it with the RAM mode).
-- `Cy_SysPm_SetAppDeepSleepMode(DEEPSLEEP_RAM)` — via z_pm (may need a
-  separate op if the top-level SetDeepSleepMode doesn't cover App
-  domain fully in every PDL version; verify at implementation time).
-- `Cy_SysPm_SetSOCMEMDeepSleepMode(DEEPSLEEP_RAM)` **with PD1-up gating**
-  — via z_pm, wrapping the `Cy_System_IsEnabledPD1()` precondition.
-- `cy_pd_pdcm_clear_dependency(CY_PD_PDCM_APPCPUSS, CY_PD_PDCM_SYSCPU)`
-  — writes the secured PD dependency matrix; via z_pm.
-- `RTC->BREG_SET1[1] = WARM_BOOT_TOKEN_DS_RAM` — SRSS_HIB_DATA region
-  is secured; via z_pm.
-- **Warm-boot entry point in `BREG_SET1[0]`** — must be planted by the
-  secure boot chain, not by NS. This requires a hook in the TF-M
-  platform port (or a small addition to `ifx_init_spm_peripherals`).
-  Non-trivial; may motivate reconsidering the trade-off with Option D
-  from the tutorial.
-- MCWDT0 pending clear + NVIC clear before WFI — NS-doable.
-- `enter_system_deep_sleep_ram` **does not return**; warm-boot detection
-  in `main()` reading `BREG_SET1[1]`.
-
-Not planned in detail until Phase 7 is measured — the numbers might
-show DS-RAM is not worth the complexity for the target application.
+Remaining challenge unique to our TF-M build: the warm-boot entry
+point in `BREG_SET1[0]` needs to be planted by the secure boot chain,
+not by NS. `tmp/16`'s `m33_s` does this; on TF-M we'd need a hook in
+the platform port. Not planned in detail until Phase 7 is measured.
 
 ---
 
 ## Phase 9 — DS-OFF (SOFT_OFF)
 
-Even bigger. Reference: [`tmp/16 enter_system_deep_sleep_off`](../../tmp/16_pse84_3img_rram_pm/m33_ns/src/power.c).
-On top of Phase 8's z_pm ops:
-
-- CM55 destructive-teardown protocol via GO/ALIVE flags in shared memory.
-  Requires substantial CM55-side code and new secure/NS shared regions.
-- HF1/HF2 gating (`Cy_SysClk_ClkHfDisable(1)` + `(2)`) — un-SRF-wrapped
-  SRSS_MAIN writes; via z_pm.
-- MCWDT0 stop (no wake from SOFT_OFF) — NS-doable.
-- CM55 tears down PERI 1.1 + HF3-13 + PD1/SOCMEM/APPCPUSS/APPCPU PPUs.
-- Does not return; wakes via reset.
-
-Depends on Phase 8 and requires product-level justification (DS-OFF is
-destructive on the current-consumption path — no wake source configured
-short of reset).
+Even bigger — CM55 destructive teardown protocol, HF gating,
+`stop_mcwdt0`, does not return. See [`tmp/16 enter_system_deep_sleep_off`](../../tmp/16_pse84_3img_rram_pm/m33_ns/src/power.c).
+Requires CM55-side code additions on top of Phase 8. Planned for
+later; requires product-level justification (DS-OFF is destructive
+on the current-consumption path — no wake source configured short of
+reset).
 
 ---
 
 ## Non-goals
 
-- **Modifying the TF-M PSE84 platform port** (Options E, F in tutorial
-  §29). Out of scope; the current path keeps our project self-contained.
-- **Flipping the `CYCFG_PPC_SECURED_*` bits** to make SRSS/PWRMODE
-  NS-writable (Option D). Break of isolation posture; reserved for
-  bring-up experiments only.
-- **Turning z_pm into an SRF module** (via
-  `IFX_EXT_SP_REGISTER_USER_SRF_MODULE`). Plain PSA service is simpler
-  when we control both ends — see tutorial §31 rejected sketch.
+- **Modifying the TF-M PSE84 platform port beyond `cycfg_ppc.h`** (Options E, F in tutorial §29). Out of scope.
+- **Building an out-of-tree PDL-SRF wrapper partition** (Option C, z_pm). We chose Option D instead so the PM code exactly matches Infineon's reference. See "Strategy" above.
+- **Turning z_pm into an SRF module.** z_pm survives PING-only for the partition-tutorial demo; it plays no role in PM.

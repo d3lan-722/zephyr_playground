@@ -4,41 +4,69 @@
  *
  * Zephyr PM dispatcher for the CM33-NS image.
  *
- * Round 7: all three currently-implemented PM entry points call
- * PDL syspm directly from NS. The NS-side cy_syspm_v4.c is compiled
- * with CY_PDL_SYSPM_ENABLE_SRF_INTEG (auto-defined by cy_syspm_srf.h
- * because at least one of the four CYCFG_PPC_SECURED_{SRSS_MAIN,
- * SRSS_HIB_DATA, PWRMODE_PWRMODE, M55APPCPUSS} bits is 1U). That
- * activates the SRF branch inside each Cy_SysPm_Cpu*Enter*Sleep
- * function, which packs an SRF request and psa_call()s into
- * IFX_EXT_SP; the S-side handler runs the actual SLEEPDEEP+WFI at
- * PC2.  No project-local partition wrap is needed for these APIs.
+ * ARCHITECTURE (Phase 6 — Option D applied):
  *
- * z_pm still exists (see tfm_partitions/z_pm/) but only exposes
- * Z_PM_OP_PING today. It is the placeholder for future ops that
- * PDL DOES NOT SRF-wrap: Cy_SysPm_SetSysDeepSleepMode,
- * Cy_SysPm_SetSOCMEMDeepSleepMode, CM55-side hibernate, Layer-B
- * bias, retention patterns.
+ * This build assumes Option D from doc/TFM_tutorial.md §29 has been
+ * applied — i.e. the TF-M-Secure PPC configuration has been narrowed
+ * so that SRSS_MAIN, SRSS_HIB_DATA, PWRMODE_PWRMODE, APPCPUSS_AP,
+ * M55APPCPUSS, RAMC0_RAM_PWR, RAMC1_RAM_PWR and M33SYSCPUSS are all
+ * NS-accessible. Run util/apply_option_d.sh before first build (and
+ * again after any `west update` that reverts the modules tree).
  *
- * The SoC default pm_state_set (in soc/infineon/edge/pse84/power.c)
- * is dropped from the build by the application CMakeLists — its
- * PRE_KERNEL_1 SYS_INIT calls Cy_SysPm_SetDeepSleepMode which is
- * NOT SRF-wrapped and bus-faults from NS.
+ * With Option D in place, every PDL syspm call — including the
+ * un-SRF-wrapped ones (Cy_SysPm_SetSysDeepSleepMode,
+ * SetSOCMEMDeepSleepMode, SetAppDeepSleepMode, CoreBuckDpslp*,
+ * BGREF_LPMODE_Msk write, IHO/IMO DS-disable) — executes directly
+ * from NS. The out-of-tree z_pm partition is NOT used for any PM
+ * functionality; it survives only as the PING proof-of-life for the
+ * TFM_partition_tutorial demo.
  *
- * Prerequisite for the direct-NS path: CONFIG_IDLE_STACK_SIZE must
- * be large enough for tfm_ns_interface_dispatch's fpu_ctx_full
- * alloca (136 bytes) on top of the pool_allocate + Cy_SysPm_*
- * frames. See prj.conf; 2 KiB works, the Zephyr default 320 bytes
- * does not.
+ * Isolation cost of Option D: NS can now reprogram SRSS clocks,
+ * hibernate, PWRMODE PPU, SRAM PPUs, APPCPUSS-domain PPUs, and CM33
+ * SYSCPU (which also opens MSC/DDFT/AP debug windows). Acceptable
+ * for dev-board bring-up. See doc/TFM_tutorial.md §30 "What
+ * wrapping actually buys you" for the trade-off analysis.
+ *
+ * BOOT-TIME INIT (Layer-B):
+ *
+ * ifx_pm_init runs at PRE_KERNEL_1 and applies the static SRSS
+ * biasing that lowers deep-sleep current: BGREF low-power mode,
+ * core-buck deep-sleep voltage/mode/override, and IHO/IMO
+ * deep-sleep keep-alive disable. Ported from tmp/16 with the
+ * boot-time Cy_SysPm_SetDeepSleepMode(DEEPSLEEP) call INTENTIONALLY
+ * OMITTED — the SRSS-global deep-sleep mode must be set
+ * per-transition (Phase 7) so the residency policy can pick DS-RAM
+ * or DS-OFF at runtime without a boot-time lock-in.
+ *
+ * PER-TRANSITION DISPATCH:
+ *
+ * pm_state_set overrides Zephyr's weak default and dispatches to
+ * per-state helpers. Each helper switches to PRIMASK before WFI
+ * (see pm_irq_prologue for why). The SoC-supplied pm_state_set (in
+ * soc/infineon/edge/pse84/power.c) is dropped from the build by
+ * cm33_ns/CMakeLists.txt because its own PRE_KERNEL_1 SYS_INIT
+ * calls Cy_SysPm_SetDeepSleepMode(DEEPSLEEP) which locks the mode.
+ *
+ * PREREQUISITE:
+ *
+ * CONFIG_IDLE_STACK_SIZE=2048. tfm_ns_interface_dispatch allocates
+ * a 136-byte fpu_ctx_full on the caller's stack; on the deeper
+ * NS→S call chains the default 320-byte idle stack overflows. See
+ * prj.conf. (This applies only to any residual psa_call in the NS
+ * image — with Option D no PM path uses psa_call, but z_pm_ping
+ * from main.c still does.)
  */
 
+#include <zephyr/init.h>
 #include <zephyr/kernel.h>
 #include <zephyr/pm/pm.h>
 #include <zephyr/sys/printk.h>
 
 #include <cmsis_core.h>
 
+#include "cy_device.h"
 #include "cy_syspm.h"
+#include "cy_sysclk.h"
 
 #include "indicator.h"
 
@@ -207,3 +235,82 @@ void pm_state_exit_post_ops(enum pm_state state, uint8_t substate_id)
 	ARG_UNUSED(substate_id);
 	__enable_irq();
 }
+
+/* -------------------------------------------------------------------
+ * Phase 6 — Layer-B static bias
+ * -------------------------------------------------------------------
+ * Runs once at boot. All calls touch SRSS registers that are
+ * PPC-secured by default; Option D (see file header) is what makes
+ * this reachable from NS. */
+
+/**
+ * @brief Put the bandgap reference into low-power mode.
+ *
+ * Only affects the current the BGREF draws while the chip is in
+ * DEEPSLEEP. No effect on Active mode.
+ * PPC region: SRSS_MAIN.
+ */
+static void enable_bgref_low_power_mode(void)
+{
+	SRSS_PWR_CTL2 |= SRSS_PWR_CTL2_BGREF_LPMODE_Msk;
+}
+
+/**
+ * @brief Reconfigure the core buck for DeepSleep.
+ *
+ * Drops the DS-time regulated voltage to 0.70 V and switches the
+ * buck to its low-power (high-ripple) loop. Override-on forces the
+ * DS branch of the buck FSM regardless of any competing vote.
+ * PPC region: SRSS_MAIN.
+ */
+static void configure_core_buck_for_deep_sleep(void)
+{
+	Cy_SysPm_CoreBuckDpslpSetVoltage(CY_SYSPM_CORE_BUCK_VOLTAGE_0_70V);
+	Cy_SysPm_CoreBuckDpslpSetMode(CY_SYSPM_CORE_BUCK_MODE_LP);
+	Cy_SysPm_CoreBuckDpslpEnableOverride(true);
+}
+
+/**
+ * @brief Clear the deep-sleep keep-alive on IHO and IMO.
+ *
+ * PILO is deliberately left running: it clocks MCWDT0 (Zephyr
+ * kernel tick). Disabling it here would make `k_msleep` never
+ * return.
+ * PPC region: SRSS_MAIN.
+ */
+static void disable_oscillators_in_deep_sleep(void)
+{
+	Cy_SysClk_IhoDeepsleepDisable();
+	SRSS_CLK_IMO_CONFIG &= ~SRSS_CLK_IMO_CONFIG_DPSLP_ENABLE_Msk;
+}
+
+/**
+ * @brief Boot-time PM initialisation.
+ *
+ * @details
+ * Applies the state-independent Layer-B biases documented in
+ * tmp/16 `ifx_pm_init` and in AN237976 (BGREF LP, core-buck DS,
+ * IHO/IMO DS-disable), plus a clock-select for the backup domain
+ * so CLK_BAK stays on PILO through every DS variant.
+ *
+ * DELIBERATELY OMITTED from the reference implementation:
+ * `Cy_SysPm_SetDeepSleepMode(CY_SYSPM_MODE_DEEPSLEEP)`. Setting
+ * the SRSS-global deep-sleep mode at boot locks the project to
+ * one variant and prevents runtime residency-policy dispatch to
+ * DS-RAM / DS-OFF. Mode selection lives in each per-state
+ * dispatcher (Phase 7 — not yet wired).
+ *
+ * Runs at `PRE_KERNEL_1`; overrides the SoC-supplied ifx_pm_init
+ * (dropped by cm33_ns/CMakeLists.txt because it calls
+ * SetDeepSleepMode at boot).
+ */
+static int ifx_pm_init(void)
+{
+	Cy_SysPm_Init();
+	Cy_SysClk_ClkBakSetSource(CY_SYSCLK_BAK_IN_PILO);
+	enable_bgref_low_power_mode();
+	configure_core_buck_for_deep_sleep();
+	disable_oscillators_in_deep_sleep();
+	return 0;
+}
+SYS_INIT(ifx_pm_init, PRE_KERNEL_1, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT);
