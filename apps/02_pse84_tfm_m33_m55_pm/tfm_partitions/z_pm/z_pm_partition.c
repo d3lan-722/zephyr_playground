@@ -20,9 +20,9 @@
 #include "cy_syspm.h"
 
 /* Op IDs - keep in sync with cm33_ns/src/z_pm_client.h */
-#define Z_PM_OP_PING              1
-#define Z_PM_OP_CPU_SLEEP         2
-#define Z_PM_OP_CPU_DEEP_SLEEP    3
+#define Z_PM_OP_PING 1
+#define Z_PM_OP_CPU_SLEEP 2
+#define Z_PM_OP_CPU_DEEP_SLEEP 3
 #define Z_PM_OP_SYSTEM_DEEP_SLEEP 4
 
 #define Z_PM_PING_COOKIE 0xABCD1234u
@@ -46,8 +46,7 @@ static psa_status_t z_pm_op_ping(const psa_msg_t *msg)
  */
 static inline psa_status_t pdl_to_psa(cy_en_syspm_status_t st)
 {
-	return (st == CY_SYSPM_SUCCESS) ? PSA_SUCCESS
-					: PSA_ERROR_GENERIC_ERROR;
+	return (st == CY_SYSPM_SUCCESS) ? PSA_SUCCESS : PSA_ERROR_GENERIC_ERROR;
 }
 
 static psa_status_t z_pm_op_cpu_sleep(const psa_msg_t *msg)
@@ -60,7 +59,7 @@ static psa_status_t z_pm_op_cpu_deep_sleep(const psa_msg_t *msg)
 {
 	(void)msg;
 	return pdl_to_psa(
-		Cy_SysPm_CpuEnterDeepSleep(CY_SYSPM_WAIT_FOR_INTERRUPT));
+	    Cy_SysPm_CpuEnterDeepSleep(CY_SYSPM_WAIT_FOR_INTERRUPT));
 }
 
 static psa_status_t z_pm_op_system_deep_sleep(const psa_msg_t *msg)
@@ -71,7 +70,7 @@ static psa_status_t z_pm_op_system_deep_sleep(const psa_msg_t *msg)
 	 * specialise this (DS-OFF token, Layer-B bias).
 	 */
 	return pdl_to_psa(
-		Cy_SysPm_CpuEnterDeepSleep(CY_SYSPM_WAIT_FOR_INTERRUPT));
+	    Cy_SysPm_CpuEnterDeepSleep(CY_SYSPM_WAIT_FOR_INTERRUPT));
 }
 
 psa_status_t z_pm_service_sfn(const psa_msg_t *msg)

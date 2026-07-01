@@ -23,9 +23,9 @@ extern "C" {
 #endif
 
 /* Op IDs - must match z_pm_partition.c */
-#define Z_PM_OP_PING              1
-#define Z_PM_OP_CPU_SLEEP         2
-#define Z_PM_OP_CPU_DEEP_SLEEP    3
+#define Z_PM_OP_PING 1
+#define Z_PM_OP_CPU_SLEEP 2
+#define Z_PM_OP_CPU_DEEP_SLEEP 3
 #define Z_PM_OP_SYSTEM_DEEP_SLEEP 4
 
 #define Z_PM_PING_COOKIE 0xABCD1234u

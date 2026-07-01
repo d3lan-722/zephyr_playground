@@ -4,7 +4,7 @@
 // https://blog.noser.com/vscode-devcontainer-im-embedded-software-umfeld/
 // https://github.com/islandcontroller/armcm-devcontainer/tree/master
 {
-        "name": "Radar development environment",
+        "name": "Zephyr Playground Container",
         "waitFor": "initializeCommand",
         "initializeCommand": "bash ${localWorkspaceFolder}/.devcontainer/scripts/configure_usb.sh",
         "build": {
