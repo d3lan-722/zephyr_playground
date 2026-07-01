@@ -1029,26 +1029,46 @@ inline. Called from NS at `PRE_KERNEL_1`, that write hits a
 PSA-ROT-only address and the CPU takes a SecureFault that the NS
 world can never satisfy — boot loops.
 
-The same is true of `Cy_SysPm_SetSOCMEMDeepSleepMode`,
-`Cy_SysPm_SystemEnterHibernate`, the various `Cy_SysPm_Set*` mode
-selectors, and some of the `Cy_SysPm_GetIoFreeze*` helpers. They
-are PDL APIs that the MTB platform assumes are called from secure
-code and therefore never had an SRF wrapper added.
+The same is true of the various `Cy_SysPm_Set*` mode selectors and
+some of the `Cy_SysPm_GetIoFreeze*` helpers. They are PDL APIs
+that the MTB platform assumes are called from secure code and
+therefore never had an SRF wrapper added.
+
+`Cy_SysPm_SystemEnterHibernate` is a slightly different case: it
+**does** have an SRF branch for CM33-NS, but **not** for CM55 (the
+`!(CY_CPU_CORTEX_M55)` guard in `cy_syspm_v4.c`). So on CM33-NS
+Hibernate goes through `ifx_ext_sp`; from CM55 it would write
+`SRSS_PWR_HIBERNATE` directly and bus-fault.
+
+`Cy_SysPm_SetSOCMEMDeepSleepMode` is yet another case: the SOCMEM
+PPU (`SOCMEM_PPU_SOCMEM_PPU`) is *already NS* in the default
+`cycfg_ppc.h` (`0U`), so the write itself would succeed from NS —
+but only *after* `Cy_System_EnablePD1()` has powered up APPCPUSS
+(PD1). Called at `PRE_KERNEL_1`, before PD1 is on, the transaction
+never reaches the PPU and returns a bus-fault-equivalent. See §25b
+for the full register/PPC breakdown.
 
 The SoC's `ifx_pm_init` SYS_INIT would be perfectly fine in a
 flat-trust ModusToolbox build, but on a `_ns` Zephyr build it
-bus-faults before `main()` ever runs.
+bus-faults before `main()` ever runs — specifically on the
+`Cy_SysPm_SetDeepSleepMode` call, which is the first line to touch
+a `_SECURED_` PPU.
 
 **So the actual fault matrix is:**
 
-| PDL API called from NS | SRF-wrapped? | Outcome today |
-|---|---|---|
-| `Cy_SysPm_CpuEnterSleep` | yes | works via `ifx_ext_sp` → PDL secure handler |
-| `Cy_SysPm_CpuEnterDeepSleep` | yes | works via `ifx_ext_sp` → PDL secure handler |
-| `Cy_SysPm_SystemEnterHibernate` | no | bus fault on the SRSS write |
-| `Cy_SysPm_SetDeepSleepMode` | no | bus fault on the PPU write |
-| `Cy_SysPm_SetSOCMEMDeepSleepMode` | no | bus fault on the PPU write |
-| `Cy_SysPm_SetSysDeepSleepMode` | no | bus fault on the PPU write |
+| PDL API called from | SRF-wrapped? | Registers touched | Outcome today |
+|---|---|---|---|
+| `Cy_SysPm_CpuEnterSleep` (CM33-NS) | yes | via SRF handler | works |
+| `Cy_SysPm_CpuEnterDeepSleep` (CM33-NS) | yes | via SRF handler | works |
+| `Cy_SysPm_SystemEnterHibernate` (CM33-NS) | yes | via SRF handler | works |
+| `Cy_SysPm_SystemEnterHibernate` (CM55) | no | `SRSS_PWR_HIBERNATE` (`SRSS_MAIN`/`SRSS_HIB_DATA` = 1U) | bus fault |
+| `Cy_SysPm_SetDeepSleepMode` / `SetSysDeepSleepMode` (CM33-NS) | no | `PWRMODE_PPU_MAIN`, `RAMC0/1_PPU`, `CPUSS_PPU` (all secured) | bus fault |
+| `Cy_SysPm_SetSOCMEMDeepSleepMode` (CM33-NS, PD1 up) | no | `SOCMEM_PPU_SOCMEM` (0U → NS) | works |
+| `Cy_SysPm_SetSOCMEMDeepSleepMode` (CM33-NS, PD1 down) | no | same | PD1 not powered → hang/fault |
+| `Cy_SysPm_SetAppDeepSleepMode` (CM55) | no | `APPCPUSS_PPU`, `SOCMEM_PPU` | depends on APPCPUSS PPC state |
+
+The exact register/PPC mapping — and what you would need to flip to
+make each of these succeed from NS without a partition — is in §25b.
 
 That's the real problem this app exists to work around.
 
@@ -1121,6 +1141,128 @@ production posture on the `_ns` variant, the choice remains:
 The "just make it NS" path is not really available *while keeping
 TF-M*; it's a decision to leave the `_ns` architecture entirely, as
 `tmp/16` did.
+
+### 25b. What each un-wrapped PM API actually touches
+
+The un-wrapped `Cy_SysPm_*` APIs in §24 aren't a single monolithic
+problem — each one hits a different set of registers behind a
+different set of PPC regions. Below is the full mapping for the
+three that show up in real-world PM code, taken from
+[`cy_syspm_v4.c`](../../home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_syspm_v4.c)
+and [`cycfg_ppc.h`](../../home/ubuntu/zephyrproject/modules/tee/tf-m/trusted-firmware-m/platform/ext/target/infineon/pse84/epc2/board/shared/design/default/GeneratedSource/cycfg_ppc.h).
+
+Two paths exist for making these callable from NS:
+
+- **1.1 — Keep the register secure, call the function only from S.**
+  This is the model Infineon chose for these APIs (that's why there
+  is no SRF wrapper). In our architecture, the way to call them
+  from an NS caller is to route through a partition (Option C).
+- **1.2 — Reconfigure the PPC so the register is NS.**
+  Flip the corresponding `CYCFG_PPC_SECURED_*` from `1U` to `0U`,
+  regenerate the platform tables, rebuild TF-M. The NS caller then
+  reaches the register directly. Same isolation cost as §25a Option D.
+
+#### `Cy_SysPm_SetDeepSleepMode(mode)` — on CM33 forwards to `Cy_SysPm_SetSysDeepSleepMode`
+
+Writes the `PWCR` field of **four** PPU registers via
+`cy_pd_ppu_set_power_mode`:
+
+| PDL macro | Underlying register | NS-alias address | PPC region gating it | Current |
+|---|---|---|---|---|
+| `CY_PPU_MAIN_BASE` | `PWRMODE.PPU_MAIN.PWCR` | `0x42411000` | `CYCFG_PPC_SECURED_PWRMODE_PWRMODE` | 1U (S) |
+| `CY_PPU_SRAM0_BASE` | `RAMC0.PPU.PWCR` (via `RAMC_PPU0`) | `0x42220000` | `CYCFG_PPC_SECURED_RAMC0_RAM_PWR` | 1U (S) |
+| `CY_PPU_SRAM1_BASE` | `RAMC1.PPU.PWCR` (via `RAMC_PPU1`) | `0x42221000` | `CYCFG_PPC_SECURED_RAMC1_RAM_PWR` | 1U (S) |
+| `CY_PPU_SYSCPU_BASE` | `MXCM33.CM33_PPU.PWCR` (`CPUSS_PPU`) | `0x42225000` | Part of `CYCFG_PPC_SECURED_M33SYSCPUSS` (with sub-region PC mask) | 1U (S) |
+
+To make this NS-callable directly you would flip all four of:
+
+```c
+#define CYCFG_PPC_SECURED_PWRMODE_PWRMODE  0U
+#define CYCFG_PPC_SECURED_RAMC0_RAM_PWR    0U
+#define CYCFG_PPC_SECURED_RAMC1_RAM_PWR    0U
+#define CYCFG_PPC_SECURED_M33SYSCPUSS      0U   /* or narrow PC mask */
+```
+
+Flipping `M33SYSCPUSS` is the heavy one — that region also covers
+MSC, DDFT and AP debug windows for the CPU subsystem, so exposing
+it to NS is architecturally unattractive. Realistically this is
+why Infineon left `SetSysDeepSleepMode` without an SRF wrapper:
+the *intended* caller is trusted code (`cybsp_init` on the S side),
+not an NS driver.
+
+#### `Cy_SysPm_SetSOCMEMDeepSleepMode(mode)`
+
+Writes one PPU register:
+
+| PDL macro | Register | NS-alias address | PPC region | Current |
+|---|---|---|---|---|
+| `CY_PPU_SOCMEM_BASE` | `SOCMEM.PPU_SOCMEM.PWCR` | `0x44660000` | `CYCFG_PPC_SECURED_SOCMEM_PPU_SOCMEM_PPU` | **0U (already NS)** |
+
+**So the register is already NS-accessible.** The real reason
+`SOCMEM_PPU_SOCMEM_PPU` is NS-configurable is that the SOCMEM live
+in the *application* power domain (PD1, APPCPUSS-side) and both
+cores need to manage it as regular NS peripherals. What breaks the
+call today is *when* the SoC invokes it: `ifx_pm_init` runs at
+`PRE_KERNEL_1`, before any Zephyr code has called
+`Cy_System_EnablePD1()`. With PD1 down the transaction never
+reaches the PPU. A partition helps here indirectly — the partition
+skeleton lets us gate the call on `Cy_System_IsEnabledPD1()`
+before dispatching.
+
+No PPC changes needed for this one.
+
+#### `Cy_SysPm_SystemEnterHibernate()`
+
+Two paths in the source:
+
+- **CM33-NS**: has an `#if !defined(COMPONENT_SECURE_DEVICE) &&
+  defined(CY_PDL_SYSPM_ENABLE_SRF_INTEG) && !(CY_CPU_CORTEX_M55)`
+  branch that packs `CY_PDL_SYSPM_OP_SYSTEMENTERHIBERNATE` and
+  `psa_call`s into `ifx_ext_sp`. **Already works from NS.**
+- **CM55 and CM33-S**: fall through to direct writes:
+
+```c
+SRSS_PWR_HIBERNATE  = SRSS_PWR_HIBERNATE | HIBERNATE_TOKEN;
+Cy_SysPm_ClearHibernateWakeupCause();  /* touches SRSS_PWR_HIBERNATE flags */
+SRSS_PWR_HIBERNATE |= SET_HIBERNATE_MODE;  /* three times */
+```
+
+Backing register:
+
+| Register | NS-alias address | PPC region | Current |
+|---|---|---|---|
+| `SRSS_PWR_HIBERNATE` | `SRSS_BASE (0x42400000) + 0x1400` | `CYCFG_PPC_SECURED_SRSS_MAIN` **and** `CYCFG_PPC_SECURED_SRSS_HIB_DATA` | Both 1U (S) |
+
+CM33-NS is fine as-is. To make **CM55**'s direct hibernate work
+without a partition you would flip both:
+
+```c
+#define CYCFG_PPC_SECURED_SRSS_MAIN      0U
+#define CYCFG_PPC_SECURED_SRSS_HIB_DATA  0U
+```
+
+`SRSS_MAIN` also covers all the SRSS clock, RTC-adjacent and
+low-power comparator registers — you would be exposing the whole
+SRSS main window to NS to enable one operation. The cleaner move
+if you need hibernate from CM55 is to relay through the CM33-NS
+SRF path (§22): CM55 sends a mailbox request, CM33-NS calls
+`Cy_SysPm_SystemEnterHibernate()`, which takes the SRF branch and
+reaches `ifx_ext_sp`.
+
+#### Summary — where the design actually falls
+
+| API | 1.1 "S-only" is the intended model | 1.2 possible with PPC changes? |
+|---|---|---|
+| `Cy_SysPm_SetDeepSleepMode` / `SetSysDeepSleepMode` | Yes (called from `cybsp_init` on S side) | Yes, but requires PWRMODE + RAMC0/1 + M33SYSCPUSS all NS. Not recommended. |
+| `Cy_SysPm_SetSOCMEMDeepSleepMode` | No — the register is already NS. Just needs PD1 up when called. | Already NS. |
+| `Cy_SysPm_SystemEnterHibernate` (CM33-NS) | N/A — SRF-wrapped, works today | Not applicable |
+| `Cy_SysPm_SystemEnterHibernate` (CM55) | Yes (should relay via CM33-NS SRF) | Yes, but requires exposing all of SRSS_MAIN + SRSS_HIB_DATA. Not recommended. |
+
+The pattern in the PDL matches Infineon's intent: for anything that
+touches PSA-ROT power state (`PWRMODE_PPU`, `RAMC*_PPU`, `CPUSS_PPU`,
+`SRSS_MAIN`), the design is 1.1 — you don't call it from NS; you
+route through the partition that owns those registers. That's what
+Option C and `z_pm` do.
 
 **A vs C — what tipped it for us:**
 
