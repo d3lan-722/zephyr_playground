@@ -3,8 +3,7 @@
 Purpose: bring PSE84 power-management behaviour to a TF-M-paired NS
 Zephyr application, using the SAME PDL syspm API surface as the
 Infineon reference project [`tmp/16_pse84_3img_rram_pm`](../../tmp/16_pse84_3img_rram_pm)
-(which does not run TF-M). No project-local secure partition; every
-PM call goes through the standard PDL API from CM33-NS.
+(which does not run TF-M). No project-local secure partition.
 
 Background architecture: see [`doc/TFM_tutorial.md`](../../doc/TFM_tutorial.md)
 Part 7. Every claim below assumes you have read at least §27, §29 and
@@ -23,191 +22,168 @@ Part 7. Every claim below assumes you have read at least §27, §29 and
 | 4     | `pm_state_set` override, `cpu_sleep` (SUSPEND_TO_IDLE) only                  | done            |
 | 5     | `cpu_deep_sleep` (STANDBY 1) + `system_deep_sleep` (STANDBY 2), mechanical   | done            |
 | 5.5   | Diagnosis infrastructure: TF-M halt-on-panic + Cortex-Debug + tutorial refresh | done         |
-| 5.75  | z_pm partition slimmed to PING; NS calls PDL directly for SRF-covered ops    | done            |
-| 5.9   | **Option D applied — TF-M PPC narrowed so PDL syspm calls from NS just work** | **done**       |
-| 6     | **Layer-B static bias in NS `ifx_pm_init` (BGREF LP, core-buck DS, IHO/IMO DS-off, CLK_BAK on PILO)** | **done — awaiting measurement**        |
-| 7     | Per-transition PPU config: `enter_system_deep_sleep` calls `Cy_SysPm_SetDeepSleepMode(DEEPSLEEP)` before WFI | gated on Phase 6 measurement |
-| 8     | DS-RAM (SUSPEND_TO_RAM)                                                      | planned         |
-| 9     | DS-OFF (SOFT_OFF)                                                            | planned         |
+| **5.75** | **z_pm partition slimmed to PING; NS calls PDL directly for SRF-covered ops. This is the current known-good state.** | **done (baseline)** |
+| 5.9   | ~~Option D header flip (attempted)~~                                         | reverted — see post-mortem |
+| 6     | ~~Layer-B `ifx_pm_init` in NS (attempted alongside 5.9)~~                    | reverted — post-mortem     |
+| 6-v2  | Layer-B — needs a new approach (see "Path forward")                          | not started     |
+| 7     | Per-transition PPU config for `system_deep_sleep`                            | blocked on 6-v2 |
+| 8     | DS-RAM (SUSPEND_TO_RAM)                                                      | later           |
+| 9     | DS-OFF (SOFT_OFF)                                                            | later           |
 
-Measurements after Phase 5.75 (idle-stack fix + direct-PDL NS dispatch,
-SRF-covered):
+Measurements at the current known-good baseline (Phase 5.75):
 
 | State                    | Active current | Sleep current | Notes                            |
 | ------------------------ | -------------- | ------------- | -------------------------------- |
 | `SUSPEND_TO_IDLE`        | 14 mA          | 12 mA         | red LED between blinks           |
 | `STANDBY` substate 1     | 14 mA          | 62 µA         | blue LED between blinks          |
-| `STANDBY` substate 2     | 14 mA          | ~62 µA        | magenta; = substate 1 (no PPU tuning yet) |
-
-Phase 6 is expected to lower substate 1 + substate 2 uniformly (Layer-B
-biases the SRSS/buck/oscillators regardless of which PM state fires).
-Phase 7 is what makes substate 2 draw less than substate 1.
+| `STANDBY` substate 2     | 14 mA          | ~62 µA        | magenta; = substate 1 (no PPU tuning) |
 
 ---
 
-## Strategy: PDL-native, no project-local secure partition
+## Post-mortem: why the round-8 Option D attempt didn't work
 
-Option C from the tutorial (a project-local secure partition, `z_pm`,
-that wraps un-SRF-wrapped PDL calls) is deliberately not used. The
-project is a **workaround** on top of the standard Infineon software
-package — every runtime PM call must go through the PDL syspm API
-exactly as it does in `tmp/16` and in AN237976, so that a future
-switch to the eventual Infineon-supported PDL-SRF integration is a
-subtractive change.
+The plan through commit `d5f776e` assumed that flipping the
+`CYCFG_PPC_SECURED_*` macros in `cycfg_ppc.h` from `1U` to `0U`
+would make the corresponding PPC regions NS-accessible on the
+hardware. That's **wrong**.
 
-To make that possible under TF-M we apply **Option D** from tutorial
-§29–§30: narrow the TF-M-Secure PPC configuration so the SRSS,
-PWRMODE, RAMC PPU, CM33-SYSCPU and APPCPUSS-group regions become
-NS-accessible. Every PDL syspm entry point then works from NS
-directly. See [`util/apply_option_d.sh`](util/apply_option_d.sh) and
-[`cm33_ns/src/power.c`](cm33_ns/src/power.c) file header for the
-mechanics.
+**Actual finding.** The `CYCFG_PPC_SECURED_*` macros are consumed
+ONLY by the PDL's SRF-integ compile-time headers (`cy_syspm_srf.h`,
+`cy_sysclk_srf.h`, etc.). They gate whether the PDL takes the SRF
+branch (`psa_call` into `ifx_ext_sp`) or the direct-register branch.
+They do **NOT** feed into the runtime PPC hardware programming.
 
-The z_pm partition survives only as a PING proof-of-life for the
-partition-tutorial demo — it plays no role in PM.
-
-### Isolation cost of Option D
-
-Any NS code (bugs, exploits, driver mistakes) can now reprogram:
-
-- SRSS clocks (PLLs, HF roots, PILO, WCO)
-- Hibernate (SRSS_HIB_DATA)
-- PWRMODE PPU (crash sleep policies)
-- SRAM0/1 PPUs (data-retention behaviour)
-- CM55 subsystem PPUs (bring PD1 up/down)
-- CM33 SYSCPU + MSC/DDFT/AP debug windows (biggest single loss)
-
-Acceptable for a dev board. **Revert before production** with
-`git checkout` of `apply_option_d.sh` in reverse, a `west update`, or
-manual reset of the two `cycfg_ppc.h` files. See tutorial §30 "What
-wrapping actually buys you" for a fuller analysis of what this trade
-costs vs. leaving isolation on.
-
----
-
-## Constraints
-
-| Constraint                                          | Implication                                                                                         |
-| --------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| 02 uses TF-M with the in-tree Infineon platform port | PPC config lives in TF-M source tree, not in our repo → Option D is applied via a checked-in shell script. |
-| 02 runs from external SMIF flash (CM55) + RRAM (CM33) | RRAM-execution optimisations from `tmp/16` don't apply.                                            |
-| CM55 image already parks in `Cy_SysPm_CpuEnterDeepSleep` loop | System DEEPSLEEP voting is unblocked from CM55's side.                                     |
-| **PPU config differs per PM state**                 | `Cy_SysPm_SetDeepSleepMode(mode)` (programs AN237976 Table 2 rows) must run **per-transition**, not once at boot. |
-
----
-
-## Phase 5.9 — Apply Option D
-
-Done. Run once per fresh worktree / after each `west update`:
-
-```sh
-apps/02_pse84_tfm_m33_m55_pm/util/apply_option_d.sh
-```
-
-Two `cycfg_ppc.h` files are patched in the modules tree:
-
-- `~/zephyrproject/modules/tee/tf-m/trusted-firmware-m/…/GeneratedSource/cycfg_ppc.h` — consumed by the TF-M-Secure image build.
-- `~/zephyrproject/modules/hal/infineon/zephyr-ifx-cycfg/pse84/kit_pse84_eval/cycfg_ppc.h` — consumed by the CM33-NS Zephyr build for the NS-side PDL syspm compile.
-
-Both must move together; the script does that atomically. Idempotent.
-
-Effect: `CY_PDL_SYSPM_ENABLE_SRF_INTEG` becomes undefined on both
-sides. Every `Cy_SysPm_*` call takes the direct-register branch.
-`ifx_ext_sp` still exists but its PDL-SYSPM submodule is no longer
-reachable from NS (harmless — nothing points at it any more).
-
----
-
-## Phase 6 — Layer-B static bias (implemented, awaiting measurement)
-
-At-boot `SYS_INIT` in [`cm33_ns/src/power.c`](cm33_ns/src/power.c)
-that runs the state-independent SRSS bias tmp/16's `ifx_pm_init`
-does:
-
-- `Cy_SysPm_Init()` — PDL syspm SW state.
-- `Cy_SysClk_ClkBakSetSource(CY_SYSCLK_BAK_IN_PILO)` — CLK_BAK on PILO so backup domain (RTC, BREGs) stays clocked through every DS variant.
-- `SRSS_PWR_CTL2 |= SRSS_PWR_CTL2_BGREF_LPMODE_Msk` — BGREF low-power mode during DS.
-- `Cy_SysPm_CoreBuckDpslpSetVoltage(0.70 V)` + `SetMode(LP)` + `EnableOverride(true)` — core buck in low-power DS regulation.
-- `Cy_SysClk_IhoDeepsleepDisable()` + `SRSS_CLK_IMO_CONFIG &= ~DPSLP_ENABLE_Msk` — kill IHO/IMO DS keep-alive. PILO stays running (kernel tick).
-
-Deliberately NOT included in `ifx_pm_init`:
-
-- `Cy_SysPm_SetDeepSleepMode(CY_SYSPM_MODE_DEEPSLEEP)` — the SRSS-global deep-sleep mode is per-transition state (see Phase 7). Setting it at boot would prevent DS-RAM / DS-OFF from ever being selectable at runtime.
-
-Runs at `PRE_KERNEL_1`, replaces the SoC-supplied `ifx_pm_init`
-(dropped by `cm33_ns/CMakeLists.txt`).
-
-**Expected measurement:** substate 1 (`cpu_deep_sleep`) and substate 2
-(`system_deep_sleep`) both drop by a measurable amount vs the
-Phase 5.75 baseline of 62 µA. They will still be equal to each other
-— that's what Phase 7 fixes.
-
----
-
-## Phase 7 — Per-transition PPU config for `system_deep_sleep`
-
-**Not implemented yet — gated on Phase 6 measurement + user go-ahead.**
-
-Modify [`cm33_ns/src/power.c`](cm33_ns/src/power.c)
-`enter_system_deep_sleep`:
+**What actually drives the runtime PPC:** the region-membership
+arrays in
+[`platform/ext/target/infineon/pse84/epc2/board/shared/design/default/GeneratedSource/cycfg_system.c`](../../home/ubuntu/zephyrproject/modules/tee/tf-m/trusted-firmware-m/platform/ext/target/infineon/pse84/epc2/board/shared/design/default/GeneratedSource/cycfg_system.c),
+e.g.:
 
 ```c
-static void enter_system_deep_sleep(void)
-{
-    indicator_system_deep_sleep_on();
-    /* Program Table 2 (AN237976) DEEPSLEEP column PPUs:
-     *   MAIN=Full Retention (0x05), SRAM0/1=Memory Retention (0x02),
-     *   SYSCPU=Full Retention, PD1/APPCPUSS/APPCPU=Full Retention,
-     *   SOCMEM=Memory Retention, U55=Off.
-     * Dispatches internally to SetSysDeepSleepMode + SetAppDeepSleepMode
-     * + SetSOCMEMDeepSleepMode. All un-SRF-wrapped; reachable from NS
-     * thanks to Option D (§5.9). */
-    (void)Cy_SysPm_SetDeepSleepMode(CY_SYSPM_MODE_DEEPSLEEP);
-    pm_irq_prologue();
-    (void)Cy_SysPm_CpuEnterDeepSleep(CY_SYSPM_WAIT_FOR_INTERRUPT);
-    indicator_system_deep_sleep_off();
-}
+const cy_en_prot_region_t M33S_ppc_0_regions[] = {
+    PROT_PERI0_M33SYSCPUSS,
+    PROT_PERI0_RAMC0_RAM_PWR,      /* ← still Secure-only at runtime */
+    PROT_PERI0_RAMC1_RAM_PWR,      /* ← still Secure-only at runtime */
+    PROT_PERI0_SRSS_HIB_DATA,      /* ← still Secure-only at runtime */
+    PROT_PERI0_PWRMODE_PWRMODE,    /* ← still Secure-only at runtime */
+    ...
+};
 ```
 
-`enter_cpu_deep_sleep` (substate 1) stays as-is — CPU deep sleep is
-CPU-local, no system-level PPU programming needed. The SRSS collapses
-to system deep sleep only when both CPUs vote AND the PPUs are
-programmed to their retention values.
+`Cy_Ppc_ConfigAttrib` is called at TF-M-Secure boot with each of
+these arrays and a fixed attribute struct. Region membership is
+static — flipping the header macros doesn't move regions between
+arrays.
 
-**Expected measurement:** substate 2 draws noticeably less than
-substate 1.
+**Consequence of the header-only flip.** With
+`CYCFG_PPC_SECURED_PWRMODE_PWRMODE=0U`:
+
+- PDL headers stop defining `CY_PDL_SYSPM_ENABLE_SRF_INTEG`. The
+  PDL's `Cy_SysPm_Init` (and friends) stops taking the SRF branch
+  and instead tries to program PPUs directly via
+  `cy_pd_ppu_set_power_mode(PWRMODE_PPU_MAIN, ...)`.
+- The runtime PPC still gates `PROT_PERI0_PWRMODE_PWRMODE` as
+  Secure-only.
+- Result: **precise BusFault** the first time `Cy_SysPm_Init` runs
+  from NS. BFAR=`0x42411000`, CFSR.BFARVALID+PRECISERR, R0=address,
+  R1=value being written (5 = FULL_RETENTION). Chip halts in
+  `tfm_core_panic → tfm_hal_system_halt` before `main()`.
+
+**Diagnostic path used to find this** (kept for reference):
+`CONFIG_TFM_HALT_ON_CORE_PANIC=ON` + Cortex-Debug attach with symbols
+for `tfm_s.elf` + `zephyr.elf` + `print /x exception_info` in the
+Debug Console. See [`.vscode/launch.json`](../../.vscode/launch.json)
+and [`doc/TFM_tutorial.md`](../../doc/TFM_tutorial.md) §27.
+
+**Reverted state:** [`util/revert_option_d.sh`](util/revert_option_d.sh)
+flips the 8 header bits back to `1U`. `power.c` reduced to Phase 5.75
+(no `ifx_pm_init`). Chip boots and blinks again.
 
 ---
 
-## Phase 8 — DS-RAM (SUSPEND_TO_RAM)
+## Path forward for Layer-B (Phase 6-v2)
 
-Big addition. Reference: [`tmp/16 enter_system_deep_sleep_ram`](../../tmp/16_pse84_3img_rram_pm/m33_ns/src/power.c).
-With Option D in place, all the un-SRF-wrapped calls
-(`SetDeepSleepMode(DEEPSLEEP_RAM)`, `SetAppDeepSleepMode(DEEPSLEEP_RAM)`,
-`SetSOCMEMDeepSleepMode(DEEPSLEEP_RAM)`, `cy_pd_pdcm_clear_dependency`,
-`WARM_BOOT_TOKEN_DS_RAM` write to `RTC->BREG_SET1[1]`) are direct-NS
-callable — same as `tmp/16`.
+To make Layer-B and per-transition PPU calls work from NS **without**
+a project-local secure partition, both the compile-time header AND
+the runtime PPC config need to move together. Three feasible routes:
 
-Remaining challenge unique to our TF-M build: the warm-boot entry
-point in `BREG_SET1[0]` needs to be planted by the secure boot chain,
-not by NS. `tmp/16`'s `m33_s` does this; on TF-M we'd need a hook in
-the platform port. Not planned in detail until Phase 7 is measured.
+### Route A — patch `cycfg_system.c` region arrays directly
+
+Modify the arrays so `PWRMODE_PWRMODE`, `SRSS_HIB_DATA`,
+`RAMC0/1_RAM_PWR`, and (if needed for Phase 7) `M33SYSCPUSS` move
+from `M33S_ppc_0_regions[]` to `M33_M55_ppc_0_regions[]`. That
+matches what `tmp/16_pse84_3img_rram_pm/m33_s/src/cm33s_ppc.c`
+does at runtime (per the tutorial §30 "What tmp/16 actually is").
+Combined with the current header flip via `apply_option_d.sh`, this
+becomes real Option D.
+
+**Cost:** editing the auto-generated `cycfg_system.c` in the
+modules tree — same fragility as the header patch (revert-on-`west-update`),
+but the file is much larger and the region arrays are longer, so
+the sed script gets non-trivial.
+
+**Risk:** moving `M33SYSCPUSS` to the shared group also opens MSC,
+DDFT and AP debug windows to NS (per tutorial §28). Big isolation
+loss; acceptable only for a dev board.
+
+### Route B — regenerate cycfg from a modified `design.modus`
+
+The `cycfg_*.c/.h` files are outputs of ModusToolbox Device
+Configurator run on a `design.modus` project file. The correct
+long-term way to change PPC ownership is to open `design.modus` in
+MTB Device Configurator (or edit the XML directly), change the
+Secure vs Non-Secure attribute on the affected regions, and
+regenerate.
+
+**Cost:** requires the ModusToolbox toolchain (may not be on this
+dev container). Regenerated file diff must be committed and stays
+in the TF-M source tree — same `west-update` fragility, but at
+least the change is expressed in the correct source-of-truth file.
+
+**Risk:** same isolation loss as Route A; also the regenerator may
+reformat other unrelated content in the generated file, making the
+diff noisy.
+
+### Route C — revisit the z_pm partition (rejected earlier)
+
+Reopen the round-6 decision to slim z_pm to PING-only. Route the
+Layer-B and per-transition PPU calls through a set of z_pm ops.
+Explicitly rejected by the user this round because z_pm is a
+project-local workaround, not part of the Infineon software
+package. Keep it rejected unless Routes A and B both prove
+impractical.
+
+### Recommendation
+
+**Try Route A first.** It's the smallest patch that gets us moving.
+Do it in two commits:
+
+1. Extend `apply_option_d.sh` to also patch `cycfg_system.c`
+   region-membership arrays. `revert_option_d.sh` gets the
+   corresponding revert. Test that boot survives (no `ifx_pm_init`
+   yet).
+2. Re-add `ifx_pm_init` Layer-B SYS_INIT to `power.c`. Measure
+   substate 1 / substate 2 current. Go/no-go on Phase 7.
+
+If Route A gets stuck (e.g. moving `M33SYSCPUSS` breaks TF-M's own
+S-side clock config or attest), fall back to Route B. Route C stays
+off the table unless both A and B fail.
 
 ---
 
-## Phase 9 — DS-OFF (SOFT_OFF)
+## Constraints (unchanged from earlier rounds)
 
-Even bigger — CM55 destructive teardown protocol, HF gating,
-`stop_mcwdt0`, does not return. See [`tmp/16 enter_system_deep_sleep_off`](../../tmp/16_pse84_3img_rram_pm/m33_ns/src/power.c).
-Requires CM55-side code additions on top of Phase 8. Planned for
-later; requires product-level justification (DS-OFF is destructive
-on the current-consumption path — no wake source configured short of
-reset).
+| Constraint                                                    | Implication                                                                                      |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| 02 uses TF-M with the in-tree Infineon platform port          | PPC config lives in TF-M source tree, not in our repo → any Option D-style change is applied via a checked-in shell script. |
+| 02 runs from external SMIF flash (CM55) + RRAM (CM33)         | RRAM-execution optimisations from `tmp/16` don't apply.                                          |
+| CM55 image already parks in `Cy_SysPm_CpuEnterDeepSleep` loop | System DEEPSLEEP voting is unblocked from CM55's side.                                           |
+| **PPU config differs per PM state**                           | `Cy_SysPm_SetDeepSleepMode(mode)` (programs AN237976 Table 2 rows) must run **per-transition**. |
+| **Header PPC flip ≠ runtime PPC change**                      | Any workable Layer-B path must move both together (see post-mortem).                             |
 
 ---
 
 ## Non-goals
 
-- **Modifying the TF-M PSE84 platform port beyond `cycfg_ppc.h`** (Options E, F in tutorial §29). Out of scope.
-- **Building an out-of-tree PDL-SRF wrapper partition** (Option C, z_pm). We chose Option D instead so the PM code exactly matches Infineon's reference. See "Strategy" above.
-- **Turning z_pm into an SRF module.** z_pm survives PING-only for the partition-tutorial demo; it plays no role in PM.
+- **Building an out-of-tree PDL-SRF wrapper partition** (Option C, z_pm). z_pm remains PING-only for the partition-tutorial demo.
+- **Modifying the TF-M PSE84 platform port beyond `cycfg_*` regeneration**. Deeper changes (Options E, F in tutorial §29) are out of scope.
+- **Turning z_pm into an SRF module** (`IFX_EXT_SP_REGISTER_USER_SRF_MODULE`). Same reason.
