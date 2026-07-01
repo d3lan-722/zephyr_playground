@@ -961,43 +961,91 @@ That gap is exactly the problem Part 7 attacks.
 
 ### 27. What is actually wrong with the NS PM path
 
-**What's present.** The in-tree Infineon port at
-`platform/ext/target/infineon/` ships a secure partition called
+Two claims to keep separate in your head. First, most of the SRF
+integration for PM **already works out of the box** on this port.
+Second, one Zephyr default (idle-thread stack size) and one SoC
+init hook (`ifx_pm_init`) both need attention before you can trust
+the PM path from NS.
+
+#### What already works
+
+The in-tree Infineon port at `platform/ext/target/infineon/` ships
+a secure partition
 [`ifx_ext_sp`](../../home/ubuntu/zephyrproject/modules/tee/tf-m/trusted-firmware-m/platform/ext/target/infineon/common/spe/services/ifx_ext_sp/)
-that owns the SID `0x00001001` and dispatches incoming SRF calls
-to `mtb_srf_request_execute()`. The PDL's secure side registers
-its SRF module via `cy_pdl_srf_module_register(&cybsp_srf_context)`,
+that owns SID `0x00001001` and dispatches incoming SRF calls to
+`mtb_srf_request_execute()`. The PDL's secure side registers its
+SRF module via `cy_pdl_srf_module_register(&cybsp_srf_context)`,
 called from `cybsp_init()` inside `ifx_init_spm_peripherals()` at
 SPM startup. The platform config
 [`platform/ext/target/infineon/pse84/config.cmake`](../../home/ubuntu/zephyrproject/modules/tee/tf-m/trusted-firmware-m/platform/ext/target/infineon/pse84/config.cmake)
 sets `IFX_MTB_SRF=ON` by default for PSE84 and pulls the `mtb-srf`
 library from GitHub at configure time.
 
-You can see this in our build's map file:
+On the **NS** side, Zephyr's `hal_infineon` module compiles a
+second build of the same PDL source (see §26) into
+`libmodules_hal_infineon.a`. The NS build defines
+`CY_PDL_ENABLE_SECURE_AWARE` (default) and includes `cy_syspm_srf.h`,
+which — because at least one of the four `CYCFG_PPC_SECURED_*` PM
+regions is `1U` — auto-defines
+`CY_PDL_SYSPM_ENABLE_SRF_INTEG`. That activates the SRF branch
+inside each Cy_SysPm_* entry that has one.
+
+Concretely, for three PDL entry points the SRF branch turns a
+direct-register touch into a PSA call:
 
 ```
-LOAD secure_fw/partitions/partitions/ifx_ext_sp_2/libtfm_psa_rot_partition_ifx_ext_sp.a
-LOAD ifx_pdl/spe/libifx_pdl_s.a(cy_pdl_srf.o)
-LOAD ifx_pdl/spe/libifx_pdl_s.a(cy_syspm_v4.o)
+NS: Cy_SysPm_CpuEnterDeepSleep(WAIT_FOR_INTERRUPT)
+    │  #if !COMPONENT_SECURE_DEVICE && CY_PDL_SYSPM_ENABLE_SRF_INTEG
+    ├─ mtb_srf_pool_allocate + fill invec
+    ├─ mtb_srf_request_submit
+    │    └─ ifx_mtb_srf_call
+    │         └─ psa_call(IFX_EXT_SP_HANDLE, IFX_EXT_SP_API_ID_MTB_SRF, …)
+    │              └─ tfm_psa_call_veneer -> SG (S state)
+    │                   └─ ifx_ext_sp handler
+    │                        └─ mtb_srf_request_execute
+    │                             └─ S-side Cy_SysPm_CpuEnterDeepSleep
+    │                                  (COMPONENT_SECURE_DEVICE defined ->
+    │                                   direct SCB_SCR + __WFI at PC2)
+    │                        <- return
+    │              <- BXNS
+    └─ ...
 ```
 
-And in `CMakeCache.txt`:
+Empirically verified on our board: 14 mA active / 62 µA in
+`cpu_deep_sleep`, LEDs in exact opposite phase, no resets. `Cy_SysPm_CpuEnterSleep`,
+`Cy_SysPm_CpuEnterDeepSleep`, and CM33-side `Cy_SysPm_SystemEnterHibernate`
+all reach the S side via this path.
 
+#### Prerequisite: the idle-thread stack must fit the alloca
+
+Zephyr's PM subsystem calls `pm_state_set` from the **idle thread**
+with `CONFIG_IDLE_STACK_SIZE`. On Cortex-M33 with `CONFIG_FPU_SHARING=y`,
+`tfm_ns_interface_dispatch` (the NS→S dispatcher used by every
+`psa_call`) allocates a local `struct fpu_ctx_full context_buffer`
+via `sub sp, #136` in its prologue. With the Zephyr default 320-byte
+idle stack, that alloca drops PSP below PSPLIM on the deeper NS→S
+call chain (`Cy_SysPm_* → mtb_srf_* → ifx_mtb_srf_call → psa_call →
+tfm_ns_interface_dispatch`), fires a stack-overflow UsageFault,
+escalates to HardFault (`HFSR.FORCED`), and TF-M's `tfm_core_panic()`
+resets the chip.
+
+**The fix is a single Kconfig line:**
+
+```conf
+CONFIG_IDLE_STACK_SIZE=2048
 ```
-IFX_MTB_SRF:BOOL=ON
-IFX_MTB_SRF_LIB_VERSION:STRING=release-v1.1.0
-```
 
-So if you call `Cy_SysPm_CpuEnterDeepSleep(CY_SYSPM_WAIT_FOR_INTERRUPT)`
-from CM33-NS today, the PDL takes the SRF branch, submits a PSA
-call to `IFX_EXT_SP`, the partition forwards it to the registered
-PDL submodule, and the actual SLEEPDEEP+WFI happens on the secure
-side at PC2. **That part of the SRF flow works end-to-end out of
-the box.**
+Two kilobytes leaves comfortable headroom for the deepest NS→S
+chain. Without this, calling PDL syspm directly from NS looks
+identical to a PPC violation (endless resets, no obvious cause) —
+so if you copy this port and PM crashes, check idle stack first.
 
-**What's broken.** Not every `Cy_SysPm_*` API is SRF-wrapped. Look
-at the Zephyr SoC's initialization in
-[`zephyr/soc/infineon/edge/pse84/power.c`](../../home/ubuntu/zephyrproject/zephyr/soc/infineon/edge/pse84/power.c):
+#### What doesn't work: `ifx_pm_init` at boot
+
+Not every `Cy_SysPm_*` API has an SRF branch. The Zephyr SoC's PM
+init hook in
+[`zephyr/soc/infineon/edge/pse84/power.c`](../../home/ubuntu/zephyrproject/zephyr/soc/infineon/edge/pse84/power.c)
+calls two of the un-wrapped ones:
 
 ```c
 static int ifx_pm_init(void) {
@@ -1014,48 +1062,52 @@ Follow (a) through `cy_syspm_v4.c`:
 Cy_SysPm_SetDeepSleepMode
   -> Cy_SysPm_SetSysDeepSleepMode
        -> cy_pd_ppu_set_power_mode((struct ppu_v1_reg *)CY_PPU_MAIN_BASE, …)
-          /* direct write to a PPU register in the SRSS PSA-ROT region */
+          /* direct write to PWRMODE.PPU_MAIN — a PSA-ROT-owned PPU */
 ```
 
 There is **no** `#ifdef CY_PDL_SYSPM_ENABLE_SRF_INTEG` around
 `Cy_SysPm_SetSysDeepSleepMode`. It always does the register write
-inline. Called from NS at `PRE_KERNEL_1`, that write hits a
-PSA-ROT-only address and the CPU takes a fault the NS world can
-never satisfy — boot loops.
+inline. From NS at `PRE_KERNEL_1` that write hits a PPC-secured
+region and bus-faults before `main()` runs — boot loops.
 
-`Cy_SysPm_SystemEnterHibernate` is a nearby, slightly different
-case: it **does** have an SRF branch for CM33-NS, but **not** for
-CM55 (the `!(CY_CPU_CORTEX_M55)` guard in `cy_syspm_v4.c`). So on
-CM33-NS Hibernate goes through `ifx_ext_sp`; from CM55 it would
-write `SRSS_PWR_HIBERNATE` directly and bus-fault.
+Our app drops this SYS_INIT by removing the SoC's `power.c` from
+the Zephyr sources list (see `cm33_ns/CMakeLists.txt`). The two
+PPU-bias operations `ifx_pm_init` was doing get delayed: today the
+platform's own `cybsp_init` on the S side sets a reasonable default
+bias, and any project-specific PPU bias will be applied by a future
+`z_pm` op (see §31).
 
-`Cy_SysPm_SetSOCMEMDeepSleepMode` is yet another case: the SOCMEM
-PPU is *already NS* in the default `cycfg_ppc.h`, so the write
-itself succeeds — but only *after* `Cy_System_EnablePD1()` has
-powered up APPCPUSS (PD1). Called at `PRE_KERNEL_1`, before PD1 is
-on, the transaction never reaches the PPU. Full register/PPC
-mapping in §28.
+`Cy_SysPm_SystemEnterHibernate` is a similar case but only for
+**CM55**: it has an SRF branch for CM33-NS but a `!CY_CPU_CORTEX_M55`
+guard skips it on CM55. So CM33-NS hibernate goes through
+`ifx_ext_sp`; CM55 hibernate needs a relay through CM33-NS or the
+z_pm partition.
 
-The SoC's `ifx_pm_init` would be perfectly fine in a flat-trust
-ModusToolbox build, but on a `_ns` Zephyr build it fails before
-`main()` runs — specifically on the `Cy_SysPm_SetDeepSleepMode`
-call, which is the first line to touch a `_SECURED_` PPU.
+`Cy_SysPm_SetSOCMEMDeepSleepMode` is a third case: the SOCMEM PPU
+is *already NS* in the default `cycfg_ppc.h`, so the write itself
+succeeds — but only *after* `Cy_System_EnablePD1()` has powered up
+APPCPUSS (PD1). Called at `PRE_KERNEL_1` before PD1 is on, the
+transaction never reaches the PPU. Full register/PPC mapping in
+§28.
 
-**The actual fault matrix:**
+#### The actual fault matrix
 
-| PDL API called from | SRF-wrapped? | Registers touched | Outcome today |
+Given the idle-stack fix and dropping the boot SYS_INIT:
+
+| PDL API called from | SRF-wrapped? | Idle-stack fix required? | Outcome |
 |---|---|---|---|
-| `Cy_SysPm_CpuEnterSleep` (CM33-NS) | yes | via SRF handler | works |
-| `Cy_SysPm_CpuEnterDeepSleep` (CM33-NS) | yes | via SRF handler | works |
-| `Cy_SysPm_SystemEnterHibernate` (CM33-NS) | yes | via SRF handler | works |
-| `Cy_SysPm_SystemEnterHibernate` (CM55) | no | `SRSS_PWR_HIBERNATE` (`SRSS_MAIN`/`SRSS_HIB_DATA` = 1U) | bus fault |
-| `Cy_SysPm_SetDeepSleepMode` / `SetSysDeepSleepMode` (CM33-NS) | no | `PWRMODE_PPU_MAIN`, `RAMC0/1_PPU`, `CPUSS_PPU` (all secured) | bus fault |
-| `Cy_SysPm_SetSOCMEMDeepSleepMode` (CM33-NS, PD1 up) | no | `SOCMEM_PPU_SOCMEM` (0U → NS) | works |
-| `Cy_SysPm_SetSOCMEMDeepSleepMode` (CM33-NS, PD1 down) | no | same | PD1 not powered → hang/fault |
-| `Cy_SysPm_SetAppDeepSleepMode` (CM55) | no | `APPCPUSS_PPU`, `SOCMEM_PPU` | depends on APPCPUSS PPC state |
+| `Cy_SysPm_CpuEnterSleep` (CM33-NS) | yes | yes | works |
+| `Cy_SysPm_CpuEnterDeepSleep` (CM33-NS) | yes | yes | works |
+| `Cy_SysPm_SystemEnterHibernate` (CM33-NS) | yes | yes | works |
+| `Cy_SysPm_SystemEnterHibernate` (CM55) | no | n/a | bus fault; needs relay or z_pm |
+| `Cy_SysPm_SetDeepSleepMode` / `SetSysDeepSleepMode` (CM33-NS) | no | n/a | bus fault; needs z_pm |
+| `Cy_SysPm_SetSOCMEMDeepSleepMode` (CM33-NS, PD1 up) | no | n/a | works |
+| `Cy_SysPm_SetSOCMEMDeepSleepMode` (CM33-NS, PD1 down) | no | n/a | PD1 not powered → hang/fault |
+| `Cy_SysPm_SetAppDeepSleepMode` (CM55) | no | n/a | depends on APPCPUSS PPC state |
 
-That's the real problem this app exists to work around. §28 lists
-the exact registers and PPC regions behind each row.
+The three "yes/yes/works" rows are what NS PM does directly today.
+The other rows are what z_pm is reserved for. §28 lists the exact
+registers and PPC regions.
 
 ### 28. What each un-wrapped PM API actually touches
 
@@ -1180,38 +1232,34 @@ what §31 (Option C) does.
 
 ### 29. Options on the table
 
-Given the fault matrix in §27 and the drill-down in §28, six
-architectural options were considered:
+Given §27 and the drill-down in §28, six architectural options
+were considered:
 
 | Option | What you do | Coverage | Notes |
 |---|---|---|---|
-| **A** | Drop the SoC's `ifx_pm_init` SYS_INIT (it's the only thing calling non-SRF-wrapped APIs at boot). Keep using `Cy_SysPm_CpuEnter{,Deep}Sleep` from NS via the in-tree SRF path. | CPU sleep + CPU deep sleep | Cleanest in principle. You inherit whatever PPU bias the platform's `cybsp_init()` set on the S side. Hibernate and DS-OFF still unreachable via SRF gap. No new partition. |
+| **A** | Call the SRF-wrapped `Cy_SysPm_*` APIs directly from CM33-NS. Drop the SoC's `ifx_pm_init` SYS_INIT. Bump `CONFIG_IDLE_STACK_SIZE` to fit the NS→S alloca (§27). | CPU sleep, CPU deep sleep, CM33-side hibernate | Cleanest. Zero project-local secure code. Only touches PDL entries Infineon has already blessed for NS callers. |
 | **B** | Tiny S-side init-only partition that biases PPUs at boot. | CPU sleep only | Strictly weaker than A: same coverage but adds a partition just to call APIs the platform's own `cybsp_init` could call. Rejected. |
-| **C** | Ship a small out-of-tree partition (`z_pm`) that calls PDL syspm directly on the S side. NS calls our partition instead of PDL. | Anything we choose to expose | Bypasses the SRF gap entirely. One narrow audited API. Lets us implement DS-OFF/hibernate later without waiting for SRF coverage. **What this app does today — see §31.** |
+| **C** | Ship a small out-of-tree partition (`z_pm`) for the entry points PDL does *not* SRF-wrap. NS calls our partition for those. | Un-SRF-wrapped entry points: `SetSysDeepSleepMode`, `SetSOCMEMDeepSleepMode` gating, CM55 hibernate, Layer-B bias, retention patterns | Bridges the SRF-coverage gap without touching the TF-M tree. Kept narrow and audited. **Complementary to A, not a replacement.** |
 | **D** | Edit `cycfg_ppc.h` to mark PWRMODE/SRSS non-secure. | All of the above | Breaks isolation over PM registers. Acceptable for one-off bring-up on a dev board. See §30 for a detailed look — it is the natural extension of the "run everything from NS" idea. |
 | **E** | Pull the MTB TF-M port (`ifx-tf-m-pse84epc2`) into the Zephyr west manifest to replace the in-tree Infineon port. | Depends on that port | The library overlaps/replaces parts of the in-tree port; only one can win. It uses MTB CMake assumptions and is not packaged as a Zephyr module (`zephyr/module.yml`, Kconfig.tfm hooks, `TFM_EXTRA_*` plumbing missing). Source-release status unclear. **Becomes attractive only when/if Infineon publishes a Zephyr-compatible release.** |
 | **F** | Add Zephyr DT bindings and a generator for the MPC/PPC tables. | Depends on schema | Describe PPC/MPC regions in DT overlays. A build step would emit replacement `cycfg_ppc.{h,c}` etc. Substantial binding-design work, no precedent in Zephyr for a generic protection-controller abstraction. TF-M's Infineon port hard-codes the include path to its `GeneratedSource/` files. Reasonable as a long-term project, not as a per-app fix. Would not help the PM problem anyway: even with custom PPC tables you still need a place to execute the writes from the trusted side. |
 
-Rejected: **B, D, E, F.** Live options: **A** and **C.** We chose
-C (see §31). A remains valid for CPU-only sleep workloads.
+Rejected: **B, D, E, F.** Live options: **A** and **C**, used
+**together**. A covers the SRF-wrapped ops; C covers the rest.
+The 02 app does both today (§31).
 
-**A vs C — what tipped it for us:**
+**Why not A alone?** A cannot reach `Cy_SysPm_SetSysDeepSleepMode`
+(needed for real DS-RAM / DS-OFF), `Cy_SysPm_SetSOCMEMDeepSleepMode`
+with PD1 gating, or CM55 hibernate. Any workload that only needs
+CPU-level sleep can stop at A.
 
-1. We want to evolve toward DS-OFF, hibernate, and Layer-B biasing.
-   All three need non-SRF-wrapped PDL APIs. Adding them to A means
-   either patching the PDL (out of scope) or building a partition
-   anyway.
-2. The partition gives us **one** place to put PM policy, with the
-   security boundary visible in the API. SRF mixes "forward this
-   PDL call" with our own logic.
-3. Implementation effort for the partition skeleton was small (see
-   [`TFM_partition_tutorial.md`](TFM_partition_tutorial.md)) — much
-   less than the cost of debugging surprise gaps in SRF coverage
-   as we add features.
-
-The two options are not mutually exclusive: you can call
-`Cy_SysPm_CpuEnter…` via SRF *and* call `z_pm_*` for things SRF
-does not cover, in the same NS image.
+**Why not C alone?** C would work — z_pm could re-wrap every
+Cy_SysPm_* entry the app uses. But that pays the PSA-call overhead
+for every sleep transition just for symmetry with the ops that
+truly need z_pm. We tried it (round 6 of this workspace) and found
+the wrapper for SRF-covered entries is byte-for-byte functionally
+equivalent to the PDL's own SRF branch. Drop the redundant wrap;
+keep z_pm narrow.
 
 ### 30. Why not just do everything from NS?
 
@@ -1341,87 +1389,168 @@ not a validation layer today, it is a narrow, audited window into
 functions that would otherwise require exposing entire PPC regions
 to NS.
 
-### 31. Chosen path: the `z_pm` partition
+### 31. Chosen path: `z_pm` alongside direct PDL calls
 
-We picked Option C. The partition is documented end-to-end in
-[`TFM_partition_tutorial.md`](TFM_partition_tutorial.md). Summary:
+The 02 app implements Option A and Option C in parallel. The NS
+side has two dispatch modes:
+
+- **SRF-covered ops → direct PDL call from NS.** No project-local
+  wrap. The PDL's own SRF branch (§27) handles the S transition.
+- **Un-SRF-wrapped ops → `z_pm` PSA service.** A project-local
+  partition that runs at PC2 and touches the PSA-ROT registers
+  directly.
+
+Today only the SRF-covered dispatch is exercised. The `z_pm`
+partition ships with just a `PING` op for machinery validation;
+the real ops that need it (§27 fault matrix "no" rows) will be
+added incrementally.
+
+#### Files
 
 ```
 apps/02_pse84_tfm_m33_m55_pm/
   cm33_ns/src/
-    z_pm_client.{h,c}         NS-side psa_call wrappers
-    power.c                   Zephyr pm_state_set dispatching to z_pm_*
+    power.c              Zephyr pm_state_set → Cy_SysPm_* (direct)
+    z_pm_client.{h,c}    NS-side psa_call wrappers (currently: ping only)
+    main.c               calls z_pm_ping() at boot as proof-of-life
   tfm_partitions/z_pm/
-    z_pm_partition.yaml       PSA-ROT, SFN, service Z_PM_SERVICE
-    manifest_list.yaml        TFM_EXTRA_MANIFEST_LIST_FILES entry
-    z_pm_partition.c          Calls Cy_SysPm_CpuEnter{,Deep}Sleep on S side
-    CMakeLists.txt            Links ifx_pdl_inc_s for headers only
+    z_pm_partition.yaml  PSA-ROT, SFN, service Z_PM_SERVICE (SID 0xFFFFF800)
+    manifest_list.yaml   TFM_EXTRA_MANIFEST_LIST_FILES entry
+    z_pm_partition.c     switch(msg->type) — currently only Z_PM_OP_PING
+    CMakeLists.txt       links platform_s + tfm_sprt + tfm_config
+                         (ifx_pdl_inc_s to be re-added with the first
+                          real PDL wrapper op)
 ```
 
-The partition is **not** an SRF module. It is a plain PSA service
-with opcode-dispatched operations:
+The partition is a plain PSA service (SFN backend), *not* an SRF
+module. Opcode dispatched. Empty today except for PING:
 
 ```c
-switch (msg->type) {
-case Z_PM_OP_CPU_SLEEP:        return pdl_to_psa(Cy_SysPm_CpuEnterSleep(...));
-case Z_PM_OP_CPU_DEEP_SLEEP:   return pdl_to_psa(Cy_SysPm_CpuEnterDeepSleep(...));
-case Z_PM_OP_SYSTEM_DEEP_SLEEP:return pdl_to_psa(Cy_SysPm_CpuEnterDeepSleep(...));
-/* later: DS-OFF, hibernate, Layer-B bias */
+psa_status_t z_pm_service_sfn(const psa_msg_t *msg)
+{
+    switch (msg->type) {
+    case Z_PM_OP_PING:
+        return z_pm_op_ping(msg);
+    default:
+        return PSA_ERROR_NOT_SUPPORTED;
+    }
 }
 ```
 
-It could call PDL APIs that SRF doesn't wrap (e.g.
-`Cy_SysPm_SetDeepSleepMode`) without bus-faulting, because it runs
-at PC2 with secure privilege. That's what makes Option C strictly
-more general than Option A.
+When the first real op lands (candidate: `Z_PM_OP_SET_SYS_DEEP_SLEEP_MODE`
+wrapping `Cy_SysPm_SetSysDeepSleepMode`), the partition re-adds
+`#include "cy_syspm.h"` and its CMakeLists reintroduces
+`ifx_pdl_inc_s` in `PRIVATE`. The PDL secure objects
+(`cy_syspm_v4.o`, `cy_pdl_srf.o`, …) are already inside `tfm_s.elf`
+because the Infineon platform port unconditionally adds them to the
+`ifx_pdl_s` static library that links into TF-M — the partition
+only needs the *headers*.
 
-> **Linkage detail.** The PDL secure objects (`cy_syspm_v4.o`,
-> `cy_pdl_srf.o`, …) are already inside `tfm_s.elf` because the
-> Infineon platform port unconditionally adds them to the
-> `ifx_pdl_s` static library that links into TF-M. Our partition
-> only needs the *headers*; we get them via the `ifx_pdl_inc_s`
-> INTERFACE library. See §16 for the full library inventory and
-> [`TFM_partition_tutorial.md`](TFM_partition_tutorial.md) §6 for
-> the CMake recipe.
+See §16 for the full library inventory and
+[`TFM_partition_tutorial.md`](TFM_partition_tutorial.md) §6 for
+the CMake recipe.
+
+#### NS dispatcher today
+
+`cm33_ns/src/power.c` calls PDL directly for every implemented
+transition:
+
+```c
+static void enter_cpu_sleep(void)
+{
+    indicator_cpu_sleep_on();
+    pm_irq_prologue();                             /* BASEPRI -> PRIMASK */
+    (void)Cy_SysPm_CpuEnterSleep(CY_SYSPM_WAIT_FOR_INTERRUPT);
+    indicator_cpu_sleep_off();
+}
+
+static void enter_cpu_deep_sleep(void)
+{
+    indicator_cpu_deep_sleep_on();
+    pm_irq_prologue();
+    (void)Cy_SysPm_CpuEnterDeepSleep(CY_SYSPM_WAIT_FOR_INTERRUPT);
+    indicator_cpu_deep_sleep_off();
+}
+
+/* system_deep_sleep is CPU deep-sleep today; specialised in phase 7+ */
+static void enter_system_deep_sleep(void)
+{
+    indicator_system_deep_sleep_on();
+    pm_irq_prologue();
+    (void)Cy_SysPm_CpuEnterDeepSleep(CY_SYSPM_WAIT_FOR_INTERRUPT);
+    indicator_system_deep_sleep_off();
+}
+```
+
+`pm_irq_prologue` switches interrupt masking from BASEPRI (which
+Zephyr's `irq_lock()` sets) to PRIMASK, because PSE84 only honours
+wake from standby/sleep when the wake source is signalled with
+PRIMASK; BASEPRI keeps it pending forever. `pm_state_exit_post_ops`
+clears PRIMASK via `__enable_irq()` after WFI.
+
+The SoC's default `pm_state_set` (in
+`zephyr/soc/infineon/edge/pse84/power.c`) is dropped from the
+build by `cm33_ns/CMakeLists.txt` because its `PRE_KERNEL_1`
+SYS_INIT calls `Cy_SysPm_SetDeepSleepMode` — one of the
+un-SRF-wrapped ops — and bus-faults before `main()`.
+
+#### Prerequisite: idle stack size
+
+Because every direct `Cy_SysPm_*` call from NS goes through
+`tfm_ns_interface_dispatch` (which allocates a 136-byte
+`fpu_ctx_full` on the caller's stack), and `pm_state_set` runs on
+Zephyr's idle thread, `CONFIG_IDLE_STACK_SIZE` must be big enough
+to fit the chain. Zephyr's default 320 bytes is not. This project's
+`prj.conf` sets `CONFIG_IDLE_STACK_SIZE=2048`. Without that, every
+sleep transition bus-faults (see §27 for the diagnosis workflow).
+
+#### Where `z_pm` earns its keep
+
+Everything z_pm is *for* is still to be built. Ordered by how much
+value each op adds:
+
+| Op (planned) | PDL entry point | Registers touched | Why not SRF |
+|---|---|---|---|
+| `Z_PM_OP_SET_SYS_DEEP_SLEEP_MODE` | `Cy_SysPm_SetSysDeepSleepMode(mode)` | PWRMODE_PPU_MAIN, RAMC0/1_PPU, CPUSS_PPU (all PSA-ROT) | Not `#ifdef`ed in `cy_syspm_v4.c`. Needed for real DS-RAM / DS-OFF. |
+| `Z_PM_OP_SET_SOCMEM_DEEP_SLEEP_MODE` | `Cy_SysPm_SetSOCMEMDeepSleepMode(mode)` gated on `Cy_System_IsEnabledPD1()` | SOCMEM_PPU (NS already) | Register is NS but call needs PD1-up precondition; z_pm enforces it. |
+| `Z_PM_OP_CM55_HIBERNATE_RELAY` | Cy_SysPm_SystemEnterHibernate on behalf of CM55 | SRSS_PWR_HIBERNATE | The PDL guard `!CY_CPU_CORTEX_M55` skips CM55's SRF branch. Relay through CM33-NS + z_pm. |
+| Layer-B bias / retention pattern setup | Assorted SRSS + PPU trims | SRSS_MAIN, RAMC*_PPU | No SRF wrappers exist; product-specific policy anyway. |
+
+Once these land in z_pm, `enter_system_deep_sleep` in `power.c`
+calls the appropriate `z_pm_*` before its `Cy_SysPm_CpuEnterDeepSleep`
+to pre-arm the PPU/SRSS state.
 
 #### Relation to the PDL SRF-coverage gap
 
-Option C's `z_pm` partition is functionally equivalent to what an
-SRF wrapper would look like for the un-wrapped PDL entry points
-listed in §27 — `Cy_SysPm_SetDeepSleepMode`,
-`Cy_SysPm_SetSysDeepSleepMode`, `Cy_SysPm_SetSOCMEMDeepSleepMode`,
-and the CM55 branch of `Cy_SysPm_SystemEnterHibernate`. Where
-Infineon's PDL ships an `#ifdef CY_PDL_SYSPM_ENABLE_SRF_INTEG`
-branch that packs an SRF request, our partition ships a `psa_call`
-to `Z_PM_SERVICE` — and on the S side both routes execute the
-same PDL function body.
+`z_pm`'s remaining ops (once written) are functionally equivalent
+to what an SRF wrapper *would* look like for the un-wrapped PDL
+entry points. Where Infineon's PDL ships an `#ifdef
+CY_PDL_SYSPM_ENABLE_SRF_INTEG` branch, our partition ships a
+`psa_call` to `Z_PM_SERVICE`. Both routes execute the same PDL
+function body on the S side at PC2.
 
-Practically that means:
+Practical implications:
 
-- `z_pm` unblocks this project today without waiting for a PDL
-  fix upstream. It lets us keep the in-tree TF-M port and its
-  isolation posture while still calling the PM APIs Infineon
-  designed for S-side callers.
-- Once we have validated *which* PDL entry points really need
-  wrapping for a realistic PM policy (CPU sleep, CPU deep-sleep,
-  DS-OFF, hibernate, layer-B biasing), those findings are worth
-  reporting to Infineon's PDL maintainers as "these functions
-  have a coverage gap in `cy_syspm_v4.c`." The upstream fix would
-  be one `#ifdef CY_PDL_SYSPM_ENABLE_SRF_INTEG` branch per
-  function plus a matching `ifx_ext_sp` handler entry; once that
-  ships, a `z_pm`-shaped partition is no longer needed for these
-  APIs.
+- `z_pm` lets us unblock DS-RAM / DS-OFF / CM55-hibernate today
+  without waiting for PDL upstream to add SRF coverage.
+- The findings — *which* PDL entry points really need wrapping for
+  a realistic PM policy — are worth reporting to Infineon's PDL
+  maintainers as "these functions have a coverage gap in
+  `cy_syspm_v4.c`." The upstream fix is one `#ifdef
+  CY_PDL_SYSPM_ENABLE_SRF_INTEG` branch per function plus a
+  matching `ifx_ext_sp` handler entry. Once that lands, the
+  corresponding z_pm op is deletable.
 - Adding our own SRF module inside `ifx_ext_sp` (via
   `IFX_EXT_SP_REGISTER_USER_SRF_MODULE`) instead of a plain PSA
   service is a middle ground — closer to the upstream fix, but
   adds SRF wire-format machinery for no runtime benefit when you
-  control both ends. See the next subsection.
+  control both ends. See below.
 
-Think of `z_pm` as **a local, project-scoped stand-in for the
-SRF wrappers that don't exist yet**. It is deliberately shaped so
-that swapping it out for an upstream PDL fix later is a
-subtractive change on our side (delete the partition, delete the
-client, call `Cy_SysPm_*` from NS directly).
+Think of `z_pm` as **a local, project-scoped stand-in for SRF
+wrappers that don't exist yet in the PDL**. It is deliberately
+shaped so that swapping it out for an upstream PDL fix later is a
+subtractive change on our side (delete the partition op, delete
+the client wrapper, call `Cy_SysPm_*` from NS directly).
 
 #### Old (rejected) sketch: a custom SRF module
 
