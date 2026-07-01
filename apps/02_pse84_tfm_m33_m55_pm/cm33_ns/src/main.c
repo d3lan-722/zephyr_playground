@@ -26,23 +26,26 @@
  *
  *    ms  | state                 | residency >=  | LED     | dispatch
  *   -----+-----------------------+---------------+---------+-----------
- *      5 | cpu_sleep             |      1 010 us | red     | z_pm
- *    100 | cpu_deep_sleep        |     30 050 us | blue    | z_pm
- *   1500 | system_deep_sleep     |  1 000 050 us | magenta | z_pm
+ *      5 | cpu_sleep             |      1 010 us | red     | PDL direct
+ *    100 | cpu_deep_sleep        |     30 050 us | blue    | PDL direct
+ *   1500 | system_deep_sleep     |  1 000 050 us | magenta | PDL direct
  *   2500 | system_deep_sleep_ram |  2 000 500 us | cyan    | (unimpl)
  *   5000 | system_deep_sleep_off |  4 100 000 us | white   | (unimpl)
  *
- * Round-7 finding: every row above MUST dispatch through z_pm.
- * Calling Cy_SysPm_CpuEnter{,Deep}Sleep from NS directly bus-
- * faults because Zephyr's hal_infineon compiles cy_syspm_v4.c
- * WITHOUT CY_PDL_SYSPM_ENABLE_SRF_INTEG, so the NS build takes
- * the direct-register branch and reads PWRMODE_PPU_MAIN (a
- * secured PPU) before it ever reaches __WFI. See tutorial §27.
+ * Round-7 finding: every row above dispatches directly to PDL syspm
+ * from NS. The NS-side cy_syspm_v4.c is compiled with
+ * CY_PDL_SYSPM_ENABLE_SRF_INTEG, so Cy_SysPm_Cpu{Enter,Deep}Sleep and
+ * SystemEnterHibernate (CM33) all pack an SRF request and psa_call
+ * into IFX_EXT_SP; the S side runs the real WFI at PC2. Prerequisite:
+ * CONFIG_IDLE_STACK_SIZE >= 2 KiB (Zephyr default 320 B is too small
+ * for the tfm_ns_interface_dispatch fpu_ctx_full alloca on this path).
  *
  * The 2500 / 5000 lines are commented-out placeholders — their
  * dispatchers only print a "not implemented yet" line today
  * (see power.c). Uncomment them only after wiring the
- * corresponding partition ops.
+ * corresponding partition ops (z_pm will hold them because
+ * Cy_SysPm_SetSysDeepSleepMode and Cy_SysPm_SystemEnterHibernate
+ * on CM55 are NOT SRF-wrapped in the PDL).
  */
 // #define SLEEP_BETWEEN_BLINKS_MS    5 /* cpu_sleep                     */
 #define SLEEP_BETWEEN_BLINKS_MS 100 /* cpu_deep_sleep — direct PDL   */

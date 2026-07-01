@@ -2,9 +2,9 @@
  * Copyright (c) 2026
  * SPDX-License-Identifier: Apache-2.0
  *
- * NS-side stubs for the z_pm out-of-tree TF-M partition. Each function
- * marshals arguments into PSA invecs/outvecs and calls the partition's
- * stateless service handle (Z_PM_SERVICE_HANDLE from psa_manifest/sid.h).
+ * NS-side stubs for the z_pm out-of-tree TF-M partition. Marshals args
+ * into PSA invecs/outvecs and calls the partition's stateless service
+ * handle (Z_PM_SERVICE_HANDLE from psa_manifest/sid.h).
  */
 
 #include <stdint.h>
@@ -30,27 +30,4 @@ psa_status_t z_pm_ping(uint32_t *out_cookie)
 
 	return psa_call(Z_PM_SERVICE_HANDLE, Z_PM_OP_PING, NULL, 0, out_vec,
 			IOVEC_LEN(out_vec));
-}
-
-/* PM-entry ops: no in/out args. The partition does SLEEPDEEP + WFI on
- * the secure side; wake-up via NS interrupt propagates back here.
- */
-static inline psa_status_t z_pm_call_noargs(int32_t op_id)
-{
-	return psa_call(Z_PM_SERVICE_HANDLE, op_id, NULL, 0, NULL, 0);
-}
-
-psa_status_t z_pm_cpu_sleep(void)
-{
-	return z_pm_call_noargs(Z_PM_OP_CPU_SLEEP);
-}
-
-psa_status_t z_pm_cpu_deep_sleep(void)
-{
-	return z_pm_call_noargs(Z_PM_OP_CPU_DEEP_SLEEP);
-}
-
-psa_status_t z_pm_system_deep_sleep(void)
-{
-	return z_pm_call_noargs(Z_PM_OP_SYSTEM_DEEP_SLEEP);
 }

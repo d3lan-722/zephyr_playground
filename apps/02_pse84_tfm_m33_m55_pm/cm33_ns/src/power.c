@@ -4,17 +4,32 @@
  *
  * Zephyr PM dispatcher for the CM33-NS image.
  *
- * Phase 6: PM_STATE_SUSPEND_TO_IDLE, PM_STATE_STANDBY substate 1
- * (cpu_deep_sleep), and PM_STATE_STANDBY substate 2
- * (system_deep_sleep) all route the actual SLEEPDEEP+WFI through
- * the out-of-tree TF-M partition z_pm. The partition calls PDL
- * Cy_SysPm_Cpu{Enter,Deep}Sleep on the secure side, which has the
- * privilege to touch PWRMODE/SRSS without bus-faulting.
+ * Round 7: all three currently-implemented PM entry points call
+ * PDL syspm directly from NS. The NS-side cy_syspm_v4.c is compiled
+ * with CY_PDL_SYSPM_ENABLE_SRF_INTEG (auto-defined by cy_syspm_srf.h
+ * because at least one of the four CYCFG_PPC_SECURED_{SRSS_MAIN,
+ * SRSS_HIB_DATA, PWRMODE_PWRMODE, M55APPCPUSS} bits is 1U). That
+ * activates the SRF branch inside each Cy_SysPm_Cpu*Enter*Sleep
+ * function, which packs an SRF request and psa_call()s into
+ * IFX_EXT_SP; the S-side handler runs the actual SLEEPDEEP+WFI at
+ * PC2.  No project-local partition wrap is needed for these APIs.
  *
- * The SoC default pm_state_set lives in
- * soc/infineon/edge/pse84/power.c and is dropped from the build by
- * the application CMakeLists (its PRE_KERNEL_1 SYS_INIT bus-faults
- * from NS under TF-M).
+ * z_pm still exists (see tfm_partitions/z_pm/) but only exposes
+ * Z_PM_OP_PING today. It is the placeholder for future ops that
+ * PDL DOES NOT SRF-wrap: Cy_SysPm_SetSysDeepSleepMode,
+ * Cy_SysPm_SetSOCMEMDeepSleepMode, CM55-side hibernate, Layer-B
+ * bias, retention patterns.
+ *
+ * The SoC default pm_state_set (in soc/infineon/edge/pse84/power.c)
+ * is dropped from the build by the application CMakeLists — its
+ * PRE_KERNEL_1 SYS_INIT calls Cy_SysPm_SetDeepSleepMode which is
+ * NOT SRF-wrapped and bus-faults from NS.
+ *
+ * Prerequisite for the direct-NS path: CONFIG_IDLE_STACK_SIZE must
+ * be large enough for tfm_ns_interface_dispatch's fpu_ctx_full
+ * alloca (136 bytes) on top of the pool_allocate + Cy_SysPm_*
+ * frames. See prj.conf; 2 KiB works, the Zephyr default 320 bytes
+ * does not.
  */
 
 #include <zephyr/kernel.h>
@@ -23,12 +38,9 @@
 
 #include <cmsis_core.h>
 
-/* Direct PDL syspm entry point for the substate-1 diagnostic path
- * below. Provided by the NS-side libmodules_hal_infineon.a. */
 #include "cy_syspm.h"
 
 #include "indicator.h"
-#include "z_pm_client.h"
 
 /**
  * @brief Switch IRQ masking from BASEPRI to PRIMASK before WFI.
@@ -48,39 +60,19 @@ static inline void pm_irq_prologue(void)
 	irq_unlock(0);
 }
 
-/* PM_STATE_SUSPEND_TO_IDLE (cpu_sleep): partition does SLEEPDEEP=0 + WFI. */
+/* PM_STATE_SUSPEND_TO_IDLE (cpu_sleep): SLEEPDEEP=0 + WFI.
+ * PDL takes the SRF branch → IFX_EXT_SP → S-side execution. */
 static void enter_cpu_sleep(void)
 {
 	indicator_cpu_sleep_on();
 	pm_irq_prologue();
-	(void)z_pm_cpu_sleep();
+	(void)Cy_SysPm_CpuEnterSleep(CY_SYSPM_WAIT_FOR_INTERRUPT);
 	indicator_cpu_sleep_off();
 }
 
-/* PM_STATE_STANDBY substate 1 (cpu_deep_sleep): partition does
- * Cy_SysPm_CpuEnterDeepSleep (SLEEPDEEP=1 + WFI with PDL fixups).
- * Round-7: temporarily unused while enter_cpu_deep_sleep_direct_pdl()
- * runs the direct-PDL experiment (see pm_state_set below). Kept so
- * the swap-back is a one-liner. */
-static void enter_cpu_deep_sleep(void) __unused;
+/* PM_STATE_STANDBY substate 1 (cpu_deep_sleep): SLEEPDEEP=1 + WFI
+ * with PDL callback + PPU trim fixups executed on the S side. */
 static void enter_cpu_deep_sleep(void)
-{
-	indicator_cpu_deep_sleep_on();
-	pm_irq_prologue();
-	(void)z_pm_cpu_deep_sleep();
-	indicator_cpu_deep_sleep_off();
-}
-
-/* DIAGNOSTIC (round 7): call PDL syspm from NS directly, bypassing
- * z_pm. The NS-side cy_syspm_v4.c IS compiled with
- * CY_PDL_SYSPM_ENABLE_SRF_INTEG (verified by preprocessing), so this
- * *should* take the SRF branch: mtb_srf_pool_allocate -> psa_call
- * (IFX_EXT_SP) -> S-side handler runs Cy_SysPm_CpuEnterDeepSleep at
- * PC2 -> SLEEPDEEP+WFI. Empirically it faults; the goal of this
- * experiment (with CONFIG_TFM_HALT_ON_CORE_PANIC=ON) is to catch
- * the fault with the debugger and find out which register access
- * actually blew up. */
-static void enter_cpu_deep_sleep_direct_pdl(void)
 {
 	indicator_cpu_deep_sleep_on();
 	pm_irq_prologue();
@@ -88,15 +80,17 @@ static void enter_cpu_deep_sleep_direct_pdl(void)
 	indicator_cpu_deep_sleep_off();
 }
 
-/* PM_STATE_STANDBY substate 2 (system_deep_sleep): same primitive as
- * substate 1 today. Distinct op so Phase 7+ (DS-OFF, Layer-B bias)
- * can specialise without disturbing the per-CPU deep-sleep path.
+/* PM_STATE_STANDBY substate 2 (system_deep_sleep): same primitive
+ * as substate 1 today. Distinct call site so phase 7+ (DS-RAM /
+ * DS-OFF, Layer-B bias) can specialise it via z_pm — those steps
+ * need Cy_SysPm_SetSysDeepSleepMode et al. which are NOT SRF-wrapped
+ * and therefore MUST route through the z_pm partition (or Option D).
  */
 static void enter_system_deep_sleep(void)
 {
 	indicator_system_deep_sleep_on();
 	pm_irq_prologue();
-	(void)z_pm_system_deep_sleep();
+	(void)Cy_SysPm_CpuEnterDeepSleep(CY_SYSPM_WAIT_FOR_INTERRUPT);
 	indicator_system_deep_sleep_off();
 }
 
@@ -109,10 +103,7 @@ void pm_state_set(enum pm_state state, uint8_t substate_id)
 	case PM_STATE_STANDBY:
 		switch (substate_id) {
 		case 1U:
-			/* Round-7 experiment: bypass z_pm and call PDL
-			 * syspm from NS directly. Swap back to
-			 * enter_cpu_deep_sleep() once diagnosed. */
-			enter_cpu_deep_sleep_direct_pdl();
+			enter_cpu_deep_sleep();
 			break;
 		case 2U:
 			enter_system_deep_sleep();

@@ -46,11 +46,11 @@ target_link_libraries(tfm_psa_rot_partition_z_pm
         platform_s
         tfm_config
         tfm_sprt
-        # Headers + compile defs for cy_syspm.h. The actual PDL
-        # syspm symbols (Cy_SysPm_CpuEnterSleep / DeepSleep) come
-        # via ifx_pdl_s already linked into TF-M-S; we only need
-        # the includes here.
-        ifx_pdl_inc_s
+        # NOTE (round 7): ifx_pdl_inc_s intentionally removed. The
+        # partition today only exposes Z_PM_OP_PING and does not
+        # #include "cy_syspm.h". Re-add this dep when the first
+        # non-SRF-wrapped PDL op is added (e.g.
+        # Cy_SysPm_SetSysDeepSleepMode for DS-RAM/DS-OFF).
 )
 
 target_link_libraries(tfm_partitions
