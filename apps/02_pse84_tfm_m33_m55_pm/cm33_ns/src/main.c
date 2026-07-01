@@ -15,11 +15,40 @@
 #include "z_pm_client.h"
 
 #define BLINK_ON_MS 200
-/* Phase 5 system_deep_sleep window: 1000 ms <= residency < 2000 ms.
- * Expected indicator: magenta (red+blue) between green flashes,
- * dispatched as PM_STATE_STANDBY substate 2.
+
+/* Per-state knob — pattern lifted from
+ * tmp/16_pse84_3img_rram_pm/m33_ns/src/main.c. Uncomment exactly
+ * ONE line to pick which PM state Zephyr's default residency
+ * policy lands on during the sleep window between blinks.
+ *
+ * Residency thresholds come from cm33_ns/boards/kit_*.overlay
+ * (min-residency-us + exit-latency-us); rows are ordered ascending.
+ *
+ *    ms  | state                 | residency >=  | LED     | dispatch
+ *   -----+-----------------------+---------------+---------+-----------
+ *      5 | cpu_sleep             |      1 010 us | red     | z_pm
+ *    100 | cpu_deep_sleep        |     30 050 us | blue    | z_pm
+ *   1500 | system_deep_sleep     |  1 000 050 us | magenta | z_pm
+ *   2500 | system_deep_sleep_ram |  2 000 500 us | cyan    | (unimpl)
+ *   5000 | system_deep_sleep_off |  4 100 000 us | white   | (unimpl)
+ *
+ * Round-7 finding: every row above MUST dispatch through z_pm.
+ * Calling Cy_SysPm_CpuEnter{,Deep}Sleep from NS directly bus-
+ * faults because Zephyr's hal_infineon compiles cy_syspm_v4.c
+ * WITHOUT CY_PDL_SYSPM_ENABLE_SRF_INTEG, so the NS build takes
+ * the direct-register branch and reads PWRMODE_PPU_MAIN (a
+ * secured PPU) before it ever reaches __WFI. See tutorial §27.
+ *
+ * The 2500 / 5000 lines are commented-out placeholders — their
+ * dispatchers only print a "not implemented yet" line today
+ * (see power.c). Uncomment them only after wiring the
+ * corresponding partition ops.
  */
-#define SLEEP_BETWEEN_BLINKS_MS 1500
+// #define SLEEP_BETWEEN_BLINKS_MS    5 /* cpu_sleep                     */
+#define SLEEP_BETWEEN_BLINKS_MS 100 /* cpu_deep_sleep — direct PDL   */
+// #define SLEEP_BETWEEN_BLINKS_MS 1500 /* system_deep_sleep             */
+// #define SLEEP_BETWEEN_BLINKS_MS 2500 /* system_deep_sleep_ram (unimpl) */
+// #define SLEEP_BETWEEN_BLINKS_MS 5000 /* system_deep_sleep_off (unimpl) */
 
 int main(void)
 {

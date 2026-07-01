@@ -23,6 +23,10 @@
 
 #include <cmsis_core.h>
 
+/* Direct PDL syspm entry point for the substate-1 diagnostic path
+ * below. Provided by the NS-side libmodules_hal_infineon.a. */
+#include "cy_syspm.h"
+
 #include "indicator.h"
 #include "z_pm_client.h"
 
@@ -55,12 +59,32 @@ static void enter_cpu_sleep(void)
 
 /* PM_STATE_STANDBY substate 1 (cpu_deep_sleep): partition does
  * Cy_SysPm_CpuEnterDeepSleep (SLEEPDEEP=1 + WFI with PDL fixups).
- */
+ * Round-7: temporarily unused while enter_cpu_deep_sleep_direct_pdl()
+ * runs the direct-PDL experiment (see pm_state_set below). Kept so
+ * the swap-back is a one-liner. */
+static void enter_cpu_deep_sleep(void) __unused;
 static void enter_cpu_deep_sleep(void)
 {
 	indicator_cpu_deep_sleep_on();
 	pm_irq_prologue();
 	(void)z_pm_cpu_deep_sleep();
+	indicator_cpu_deep_sleep_off();
+}
+
+/* DIAGNOSTIC (round 7): call PDL syspm from NS directly, bypassing
+ * z_pm. The NS-side cy_syspm_v4.c IS compiled with
+ * CY_PDL_SYSPM_ENABLE_SRF_INTEG (verified by preprocessing), so this
+ * *should* take the SRF branch: mtb_srf_pool_allocate -> psa_call
+ * (IFX_EXT_SP) -> S-side handler runs Cy_SysPm_CpuEnterDeepSleep at
+ * PC2 -> SLEEPDEEP+WFI. Empirically it faults; the goal of this
+ * experiment (with CONFIG_TFM_HALT_ON_CORE_PANIC=ON) is to catch
+ * the fault with the debugger and find out which register access
+ * actually blew up. */
+static void enter_cpu_deep_sleep_direct_pdl(void)
+{
+	indicator_cpu_deep_sleep_on();
+	pm_irq_prologue();
+	(void)Cy_SysPm_CpuEnterDeepSleep(CY_SYSPM_WAIT_FOR_INTERRUPT);
 	indicator_cpu_deep_sleep_off();
 }
 
@@ -85,7 +109,10 @@ void pm_state_set(enum pm_state state, uint8_t substate_id)
 	case PM_STATE_STANDBY:
 		switch (substate_id) {
 		case 1U:
-			enter_cpu_deep_sleep();
+			/* Round-7 experiment: bypass z_pm and call PDL
+			 * syspm from NS directly. Swap back to
+			 * enter_cpu_deep_sleep() once diagnosed. */
+			enter_cpu_deep_sleep_direct_pdl();
 			break;
 		case 2U:
 			enter_system_deep_sleep();

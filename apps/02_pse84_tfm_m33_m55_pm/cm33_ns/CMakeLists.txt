@@ -10,6 +10,11 @@ set_property(TARGET zephyr_property_target
     APPEND PROPERTY TFM_CMAKE_OPTIONS
     -DTFM_EXTRA_MANIFEST_LIST_FILES=${Z_PM_PARTITION_DIR}/manifest_list.yaml
     -DTFM_EXTRA_PARTITION_PATHS=${Z_PM_PARTITION_DIR}
+    # Round-7 debug: halt (spin) in tfm_core_panic instead of doing
+    # NVIC_SystemReset. Lets a debugger read the exception frame that
+    # BusFault_Handler / SecureFault_Handler stashed via EXCEPTION_INFO().
+    # Remove for production builds.
+    -DCONFIG_TFM_HALT_ON_CORE_PANIC=ON
 )
 
 project(cm33_ns_blinki)
