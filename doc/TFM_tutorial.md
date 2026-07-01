@@ -1220,33 +1220,62 @@ A reasonable objection to Options B/C is: our sibling project
 **all** PM code from what looks like the non-secure side and never
 bus-faults. Why not do the same here?
 
-The answer is that `tmp/16` is a **different architecture**, not a
-different config of the same one. From
-[`tmp/16_pse84_3img_rram_pm/m33_ns/prj.conf`](../tmp/16_pse84_3img_rram_pm/m33_ns/prj.conf):
+#### What `tmp/16` actually is
 
-```
-CONFIG_BUILD_WITH_TFM=n
+`tmp/16` is a **three-image Zephyr sysbuild project**, not a
+single secure-only image. From
+[`tmp/16_pse84_3img_rram_pm/README.md`](../tmp/16_pse84_3img_rram_pm/README.md)
+and [`m55/sysbuild.cmake`](../tmp/16_pse84_3img_rram_pm/m55/sysbuild.cmake):
+
+| Sub-image | Board variant | Kconfig highlight |
+|---|---|---|
+| `m33_s`  | `kit_pse84_eval/pse846gps2dbzc4a/m33`     | Custom Zephyr **secure** application (no TF-M). Uses CMSE (`libentryveneers.a`) to expose NSC entry points to NS. |
+| `m33_ns` | `kit_pse84_eval/pse846gps2dbzc4a/m33/ns`  | `CONFIG_BUILD_WITH_TFM=n`. Runs on the same `_ns` variant we do. Owns all PM code. |
+| `m55`    | `kit_pse84_eval/pse846gps2dbzc4a/m55`     | Non-secure CM55 application. Primary sysbuild domain. |
+
+So `tmp/16` is *not* "the whole CM33 running secure" and it *is*
+on the `_ns` variant on the NS side. What differs from our project
+is that **TF-M is replaced by a hand-written Zephyr secure image**
+(`m33_s`) that programs the PPC directly through PDL:
+
+```c
+/* tmp/16 m33_s/src/cm33s_ppc.c */
+static const cy_stc_ppc_attribute_t m33_m55_attr = {
+    .pcMask       = 0xE6u,          /* PC1 + PC2 + PC5 + PC6 + PC7 */
+    .secAttribute = CY_PPC_NON_SECURE,
+    .privAttribute = CY_PPC_NONPRIV,
+};
+/* ...applied to every PM-relevant region (SRSS, PWRMODE, SoCMEM,
+ *    APPCPU PPU, MXCM55, PDCM) before handing off to CM33-NS.   */
 ```
 
-`tmp/16` runs on the `kit_pse84_eval/pse846gps2dbzc4a/m33` board
-variant (secure-only), **not** `m33/ns`. There is no TF-M, no SPE
-partitioning, no `_ns` interface library — the whole CM33 image
-runs in the **Secure state at PC2**. PDL syspm calls therefore
-compile against `libifx_pdl_s.a` (via the S-flavored build), hit
-the direct-register branch, and succeed. No bus fault, because the
-CPU is not on the wrong side of a security boundary.
+Every PM register that faults in our project has been *explicitly*
+marked NS-shared by `m33_s` in `tmp/16`. CM33-NS then reaches those
+registers through the standard NS aliases and the PDL's direct-
+register branch succeeds. The security boundary is still there
+(the S image owns PPC0/PPC1 init); it has just been configured to
+leave PM registers open.
+
+That's essentially **Option D in spirit — set by a bespoke Zephyr
+secure image instead of TF-M's generated `cycfg_ppc.h`.**
+
+#### The same choice for a `_ns` + TF-M project
 
 If you want the **`_ns` + TF-M architecture** we have here and you
 *also* want PM to run entirely from NS without a partition, the
-only route is **Option D** — flip the `CYCFG_PPC_SECURED_*` bits
-for PWRMODE, SRSS_MAIN, SRSS_HIB_DATA and M55APPCPUSS to `0U` in
-`cycfg_ppc.h`, regenerate, and rebuild TF-M. It does work. The
-cost:
+only route inside TF-M is **Option D** — flip the
+`CYCFG_PPC_SECURED_*` bits for PWRMODE, SRSS_MAIN, SRSS_HIB_DATA
+and M55APPCPUSS to `0U` in `cycfg_ppc.h`, regenerate, and rebuild
+TF-M. It does work. The cost:
 
-- **No isolation over PM registers.** Any NS glitch or exploit can
-  hibernate the board, retarget PLLs, brick clocks, or drop into
-  DS-OFF without a wake source. That's exactly the class of attack
-  TF-M is supposed to prevent.
+- **The entire register window becomes NS-writable.** Any NS code
+  path — including glitches, stack-buffer overwrites, or exploited
+  driver bugs — can then write arbitrary values to the full
+  PWRMODE / SRSS / M33SYSCPUSS register space. That is strictly
+  more than what any legitimate NS use case needs; legitimate PM
+  code only wants a small enumerated set of operations (enter this
+  mode, hibernate with these wake sources). See
+  "What wrapping actually buys you" below for a fuller discussion.
 - **The SRF wrappers become dead code** because
   `CY_PDL_SYSPM_ENABLE_SRF_INTEG` is derived from those same
   `CYCFG_PPC_SECURED_*` constants — so you now have `cy_syspm_v4.c`
@@ -1255,9 +1284,62 @@ cost:
 - **`ifx_ext_sp` becomes half-empty.** SRF still routes crypto and
   other secure requests, but its PDL-SYSPM submodule is unreachable.
 
-That's why Option D is bring-up-only. The "just make it NS" path is
-not really available *while keeping TF-M* — it's a decision to
-leave the `_ns` architecture entirely, as `tmp/16` did.
+That's why Option D is bring-up-only. "Just make it NS" is a
+different architecture, not a config toggle — and "different
+architecture" in `tmp/16`'s case means replacing TF-M with a
+project-owned Zephyr secure image whose sole job is to set the PPC
+the way you want. That is a much bigger commitment than a small
+out-of-tree partition.
+
+#### What wrapping actually buys you
+
+A fair follow-up to "the register window becomes NS-writable" is:
+does routing an NS-originated write through a partition (or
+through SRF, or through a plain PSA service) actually add security,
+given that a compromised NS can still call the partition endpoint?
+
+Three concrete things a wrapped call gives you that a raw NS
+register write cannot:
+
+1. **Narrow attack surface — one typed API instead of a register
+   window.** A partition exposes a fixed set of operations (e.g.
+   "enter CPU deep-sleep", "enter system deep-sleep", "hibernate
+   with wake-source X"). NS cannot poke bits or offsets the
+   partition never dispatches to. Direct-register access, by
+   contrast, gives NS the whole memory-mapped window: any value,
+   any bit, any register in the region.
+2. **Neighbouring-register protection.** PPC regions are coarse.
+   Making one register NS-accessible almost always exposes several
+   unrelated ones in the same region. Flipping
+   `CYCFG_PPC_SECURED_SRSS_MAIN=0U` to enable one hibernate write
+   also gives NS the clock roots, RTC adjacencies, and low-power
+   comparators. Flipping `CYCFG_PPC_SECURED_M33SYSCPUSS=0U` also
+   exposes MSC, DDFT and AP debug windows. A partition keeps the
+   whole region secure and only forwards the writes it is designed
+   to expose.
+3. **Argument validation and policy.** The partition handler can
+   reject values that make no sense for the product (e.g. "never
+   deep-sleep-off without a wake source configured"), rate-limit,
+   or refuse when preconditions are not met (`Cy_System_IsEnabledPD1()`
+   before `Cy_SysPm_SetSOCMEMDeepSleepMode`). The register itself
+   has no such filter.
+
+None of this makes the partition *immune* to a compromised NS
+caller. If NS has already gone rogue it can still ask the
+partition to hibernate the board. What wrapping prevents is the
+class of failures where an NS bug — a stray pointer, a buffer
+overwrite, a mis-configured driver — writes an unintended value
+to an unintended register, because those bugs can only reach the
+registers the partition explicitly forwards to.
+
+For our `z_pm` partition specifically, the handler is thin —
+most operations are pass-throughs to PDL. Point 2 (neighbouring
+registers stay secure) is real today; point 1 (narrow typed API)
+is real today; point 3 (validation) becomes real as we add policy
+for DS-OFF preconditions. That's the honest posture: `z_pm` is
+not a validation layer today, it is a narrow, audited window into
+functions that would otherwise require exposing entire PPC regions
+to NS.
 
 ### 31. Chosen path: the `z_pm` partition
 
@@ -1301,6 +1383,45 @@ more general than Option A.
 > INTERFACE library. See §16 for the full library inventory and
 > [`TFM_partition_tutorial.md`](TFM_partition_tutorial.md) §6 for
 > the CMake recipe.
+
+#### Relation to the PDL SRF-coverage gap
+
+Option C's `z_pm` partition is functionally equivalent to what an
+SRF wrapper would look like for the un-wrapped PDL entry points
+listed in §27 — `Cy_SysPm_SetDeepSleepMode`,
+`Cy_SysPm_SetSysDeepSleepMode`, `Cy_SysPm_SetSOCMEMDeepSleepMode`,
+and the CM55 branch of `Cy_SysPm_SystemEnterHibernate`. Where
+Infineon's PDL ships an `#ifdef CY_PDL_SYSPM_ENABLE_SRF_INTEG`
+branch that packs an SRF request, our partition ships a `psa_call`
+to `Z_PM_SERVICE` — and on the S side both routes execute the
+same PDL function body.
+
+Practically that means:
+
+- `z_pm` unblocks this project today without waiting for a PDL
+  fix upstream. It lets us keep the in-tree TF-M port and its
+  isolation posture while still calling the PM APIs Infineon
+  designed for S-side callers.
+- Once we have validated *which* PDL entry points really need
+  wrapping for a realistic PM policy (CPU sleep, CPU deep-sleep,
+  DS-OFF, hibernate, layer-B biasing), those findings are worth
+  reporting to Infineon's PDL maintainers as "these functions
+  have a coverage gap in `cy_syspm_v4.c`." The upstream fix would
+  be one `#ifdef CY_PDL_SYSPM_ENABLE_SRF_INTEG` branch per
+  function plus a matching `ifx_ext_sp` handler entry; once that
+  ships, a `z_pm`-shaped partition is no longer needed for these
+  APIs.
+- Adding our own SRF module inside `ifx_ext_sp` (via
+  `IFX_EXT_SP_REGISTER_USER_SRF_MODULE`) instead of a plain PSA
+  service is a middle ground — closer to the upstream fix, but
+  adds SRF wire-format machinery for no runtime benefit when you
+  control both ends. See the next subsection.
+
+Think of `z_pm` as **a local, project-scoped stand-in for the
+SRF wrappers that don't exist yet**. It is deliberately shaped so
+that swapping it out for an upstream PDL fix later is a
+subtractive change on our side (delete the partition, delete the
+client, call `Cy_SysPm_*` from NS directly).
 
 #### Old (rejected) sketch: a custom SRF module
 
