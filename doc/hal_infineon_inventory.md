@@ -62,7 +62,7 @@ DSL package (`mtb-dsl-pse8xxgp/hal/…`), so there is no separate
 
 | Directory | Size | Version | Purpose |
 |---|---|---|---|
-| [`mtb-srf/`](../../home/ubuntu/zephyrproject/modules/hal/infineon/mtb-srf/) | 232 K | v1.1.1 | **Secure Request Framework.** Provides one-per-module NSC entry-point pattern for TrustZone-M devices (see [`TFM_tutorial.md`](TFM_tutorial.md) §19–§22). The PDL "security-aware" drivers (`cy_syspm`, `cy_sysclk`, `cy_rtc`, `cy_smif`) use this to forward NS calls to the secure world. TF-M integration: `ifx_ext_sp` partition. |
+| [`mtb-srf/`](../../home/ubuntu/zephyrproject/modules/hal/infineon/mtb-srf/) | 232 K | v1.1.1 | **Secure Request Framework.** Provides one-per-module NSC entry-point pattern for TrustZone-M devices (see [`TFM_tutorial.md`](TFM_tutorial.md) §23–§26). The PDL "security-aware" drivers (`cy_syspm`, `cy_sysclk`, `cy_rtc`, `cy_smif`) use this to forward NS calls to the secure world. TF-M integration: `ifx_ext_sp` partition. |
 | [`mtb-ipc/`](../../home/ubuntu/zephyrproject/modules/hal/infineon/mtb-ipc/) | 280 K | v1.2.0 | **Inter-processor communication.** Mailbox + binary-semaphore + queue library used to signal between CM33 ↔ CM55 on PSE84 (and CM4 ↔ CM0+ on PSoC 6). SRF uses `mtb-ipc` for the CM55 → CM33-NS relay so CM55 can reach TF-M-S partitions indirectly. |
 
 ### 2.4 Board / device templates
@@ -169,7 +169,7 @@ zephyr/modules/hal_infineon/CMakeLists.txt
 The **secure** build of the same PDL sources — `libifx_pdl_s.a` —
 does **not** go through this tree. It is built by TF-M's own
 `platform/ext/target/infineon/common/libs/ifx_pdl/spe/CMakeLists.txt`
-(see [`TFM_tutorial.md`](TFM_tutorial.md) §23 for the S vs NS build
+(see [`TFM_tutorial.md`](TFM_tutorial.md) §26 for the S vs NS build
 comparison).
 
 ---
@@ -195,7 +195,7 @@ on `kit_pse84_eval/pse846gps2dbzc4a/m33/ns`:
 
 On the **S side** (`tfm_s.elf`), the equivalent `.o` files come from
 `libifx_pdl_s.a` (built by TF-M) — same source tree, different
-compile. See [`TFM_tutorial.md`](TFM_tutorial.md) §15a for the map
+compile. See [`TFM_tutorial.md`](TFM_tutorial.md) §16 for the map
 of which PDL translation units end up in `tfm_s.elf`.
 
 ---
