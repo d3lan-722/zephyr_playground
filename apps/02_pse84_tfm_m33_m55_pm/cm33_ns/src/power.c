@@ -4,17 +4,21 @@
  *
  * Zephyr PM dispatcher for the CM33-NS image.
  *
- * ARCHITECTURE (Phase 5.75 — post round-7):
- *
- * The three currently-implemented PM entry points call PDL syspm
- * directly from NS. The NS-side cy_syspm_v4.c is compiled with
- * CY_PDL_SYSPM_ENABLE_SRF_INTEG (auto-defined by cy_syspm_srf.h
+ * Round 7: all three currently-implemented PM entry points call
+ * PDL syspm directly from NS. The NS-side cy_syspm_v4.c is compiled
+ * with CY_PDL_SYSPM_ENABLE_SRF_INTEG (auto-defined by cy_syspm_srf.h
  * because at least one of the four CYCFG_PPC_SECURED_{SRSS_MAIN,
  * SRSS_HIB_DATA, PWRMODE_PWRMODE, M55APPCPUSS} bits is 1U). That
  * activates the SRF branch inside each Cy_SysPm_Cpu*Enter*Sleep
  * function, which packs an SRF request and psa_call()s into
  * IFX_EXT_SP; the S-side handler runs the actual SLEEPDEEP+WFI at
- * PC2. No project-local partition wrap is needed for these APIs.
+ * PC2.  No project-local partition wrap is needed for these APIs.
+ *
+ * z_pm still exists (see tfm_partitions/z_pm/) but only exposes
+ * Z_PM_OP_PING today. It is the placeholder for future ops that
+ * PDL DOES NOT SRF-wrap: Cy_SysPm_SetSysDeepSleepMode,
+ * Cy_SysPm_SetSOCMEMDeepSleepMode, CM55-side hibernate, Layer-B
+ * bias, retention patterns.
  *
  * The SoC default pm_state_set (in soc/infineon/edge/pse84/power.c)
  * is dropped from the build by the application CMakeLists — its
@@ -26,18 +30,6 @@
  * alloca (136 bytes) on top of the pool_allocate + Cy_SysPm_*
  * frames. See prj.conf; 2 KiB works, the Zephyr default 320 bytes
  * does not.
- *
- * NOT IMPLEMENTED HERE (deferred, gated on runtime PPC investigation):
- *   * Layer-B static bias (BGREF LP, core-buck DS, IHO/IMO DS-off).
- *     Attempted in the branch that added an ifx_pm_init SYS_INIT with
- *     Cy_SysPm_Init + CoreBuck + BGREF + oscillator calls; hit an
- *     immediate BusFault at boot because these calls transitively
- *     touch PWRMODE.PPU_MAIN via cy_pd_ppu_set_power_mode, which the
- *     runtime PPC configuration (cycfg_system.c :: M33S_ppc_0_regions)
- *     still gates as Secure-only. Reverted. See porting_plan.md
- *     Phase 6 "post-mortem" for the details.
- *   * Per-transition Cy_SysPm_SetDeepSleepMode(mode) — same class of
- *     un-SRF-wrapped call; blocked by the same runtime PPC.
  */
 
 #include <zephyr/kernel.h>
@@ -119,10 +111,13 @@ static void enter_cpu_deep_sleep(void)
  *
  * @details
  * Same underlying primitive as @ref enter_cpu_deep_sleep today
- * (@c Cy_SysPm_CpuEnterDeepSleep). Distinct call site is retained
- * so a future specialisation (Layer-B, per-transition
- * @c Cy_SysPm_SetDeepSleepMode, DS-RAM, DS-OFF) can go in without
- * disturbing substate 1. Uses the magenta indicator LED.
+ * (@c Cy_SysPm_CpuEnterDeepSleep) but kept as a distinct call site
+ * so phase 7+ can specialise it without disturbing the per-CPU
+ * deep-sleep path. Those extensions (DS-RAM / DS-OFF selection,
+ * Layer-B bias, retention patterns) will call
+ * @c Cy_SysPm_SetSysDeepSleepMode et al., which are NOT SRF-wrapped
+ * in the PDL and MUST route through the z_pm partition (or Option D,
+ * see doc/TFM_tutorial.md §29). Uses the magenta indicator LED.
  */
 static void enter_system_deep_sleep(void)
 {
