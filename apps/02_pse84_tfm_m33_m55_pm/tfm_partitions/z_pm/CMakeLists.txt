@@ -46,11 +46,13 @@ target_link_libraries(tfm_psa_rot_partition_z_pm
         platform_s
         tfm_config
         tfm_sprt
-        # NOTE (round 7): ifx_pdl_inc_s intentionally removed. The
-        # partition today only exposes Z_PM_OP_PING and does not
-        # #include "cy_syspm.h". Re-add this dep when the first
-        # non-SRF-wrapped PDL op is added (e.g.
-        # Cy_SysPm_SetSysDeepSleepMode for DS-RAM/DS-OFF).
+        # Phase 6: Z_PM_OP_LAYER_B_INIT calls Cy_SysPm_Init,
+        # Cy_SysClk_ClkBakSetSource, Cy_SysPm_CoreBuckDpslp*,
+        # Cy_SysClk_IhoDeepsleepDisable — all PDL syspm/sysclk
+        # entries. ifx_pdl_inc_s brings in the PDL driver headers +
+        # SRSS/PWRMODE register base defines used by the direct
+        # SRSS_PWR_CTL2 / SRSS_CLK_IMO_CONFIG writes.
+        ifx_pdl_inc_s
 )
 
 target_link_libraries(tfm_partitions

@@ -24,12 +24,12 @@ Part 7 — every claim below assumes you have read at least §27, §29 and
 | 5.5   | Diagnosis infrastructure: TF-M halt-on-panic + Cortex-Debug launch.json + tutorial rewrite | done         |
 | 5.75  | z_pm slimmed to PING-only; NS calls PDL directly for the three SRF-covered ops | done       |
 | 5.9   | ~~Option D: flip `CYCFG_PPC_SECURED_*` header bits to make SRSS/PWRMODE/PPU regions NS-writable~~ | rejected round 8 — see below |
-| **6** | **Layer-B static bias (via z_pm at boot)**                               | **NEXT**        |
-| 7     | Per-transition PPU config for `system_deep_sleep` (via z_pm)             | after Phase 6   |
-| 8     | DS-RAM (SUSPEND_TO_RAM)                                                  | planned         |
+| 6     | Layer-B static bias (via z_pm at boot) — Option A minimal        | done (IHO/IMO only; aggressive knobs deferred to Phase 7) |
+| 7     | Per-transition PPU config for `system_deep_sleep` (via z_pm) + folded-in Layer-B knobs | done (code-complete; current-flat, likely eval-board floor — see Phase 7 empirical section) |
+| **8** | **DS-RAM (SUSPEND_TO_RAM)**                                      | **NEXT**        |
 | 9     | DS-OFF (SOFT_OFF)                                                        | planned         |
 
-**We are entering Phase 6.**
+**We are entering Phase 8.**
 
 Measurements after Phase 5.75 (idle-stack fix + direct-PDL NS dispatch):
 
@@ -135,7 +135,7 @@ calls that do **not** depend on the upcoming transition. All touch
 PSA-ROT SRSS registers → must run at PC2 → live on the S side inside
 z_pm.
 
-**On the S side (z_pm partition):**
+**On the S side (z_pm partition), intended full sequence:**
 ```c
 #define Z_PM_OP_PING           1
 #define Z_PM_OP_LAYER_B_INIT   2    /* NEW */
@@ -170,14 +170,64 @@ was dropped in commit `46f1069` (the empty-partition state).
 psa_status_t z_pm_layer_b_init(void);   /* wraps psa_call(..., Z_PM_OP_LAYER_B_INIT, ...) */
 ```
 
-**Boot wiring** — one NS `SYS_INIT` at `PRE_KERNEL_2` (after LPTIMER
-init, before app) calling `z_pm_layer_b_init()`.
+**Boot wiring** — one NS `SYS_INIT` (chose `APPLICATION`, priority 0,
+so the TF-M NS interface has come up at `POST_KERNEL` first) calling
+`z_pm_layer_b_init()`.
 
-**Plus one NS-only preemptive MCWDT0 disable** — earliest SoC init,
-NS-accessible, blocks silent LPTIMER init failure. Not a z_pm op.
+**Plus one NS-only preemptive MCWDT0 disable** — earliest SoC init
+(`PRE_KERNEL_1`, priority 0), NS-accessible, blocks silent LPTIMER
+init failure. Not a z_pm op.
 
-**Smoke test:** substate 2 sleep current should drop from ~62 µA to
-tens of µA. Substate 1 also improves for the same reason.
+### Phase 6 empirical result: Option A (minimal Layer-B)
+
+Bench measurement on `kit_pse84_eval` (magenta `system_deep_sleep` and
+blue `cpu_deep_sleep` — both currently land on
+`Cy_SysPm_CpuEnterDeepSleep` because Phase 7 has not wired per-transition
+PPU config yet):
+
+| Layer-B knobs installed                                          | Sleep current | Active |
+| ---------------------------------------------------------------- | ------------- | ------ |
+| **None (Phase 5.75 baseline)**                                   | **62 µA**     | 16 mA  |
+| All: Init + BAK↔PILO + BGREF LP + CoreBuck DS + IHO/IMO          | 67-68 µA      | 14.2 mA|
+| minus ClkBakSetSource(PILO)                                      | 67-68 µA      | 14.2 mA|
+| minus CoreBuck DS knobs                                          | 67-68 µA      | 14.2 mA|
+| minus SRSS_PWR_CTL2 BGREF LP                                     | 66 µA         | 14.16 mA|
+| minus Cy_SysPm_Init() recall (only IHO/IMO left)                 | 66 µA         | 14.16 mA|
+
+Interpretation:
+
+- The four "aggressive" knobs (Init recall, BAK↔PILO, BGREF LP,
+  CoreBuck DS voltage / mode / override) only pay off once the SoC
+  actually enters a full system deep sleep. That requires Phase 7 to
+  program the AN237976 Table-2 PPU modes via
+  `Cy_SysPm_SetDeepSleepMode(DEEPSLEEP)` per transition and every CPU
+  to have voted DS. On the current CPU-only-DS path they either add
+  small constant leak (BAK/PILO, BGREF LP), override TF-M-S's
+  cycfg-programmed defaults with something only meaningful in system
+  DS (CoreBuck override), or fight `init_cycfg_power`'s PPU choice
+  (Cy_SysPm_Init recall).
+- The 14-14.2 mA active reading persisted across every bisection step
+  including "no Layer-B knobs at all", i.e. it is measurement drift
+  from the harness, not a Layer-B effect.
+- IHO / IMO DS-off writes are neutral: the bits happen to be 0 by
+  default on this build.
+
+**Landed state — "Option A" (see `z_pm_partition.c :: z_pm_op_layer_b_init`):**
+only the IHO / IMO DS-off writes survive here as defensive
+future-proofing. The four aggressive knobs are folded into Phase 7,
+which is where they will actually help.
+
+**Real Phase 6 deliverables achieved:**
+
+1. `Z_PM_OP_LAYER_B_INIT` is wired end-to-end: NS client wrapper
+   (`z_pm_layer_b_init`), `SYS_INIT(APPLICATION, 0)` boot hook,
+   S-side handler with PDL access (`ifx_pdl_inc_s` re-linked).
+2. Boot log shows `z_pm layer-B init ok` — the second z_pm op on top
+   of the ping validates the partition's dispatcher, `psa_call` with
+   no invecs/outvecs, and the PDL-in-S-partition build path.
+3. Preemptive MCWDT0 disable added at `PRE_KERNEL_1` for future SoC /
+   cycfg drift (currently a no-op — MCWDT0 is already clean at cold
+   boot on this build).
 
 ---
 
@@ -190,6 +240,24 @@ Motivation (from the round-7 discussion + AN237976 Table 2):
 > sleep. Setting it once at boot locks the project to one variant. The
 > Zephyr residency policy decides at runtime which state to enter, so
 > the PPU programming must move into the per-state dispatchers.
+
+Phase 7 also picks up the four "aggressive" Layer-B knobs that
+Phase 6 measured as neutral-or-worse on the CPU-only-DS path
+(see Phase 6 empirical result table above). Those only pay off
+when the SoC actually enters system DS — which is exactly what
+`Z_PM_OP_SET_DEEP_SLEEP_MODE` enables. They therefore get folded
+into the new per-transition op, applied only when the caller is
+transitioning to a full system-DS state (not when it is entering
+plain cpu_deep_sleep, which never asks for `SetDeepSleepMode`):
+
+- `Cy_SysPm_CoreBuckDpslpSetVoltage(CY_SYSPM_CORE_BUCK_VOLTAGE_0_70V)`
+- `Cy_SysPm_CoreBuckDpslpSetMode(CY_SYSPM_CORE_BUCK_MODE_LP)`
+- `Cy_SysPm_CoreBuckDpslpEnableOverride(true)`
+- `SRSS_PWR_CTL2 |= SRSS_PWR_CTL2_BGREF_LPMODE_Msk`
+
+(`Cy_SysPm_Init()` recall stays dropped — TF-M-S's
+`init_cycfg_power` already covers it. `Cy_SysClk_ClkBakSetSource`
+moves to Phase 8, when DS-RAM actually needs BAK alive.)
 
 **On the S side (z_pm partition):**
 ```c
@@ -256,6 +324,92 @@ profiles. Substate 2 should draw less than substate 1 because the SoC
 actually collapses to system DEEPSLEEP (all PPUs at retention) rather
 than just CPU DeepSleep.
 
+### Phase 7 empirical result — code-complete, measurement inconclusive
+
+What we implemented (all landed):
+
+- `Z_PM_OP_SET_DEEP_SLEEP_MODE = 3` on the S side, taking a uint32_t
+  invec, bounds-checked against `CY_SYSPM_MODE_DEEPSLEEP_OFF`.
+- `Cy_SysPm_SetDeepSleepMode(mode)` on CM33-S — programs Sys PPUs
+  (MAIN, SRAM0, SRAM1, SYSCPU) to the requested Table-2 row.
+- The deferred Layer-B knobs (BGREF LP, CoreBuck 0.70 V / LP /
+  override on) bundled in the same S handler — safe here because
+  reaching the op means the caller is committing to system DS.
+- NS wrapper `z_pm_set_deep_sleep_mode(uint32_t mode)` (kept
+  PDL-free in the header to avoid dragging cy_syspm.h into other NS
+  translation units).
+- `enter_system_deep_sleep` in `power.c` calls the wrapper before
+  `Cy_SysPm_CpuEnterDeepSleep`; `enter_cpu_deep_sleep` untouched.
+
+Debug findings during bring-up:
+
+- **`Cy_SysPm_SetAppDeepSleepMode` from CM33-S is a trap.** Both
+  the write (via `ppu_v1_dynamic_enable`'s
+  `while ((ppu->PWSR & PWR_DYN_STATUS) == 0) continue;` spin loop)
+  and the "self-gate" read inside `Cy_SysPm_SetSOCMEMDeepSleepMode`
+  (`ppu_v1_get_power_mode`'s `ldr r0, [r0, #8]`) bus-fault when the
+  target domain is off. Observed: `BFAR=0x54660008`
+  (SOCMEM_PPU->PWSR), `CFSR=0x8200` (BFARVALID|PRECISERR), TF-M-S
+  halted in `tfm_core_panic`.
+- **App PPUs are CM55's job.** CM55's `main()` already calls
+  `Cy_SysPm_SetDeepSleepMode(CY_SYSPM_MODE_DEEPSLEEP)` which on
+  CM55 routes to `Cy_SysPm_SetAppDeepSleepMode` — programming
+  PD1/APPCPUSS/APPCPU PPUs to retention from a context where
+  those domains are trivially ON. CM33-S must not touch them.
+- **SOCMEM is unused on this project.** SOCMEM PD stays off at
+  cold boot in project 02 (nothing calls `Cy_System_EnablePD1SOCMEM`
+  or equivalent). That is fine for the current-consumption goal —
+  one fewer domain leaking — and it means `SetSOCMEMDeepSleepMode`
+  simply must not be called (its guard read faults).
+
+Configuration at end of Phase 7 (all reachable domains programmed):
+
+| PPU                    | Set by            | Policy      |
+| ---------------------- | ----------------- | ----------- |
+| MAIN / SRAM0/1 / SYSCPU | CM33-S (this op)  | Retention   |
+| PD1 / APPCPUSS / APPCPU | CM55 main()       | Retention   |
+| SOCMEM                 | (unset — PD off)  | n/a         |
+| U55                    | (unset — off)     | n/a         |
+
+Measurement (kit_pse84_eval, magenta / 1500 ms system_deep_sleep):
+
+| Configuration          | Sleep current | Active |
+| ---------------------- | ------------- | ------ |
+| Phase 5.75 baseline    | 62 µA         | 16 mA  |
+| Phase 6 (Layer-B min)  | 66 µA         | 14.2 mA|
+| Phase 7 (this section) | 68 µA         | 14.2 mA|
+
+The 62 → 68 µA drift across phases 6-7 is on the order of the
+measurement noise of the setup (~few µA). **Neither substate 1 nor
+substate 2 has meaningfully changed from the pre-Phase-6 baseline.**
+Two hypotheses for why the theoretically-collapsed system-DS state
+does not show up as a current drop:
+
+1. **Eval-board quiescent floor dominates.** kit_pse84_eval carries
+   KitProg3 (USB-serial bridge), LDOs, level translators and LED
+   pull-ups on the same rail we are measuring. 60-70 µA is a
+   plausible constant floor for a dev kit independent of MCU state,
+   hiding real SoC savings.
+2. **Some peripheral clock request keeps the SoC pinned to CPU-DS
+   (never collapsing to system DS)** despite all PPUs being in
+   retention policy.
+
+Neither is diagnosable further from software. Concrete follow-ups
+outside the scope of Phase 7:
+
+- Measure current directly on the MCU-VCC test point (bypass the
+  KitProg / regulator / peripheral leakage).
+- Add S-side read-back logging (PWSR of each PPU after our writes)
+  to verify every reachable domain actually transitioned to
+  retention state (not just policy).
+- Audit for peripheral clock requests that survive DS
+  (`CLK_MAIN_STATUS`, `CLK_HF*_CTL`, peripheral group SLC).
+
+Phase 7 is marked **code-complete** with this caveat. Phase 8 (DS-RAM)
+still makes sense to attempt because its expected wins (SRAM
+memory-off + SOCMEM retention) are on a different order of magnitude
+than the ~6 µA of floor drift we are seeing here.
+
 ---
 
 ## Phase 8 — DS-RAM (SUSPEND_TO_RAM)
@@ -264,13 +418,28 @@ Big addition. Reference: [`tmp/16 enter_system_deep_sleep_ram`](../../tmp/16_pse
 TF-M-specific challenges:
 
 - `Cy_SysPm_SetDeepSleepMode(CY_SYSPM_MODE_DEEPSLEEP_RAM)` — programs
-  Table 2 DEEPSLEEP_RAM column via z_pm (`Z_PM_OP_SET_DEEP_SLEEP_MODE`
-  already exists from Phase 7; just call it with the RAM mode).
-- `Cy_SysPm_SetAppDeepSleepMode(DEEPSLEEP_RAM)` — via z_pm (may need a
-  separate op if the top-level SetDeepSleepMode doesn't cover App
-  domain fully in every PDL version; verify at implementation time).
-- `Cy_SysPm_SetSOCMEMDeepSleepMode(DEEPSLEEP_RAM)` **with PD1-up gating**
-  — via z_pm, wrapping the `Cy_System_IsEnabledPD1()` precondition.
+  the Sys-PPU column of Table 2 DEEPSLEEP_RAM via z_pm
+  (`Z_PM_OP_SET_DEEP_SLEEP_MODE` already exists from Phase 7; just
+  call it with the RAM mode).
+- **App-domain PPUs (PD1 / APPCPUSS / APPCPU) MUST be programmed by
+  CM55, not CM33-S.** Phase 7 empirically confirmed that CM33-S
+  cannot call `Cy_SysPm_SetAppDeepSleepMode` — the underlying
+  `ppu_v1_dynamic_enable` spins waiting for a PWSR status bit that
+  requires the target domain to be alive from CM55's context. For
+  DS-RAM we need CM55 to switch its own `Cy_SysPm_SetDeepSleepMode`
+  call from `DEEPSLEEP` to `DEEPSLEEP_RAM` before parking. That means
+  Phase 8 needs a small CM33-NS ↔ CM55 protocol (extend the existing
+  shared-memory rendezvous, or add a mailbox signal) so CM33-NS can
+  tell CM55 "reprogram App PPUs for DS-RAM" before the CM33-NS side
+  enters its own WFI.
+- **SOCMEM PD is off in project 02.** `Cy_SysPm_SetSOCMEMDeepSleepMode`
+  cannot be called from CM33-S at all — its self-gate read of
+  SOCMEM_PPU->PWSR bus-faults when the SOCMEM PD is unpowered
+  (measured Phase 7, `BFAR=0x54660008`). If a future revision of
+  project 02 enables SOCMEM (e.g. because the app actually uses
+  SOCMEM), the call also has to originate from a context where the
+  domain is alive — most naturally the same CM55 hook that programs
+  App PPUs.
 - `cy_pd_pdcm_clear_dependency(CY_PD_PDCM_APPCPUSS, CY_PD_PDCM_SYSCPU)`
   — writes the secured PD dependency matrix; via z_pm.
 - `RTC->BREG_SET1[1] = WARM_BOOT_TOKEN_DS_RAM` — SRSS_HIB_DATA region
@@ -284,8 +453,10 @@ TF-M-specific challenges:
 - `enter_system_deep_sleep_ram` **does not return**; warm-boot detection
   in `main()` reading `BREG_SET1[1]`.
 
-Not planned in detail until Phase 7 is measured — the numbers might
-show DS-RAM is not worth the complexity for the target application.
+Prerequisite before doing detailed Phase 8 work: get a reliable
+current measurement on this hardware (Phase 7 was current-flat at
+~68 µA — likely eval-board floor, see Phase 7 empirical section).
+Without that, DS-RAM improvements will be equally invisible.
 
 ---
 

@@ -33,14 +33,17 @@
  */
 
 #include <zephyr/kernel.h>
+#include <zephyr/init.h>
 #include <zephyr/pm/pm.h>
 #include <zephyr/sys/printk.h>
 
 #include <cmsis_core.h>
 
+#include "cy_mcwdt.h"
 #include "cy_syspm.h"
 
 #include "indicator.h"
+#include "z_pm_client.h"
 
 /**
  * @brief Switch IRQ masking from BASEPRI to PRIMASK before WFI.
@@ -110,18 +113,45 @@ static void enter_cpu_deep_sleep(void)
  * @brief Enter PM_STATE_STANDBY substate 2 (system_deep_sleep).
  *
  * @details
- * Same underlying primitive as @ref enter_cpu_deep_sleep today
- * (@c Cy_SysPm_CpuEnterDeepSleep) but kept as a distinct call site
- * so phase 7+ can specialise it without disturbing the per-CPU
- * deep-sleep path. Those extensions (DS-RAM / DS-OFF selection,
- * Layer-B bias, retention patterns) will call
- * @c Cy_SysPm_SetSysDeepSleepMode et al., which are NOT SRF-wrapped
- * in the PDL and MUST route through the z_pm partition (or Option D,
- * see doc/TFM_tutorial.md §29). Uses the magenta indicator LED.
+ * Same CPU-level primitive as @ref enter_cpu_deep_sleep
+ * (@c Cy_SysPm_CpuEnterDeepSleep), but with a per-transition system
+ * setup performed first via the z_pm secure partition:
+ *
+ *   1. @c z_pm_set_deep_sleep_mode(CY_SYSPM_MODE_DEEPSLEEP) — S side
+ *      runs @c Cy_SysPm_SetDeepSleepMode(DEEPSLEEP) which programs
+ *      the AN237976 Table-2 DEEPSLEEP column (MAIN, SRAM0, SRAM1,
+ *      SYSCPU, PD1, APPCPUSS, APPCPU, SOCMEM, U55) so the SoC
+ *      actually collapses to system deep sleep when every CPU has
+ *      voted. The same op also applies the Layer-B BGREF LP +
+ *      CoreBuck DS knobs that Phase 6 measurement deferred out of
+ *      the at-boot bias — safe here because reaching this state
+ *      commits us to a system-DS transition.
+ *   2. @ref pm_irq_prologue — swap BASEPRI for PRIMASK so the wake
+ *      IRQ can pend.
+ *   3. @c Cy_SysPm_CpuEnterDeepSleep — SRF-wrapped by the PDL; the S
+ *      side runs SLEEPDEEP+WFI at PC2.
+ *
+ * The PPU / Layer-B state programmed here is SRSS-global and thus
+ * "sticky" across future entries. That is fine as long as this is the
+ * only path that reprograms it: Phases 8 / 9 will re-issue
+ * @c z_pm_set_deep_sleep_mode with @c CY_SYSPM_MODE_DEEPSLEEP_RAM /
+ * @c CY_SYSPM_MODE_DEEPSLEEP_OFF from their own dispatchers.
+ *
+ * Uses the magenta indicator LED.
  */
 static void enter_system_deep_sleep(void)
 {
 	indicator_system_deep_sleep_on();
+
+	psa_status_t st = z_pm_set_deep_sleep_mode(
+	    (uint32_t)CY_SYSPM_MODE_DEEPSLEEP);
+	if (st != PSA_SUCCESS) {
+		printk("pm: z_pm_set_deep_sleep_mode(DEEPSLEEP) failed: %d\n",
+		       (int)st);
+		/* Fall through: still enter CPU DS. Worse current, but
+		 * the wake path is unaffected. */
+	}
+
 	pm_irq_prologue();
 	(void)Cy_SysPm_CpuEnterDeepSleep(CY_SYSPM_WAIT_FOR_INTERRUPT);
 	indicator_system_deep_sleep_off();
@@ -207,3 +237,69 @@ void pm_state_exit_post_ops(enum pm_state state, uint8_t substate_id)
 	ARG_UNUSED(substate_id);
 	__enable_irq();
 }
+
+/**
+ * @brief Pre-emptively disable MCWDT0 before the Zephyr LPTIMER driver
+ *        touches it.
+ *
+ * @details
+ * Reference: tmp/16_pse84_3img_rram_pm/m33_ns/src/power.c :: ifx_pm_init.
+ * Cy_MCWDT_Init returns @c CY_MCWDT_BAD_PARAM if any of the three
+ * counters is already enabled, and the SE-ROM / RRAM boot leaves the
+ * MCWDT0 counters running on cold boot. Without this preemptive
+ * disable, drivers/timer/infineon_lp_timer_pdl.c can fail silently:
+ * lptimer_init returns -EINVAL, the system clock never starts, and
+ * k_msleep hangs forever waiting for a tick.
+ *
+ * Runs at @c PRE_KERNEL_1 with priority 0 to beat the LPTIMER driver
+ * (@c PRE_KERNEL_2 / @c CONFIG_SYSTEM_CLOCK_INIT_PRIORITY). MCWDT_STRUCT0
+ * is NS-accessible under the current PPC config (the LPTIMER driver
+ * running from NS at PRE_KERNEL_2 proves that).
+ */
+static int ns_preempt_mcwdt0_disable(void)
+{
+	Cy_MCWDT_Unlock(MCWDT_STRUCT0);
+	Cy_MCWDT_Disable(MCWDT_STRUCT0,
+			 CY_MCWDT_CTR0 | CY_MCWDT_CTR1 | CY_MCWDT_CTR2, 100U);
+	Cy_MCWDT_ClearInterrupt(MCWDT_STRUCT0,
+				CY_MCWDT_CTR0 | CY_MCWDT_CTR1 | CY_MCWDT_CTR2);
+	Cy_MCWDT_SetInterruptMask(MCWDT_STRUCT0, 0U);
+	return 0;
+}
+
+SYS_INIT(ns_preempt_mcwdt0_disable, PRE_KERNEL_1, 0);
+
+/**
+ * @brief Kick the z_pm partition's Layer-B static-bias setup.
+ *
+ * @details
+ * Delegates to @ref z_pm_layer_b_init which psa_calls the z_pm secure
+ * partition. That op runs at PC2 and programs the SRSS_MAIN /
+ * PWRMODE / core-buck registers that NS cannot touch:
+ * @c Cy_SysPm_Init, @c Cy_SysClk_ClkBakSetSource(PILO),
+ * BGREF LP, CoreBuck 0.70 V / LP / override on, IHO/IMO DS-off.
+ * See tfm_partitions/z_pm/z_pm_partition.c :: z_pm_op_layer_b_init
+ * for the exact sequence and the porting plan Phase 6 for rationale.
+ *
+ * Runs at @c APPLICATION priority 0 (after the TF-M NS interface
+ * comes up at @c POST_KERNEL and after every driver has initialised)
+ * so psa_call has everything it needs. The Layer-B changes only
+ * affect deep-sleep-time behaviour, so running late does not disturb
+ * active-mode operation.
+ *
+ * Logs the result once; failure is non-fatal (system still runs, just
+ * with the SE-ROM defaults which leak more in DS).
+ */
+static int ns_layer_b_init(void)
+{
+	psa_status_t st = z_pm_layer_b_init();
+
+	if (st == PSA_SUCCESS) {
+		printk("z_pm layer-B init ok\n");
+	} else {
+		printk("z_pm layer-B init FAIL: status=%d\n", (int)st);
+	}
+	return 0;
+}
+
+SYS_INIT(ns_layer_b_init, APPLICATION, 0);

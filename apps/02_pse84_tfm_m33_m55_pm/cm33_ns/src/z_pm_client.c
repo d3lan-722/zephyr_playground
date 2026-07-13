@@ -31,3 +31,19 @@ psa_status_t z_pm_ping(uint32_t *out_cookie)
 	return psa_call(Z_PM_SERVICE_HANDLE, Z_PM_OP_PING, NULL, 0, out_vec,
 			IOVEC_LEN(out_vec));
 }
+
+psa_status_t z_pm_layer_b_init(void)
+{
+	return psa_call(Z_PM_SERVICE_HANDLE, Z_PM_OP_LAYER_B_INIT, NULL, 0,
+			NULL, 0);
+}
+
+psa_status_t z_pm_set_deep_sleep_mode(uint32_t mode)
+{
+	psa_invec in_vec[] = {
+	    {.base = &mode, .len = sizeof(mode)},
+	};
+
+	return psa_call(Z_PM_SERVICE_HANDLE, Z_PM_OP_SET_DEEP_SLEEP_MODE,
+			in_vec, IOVEC_LEN(in_vec), NULL, 0);
+}
