@@ -23,6 +23,7 @@ Part 7 — every claim below assumes you have read at least §27, §29 and
 | 5     | `cpu_deep_sleep` (STANDBY substate 1) + `system_deep_sleep` (STANDBY substate 2), both mechanical (no PPU tuning yet) | done            |
 | 5.5   | Diagnosis infrastructure: TF-M halt-on-panic + Cortex-Debug launch.json + tutorial rewrite | done         |
 | 5.75  | z_pm slimmed to PING-only; NS calls PDL directly for the three SRF-covered ops | done       |
+| 5.9   | ~~Option D: flip `CYCFG_PPC_SECURED_*` header bits to make SRSS/PWRMODE/PPU regions NS-writable~~ | rejected round 8 — see below |
 | **6** | **Layer-B static bias (via z_pm at boot)**                               | **NEXT**        |
 | 7     | Per-transition PPU config for `system_deep_sleep` (via z_pm)             | after Phase 6   |
 | 8     | DS-RAM (SUSPEND_TO_RAM)                                                  | planned         |
@@ -67,6 +68,51 @@ The obsolete `PHASE6_BLOCKER.md` (which described a nonexistent
 "TF-M has no syspm service" blocker) has been deleted — the correct
 architecture lives in [`doc/TFM_tutorial.md`](../../doc/TFM_tutorial.md)
 §27–§31.
+
+### Round-8 detour and why we came back to z_pm
+
+Between commits `d5f776e` and `52e9d3e` we tried to skip z_pm
+altogether and just widen the TF-M PPC config so every PDL syspm
+call works from NS directly (tutorial §29 Option D). That path was
+reverted after two experiments:
+
+1. **Header-only flip.** `util/apply_option_d.sh` set the 8 `CYCFG_PPC_SECURED_*`
+   bits (`SRSS_MAIN`, `SRSS_HIB_DATA`, `PWRMODE_PWRMODE`, `APPCPUSS_AP`,
+   `M55APPCPUSS`, `RAMC0/1_RAM_PWR`, `M33SYSCPUSS`) to `0U` in both
+   `cycfg_ppc.h` copies (TF-M's and hal_infineon's). The header flip
+   disabled `CY_PDL_SYSPM_ENABLE_SRF_INTEG`, so the PDL stopped
+   taking the SRF branch for `Cy_SysPm_*` calls — but the **runtime**
+   PPC config lives in region-membership arrays in
+   [`cycfg_system.c`](../../home/ubuntu/zephyrproject/modules/tee/tf-m/trusted-firmware-m/platform/ext/target/infineon/pse84/epc2/board/shared/design/default/GeneratedSource/cycfg_system.c)
+   (`M33S_ppc_0_regions[]` etc.) that are independent of those macros.
+   Result: `Cy_SysPm_Init` from NS at boot tried `cy_pd_ppu_set_power_mode(PWRMODE_PPU_MAIN, 5)`
+   and precise-bus-faulted (BFAR=`0x42411000`, CFSR=`0x8200`,
+   R0=BFAR, R1=5). Chip halted in `tfm_hal_system_halt` before
+   `main()` ran.
+2. **Region-array patching (Route A.1–A.3).** `util/apply_ns_pm_grants.sh`
+   moved specific `PROT_PERI0_*` entries out of `M33S_ppc_0_regions[]`
+   into `M33_M55_ppc_0_regions[]`. Every increment (A.1 adds
+   `PWRMODE_PWRMODE`, A.2 adds SRSS regions, A.3 stops at
+   `M33SYSCPUSS` + `RAMC0/1_RAM_PWR`) surfaced another TF-M internal
+   dependency — e.g. moving `PWRMODE_PWRMODE` broke
+   `Cy_SysCM55Enable`'s S-side sequence, moving `SRSS_MAIN` broke
+   `TFM_SP_INITIAL_ATTESTATION`. A.3 was the widest safe move and
+   still leaves the MAIN PPU and all of SRSS_MAIN Secure, so most
+   of what Phase 6 needs remains blocked.
+
+Conclusion: opening enough PPC regions from NS to run Layer-B
+natively either breaks TF-M-Secure boot or requires an intrusive,
+non-obvious set of `cycfg_system.c` edits that don't survive
+`west update` and aren't in the Infineon package we want to ship
+against. Wrapping the un-SRF-wrapped calls in a project-local PSA
+service (z_pm) is smaller, self-contained, and doesn't touch any
+modules-tree file. This plan resumes that path.
+
+The scripts and helpers from the detour (`util/apply_option_d.sh`,
+`util/revert_option_d.sh`, `util/apply_ns_pm_grants.sh`,
+`util/revert_ns_pm_grants.sh`, and the `ifx_pm_init` variants that
+lived in `power.c`) were removed in commit `52e9d3e`. Module-tree
+`cycfg_ppc.h` files are back to their upstream `1U` state.
 
 ---
 
@@ -267,8 +313,17 @@ short of reset).
 - **Modifying the TF-M PSE84 platform port** (Options E, F in tutorial
   §29). Out of scope; the current path keeps our project self-contained.
 - **Flipping the `CYCFG_PPC_SECURED_*` bits** to make SRSS/PWRMODE
-  NS-writable (Option D). Break of isolation posture; reserved for
-  bring-up experiments only.
+  NS-writable (tutorial Option D). Tried in round 8 and reverted —
+  the header macros only gate the PDL's compile-time SRF branch;
+  the runtime PPC hardware programming is in `cycfg_system.c`
+  region arrays and is independent of those macros. Fixing both
+  in sync either breaks TF-M-S boot or requires deeply invasive
+  `cycfg_system.c` edits. See "Round-8 detour" above.
+- **Patching `cycfg_system.c` region arrays** to move PPC regions
+  between Secure and NS-shared groups. Route A of round 8. Each
+  incremental move surfaced a new TF-M-internal dependency; the
+  widest safe move (Route A.3) still leaves most of what Layer-B
+  needs blocked. Same conclusion: use z_pm instead.
 - **Turning z_pm into an SRF module** (via
   `IFX_EXT_SP_REGISTER_USER_SRF_MODULE`). Plain PSA service is simpler
   when we control both ends — see tutorial §31 rejected sketch.
