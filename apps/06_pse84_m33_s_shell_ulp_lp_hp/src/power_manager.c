@@ -56,32 +56,47 @@
 /* ------------------------------------------------------------------
  * PLL0 target frequencies -- CM33-oriented per AN237976 Table 5.
  *
- * Table 5 lists two frequency columns per mode: the CM33 core max
- * and the HF-clock (DPLL output) max. On this board the Zephyr DT
- * fixes `clk_hf0 { clock-div = <1> }`, so DPLL_LP0's output IS the
- * CM33 CLK_HF0 with no further division. We therefore target the
- * CM33 core column (200 / 80 / 50 MHz) directly rather than the
- * higher HF/DPLL column (400 / 140 / 50) that the Infineon
- * mtb-example uses (that example expects a /2 HF0 divider applied
- * elsewhere in its BSP, which would land CM33 at 200 MHz too).
+ * The DPLL_LP0 input on this board is IHO = 50 MHz. This is NOT the
+ * 24 MHz value used by the Infineon mtb-example -- their example
+ * targets a different reference. Confirmed against the board DT:
+ *   dpll_lp0 { FB=56 REF=7 OUT=1  clock-frequency = 400 MHz }
+ *   -> input = 400 * 7 / 56 = 50 MHz
+ * Using the wrong 24 MHz value here previously produced PLL outputs
+ * ~2x the intended target -- observed with the runtime clock probe:
+ *   `lp`  target 80 MHz -> measured DPLL_LP0 = 166.666 MHz
+ *                       (50 * 10/3, the FB/REF/OUT that
+ *                        Cy_SysClk_PllConfigure picks for 80 MHz
+ *                        assuming 24 MHz input)
+ *   `ulp` target 50 MHz -> Cy_SysClk_PllEnable returned 0x004a0002
+ *                       and the PLL stayed bypassed (asked to lock
+ *                       at 50*25/3 = 416 MHz at 0.7 V, timed out).
  *
- * The vendor-tested transition intermediates are absolute
- * thresholds (not percentages) tied to the SRAM/RRAM trim window
- * at the target voltage, so they carry over unchanged:
- *   HP <-> LP  intermediate: 75 MHz  (must be <= ~72 MHz LP margin)
- *   LP <-> ULP intermediate: 41 MHz  (must be <= ~47 MHz ULP margin)
+ * The kit_pse84_eval m33 board DT programs clk_hf0 as DPLL/2. Our
+ * DPLL targets therefore have to be TWICE the CM33 spec frequency
+ * so CLK_HF0 lands at the AN237976 Table 5 CM33-max:
+ *   HP  : DPLL 400 MHz -> HF0 200 MHz  (CM33 HP  max)
+ *   LP  : DPLL 160 MHz -> HF0  80 MHz  (CM33 LP  max)
+ *   ULP : DPLL 100 MHz -> HF0  50 MHz  (CM33 ULP max)
  *
- * Voltage / current expectations at the CM33 core once switched:
- *   HP  : 0.9 V core, ~<CPU-load> mA @ 200 MHz
- *   LP  : 0.8 V core, ~<CPU-load> mA @  80 MHz
- *   ULP : 0.7 V core, ~<CPU-load> mA @  50 MHz
+ * Note: the ULP DPLL of 100 MHz is above the ULP "HF clock" 50 MHz
+ * spec as measured at CLK_HFn, but the DPLL_LP block itself is
+ * rated 10-500 MHz per AN237976 and only the derived CLK_HFn
+ * outputs are limited by voltage. HF0 lands at 100/2 = 50 MHz which
+ * is exactly at the CM33 / HF spec ceiling.
+ *
+ * The vendor-tested transition intermediates below are absolute
+ * DPLL-side thresholds tied to the SRAM/RRAM trim window at the
+ * target voltage. HP <-> LP: 75 MHz DPLL -> HF0 37.5 MHz, well
+ * inside the "reduce by 82% below 400" rule (implies HF0 <= ~72
+ * MHz). LP <-> ULP: 41 MHz DPLL -> HF0 20.5 MHz, inside the
+ * "reduce by 66% below 140" rule (implies HF0 <= ~47 MHz).
  * ------------------------------------------------------------------ */
-#define DPLL_INPUT_FREQ_HZ (24000000U)
+#define DPLL_INPUT_FREQ_HZ (50000000U) /* IHO */
 #define DPLL_ENABLE_TIMEOUT_MS (10000U)
 
-#define DPLL_FREQ_HP_HZ (200000000U) /* CM33 HP  max */
-#define DPLL_FREQ_LP_HZ (80000000U)  /* CM33 LP  max */
-#define DPLL_FREQ_ULP_HZ (50000000U) /* CM33 ULP max */
+#define DPLL_FREQ_HP_HZ (400000000U)  /* HF0 /2 -> CM33 200 MHz */
+#define DPLL_FREQ_LP_HZ (160000000U)  /* HF0 /2 -> CM33  80 MHz */
+#define DPLL_FREQ_ULP_HZ (100000000U) /* HF0 /2 -> CM33  50 MHz */
 
 #define DPLL_FREQ_INTERMEDIATE_LP_HZ (75000000U)  /* HP <-> LP transitions */
 #define DPLL_FREQ_INTERMEDIATE_ULP_HZ (41000000U) /* LP <-> ULP transitions */
@@ -96,6 +111,23 @@
 
 /** Current active power mode. Boot leaves the SoC in HP. */
 static pm_mode_t s_current_mode = PM_MODE_HP;
+
+/**
+ * Latched status from the most recent pm_pll_reconfigure() call, so
+ * pm_clock_probe() can print "did the PLL actually re-lock?" without
+ * emitting bytes while the SCB baud is transient. Set inside
+ * pm_pll_reconfigure() immediately after Cy_SysClk_PllConfigure /
+ * PllEnable return; printed later once the SCB is retuned and the
+ * console is safe to write.
+ *
+ * s_last_pll_enable_st == 0xFFFFFFFF means "PllEnable was never
+ * reached this call because PllConfigure failed first".
+ * s_last_pll_target_hz == 0 means "no PLL retune has happened yet
+ * since boot" -- pm_init() does not touch the PLL.
+ */
+static uint32_t s_last_pll_target_hz;
+static uint32_t s_last_pll_configure_st;
+static uint32_t s_last_pll_enable_st = 0xFFFFFFFFu;
 
 /**
  * Console UART. Re-configured after every mode change so the SCB
@@ -176,13 +208,16 @@ static cy_en_syspm_status_t pm_pll_reconfigure(uint32_t freq_hz)
 
 	st = Cy_SysClk_PllConfigure(SRSS_DPLL_LP_0_PATH_NUM, &cfg);
 	if (st != CY_SYSCLK_SUCCESS) {
-		/* Clock tree is not stable -- do NOT emit any byte;
-		 * baud is undefined right now. Caller sees the failure
-		 * via the SystemEnter* return path. */
+		s_last_pll_target_hz = freq_hz;
+		s_last_pll_configure_st = (uint32_t)st;
+		s_last_pll_enable_st = 0xFFFFFFFFu; /* not reached */
 		return CY_SYSPM_FAIL;
 	}
 	st = Cy_SysClk_PllEnable(SRSS_DPLL_LP_0_PATH_NUM,
 				 DPLL_ENABLE_TIMEOUT_MS);
+	s_last_pll_target_hz = freq_hz;
+	s_last_pll_configure_st = 0u;
+	s_last_pll_enable_st = (uint32_t)st;
 	if (st != CY_SYSCLK_SUCCESS) {
 		return CY_SYSPM_FAIL;
 	}
@@ -407,5 +442,122 @@ int pm_switch_to(pm_mode_t target)
 	diag_trace_flush();
 	pm_reconfigure_console_uart();
 	TRACE("switch:complete");
+
+	/* Report actual (measured) clock frequencies so we don't have
+	 * to guess from register readbacks. See pm_clock_probe() for
+	 * how the measurement works. */
+	pm_clock_probe();
 	return 0;
+}
+
+/* ------------------------------------------------------------------
+ * Hardware clock measurement
+ * --------------------------
+ * The SoC has dedicated 24-bit counters that let us measure any
+ * clock in the system against a fixed reference. IHO (50 MHz,
+ * silicon-fixed, always running on PSE84) is the reference because
+ * it is independent of the DPLL state we are trying to verify.
+ *
+ * IMO is NOT used: it is not present on this SoC family (there is
+ * no Cy_SysClk_ImoIsEnabled() helper; the only always-on internal
+ * high-frequency source is IHO). Confirmed empirically -- passing
+ * CY_SYSCLK_MEAS_CLK_IMO returned 0 Hz for every measured clock
+ * because counter1 (clocked by IMO) never decremented.
+ *
+ *   Cy_SysClk_StartClkMeasurementCounters(clock1=IHO, count1=N,
+ *                                         clock2=measured)
+ *     -> counter1 counts DOWN from N at IHO rate
+ *     -> counter2 counts UP at the measured-clock rate
+ *   Cy_SysClk_ClkMeasurementCountersDone()
+ *     -> true when counter1 hits zero
+ *   Cy_SysClk_ClkMeasurementCountersGetFreq(measuredClock=true,
+ *                                           refClkFreq=50 MHz)
+ *     -> returns measured_freq = counter2 / N * 50e6 Hz
+ *
+ * count1 sizing:
+ *   Measurement wall time = count1 / 50 MHz.
+ *   counter2 max = 2^24 - 1 = 16777215.
+ *   With DPLL_LP0 at up to 400 MHz counter2 = count1 * (400/50) =
+ *   count1 * 8. Choose count1 = 50000 -> wall time 1 ms, counter2
+ *   max ~400000, ample headroom.
+ *
+ * As a safety net we also print Cy_SysClk_ClkHfGetFrequency() --
+ * the PDL's computed-from-registers value. If the hardware counter
+ * ever bails again, the computed value will still show up so we can
+ * still see what's going on.
+ * ------------------------------------------------------------------ */
+
+#define PM_PROBE_REF_COUNT 50000u /* 1 ms at IHO 50 MHz */
+
+static uint32_t pm_measure_hz(cy_en_meas_clks_t measured)
+{
+	cy_en_sysclk_status_t st;
+
+	st = Cy_SysClk_StartClkMeasurementCounters(
+	    CY_SYSCLK_MEAS_CLK_IHO, PM_PROBE_REF_COUNT, measured);
+	if (st != CY_SYSCLK_SUCCESS) {
+		return 0u;
+	}
+	/* Wall time bound = ~1 ms. Poll with a generous safety cap
+	 * to avoid an infinite spin if the counter block wedges. */
+	uint32_t safety = 1000000u;
+
+	while (!Cy_SysClk_ClkMeasurementCountersDone() && (--safety != 0u)) {
+		/* spin */
+	}
+	if (safety == 0u) {
+		return 0u;
+	}
+	return Cy_SysClk_ClkMeasurementCountersGetFreq(true,
+						       CY_SYSCLK_IHO_FREQ);
+}
+
+/**
+ * @brief Format a Hz value as "%3u.%03u MHz (%u Hz)" via printk.
+ *
+ * Explicit signature so both the measured and computed values print
+ * in the same format for side-by-side comparison.
+ */
+static void pm_print_hz(const char *label, uint32_t meas_hz, uint32_t comp_hz)
+{
+	printk(
+	    "[clk] %s meas=%3u.%03u MHz (%9u Hz)  comp=%3u.%03u MHz (%9u Hz)\n",
+	    label, meas_hz / 1000000u, (meas_hz / 1000u) % 1000u, meas_hz,
+	    comp_hz / 1000000u, (comp_hz / 1000u) % 1000u, comp_hz);
+}
+
+void pm_clock_probe(void)
+{
+	/* Hardware-measured (via the dedicated counter block, IHO ref). */
+	uint32_t m_path0 = pm_measure_hz(CY_SYSCLK_MEAS_CLK_PATH0);
+	uint32_t m_hf0 = pm_measure_hz(CY_SYSCLK_MEAS_CLK_CLKHF0);
+	uint32_t m_hf10 = pm_measure_hz(CY_SYSCLK_MEAS_CLK_CLKHF10);
+
+	/* Computed from register readback (never returns 0 spuriously).
+	 * Cy_SysClk_ClkPathGetFrequency(0) reports the DPLL_LP0 output
+	 * as the PDL sees it. */
+	uint32_t c_path0 = Cy_SysClk_ClkPathGetFrequency(0u);
+	uint32_t c_hf0 = Cy_SysClk_ClkHfGetFrequency(0u);
+	uint32_t c_hf10 = Cy_SysClk_ClkHfGetFrequency(10u);
+
+	pm_print_hz("DPLL_LP0 ", m_path0, c_path0);
+	pm_print_hz("CLK_HF0  ", m_hf0, c_hf0);	  /* CM33 core   */
+	pm_print_hz("CLK_HF10 ", m_hf10, c_hf10); /* SCB2 peri   */
+
+	/* Report the return code of the most recent PLL reconfigure so
+	 * we can spot "the PLL never came back" failures cheaply. Zero
+	 * (CY_SYSCLK_SUCCESS) is good; anything else means the PLL is
+	 * likely OFF and the clock tree fell back to the IHO-based
+	 * bypass source (25 MHz on HF0, 12.5 MHz on HF10 -- observed on
+	 * OpenOCD dumps that showed DPLL_LP0 "OFF,unlocked" after a
+	 * mode command). Values of the cy_en_sysclk_status_t enum are
+	 * SUCCESS=0, INVALID_STATE=<vendor>, TIMEOUT=<vendor>, etc. */
+	if (s_last_pll_target_hz == 0u) {
+		printk("[pll] no retune since boot (cybsp/board default)\n");
+	} else {
+		printk("[pll] last target=%u Hz  Configure=0x%08x  "
+		       "Enable=0x%08x\n",
+		       s_last_pll_target_hz, s_last_pll_configure_st,
+		       s_last_pll_enable_st);
+	}
 }

@@ -108,10 +108,25 @@ static int cmd_hp(const struct shell *sh, size_t argc, char **argv)
 	return do_switch(sh, PM_MODE_HP, 0, 0);
 }
 
-/* Register three top-level commands with the Zephyr shell. */
+/** @brief Shell handler for `probe`: run the hardware clock
+ *         measurement counters on DPLL_LP0 / CLK_HF0 / CLK_HF10 and
+ *         print the actual measured frequencies. Useful to check
+ *         the boot-time HP state (before any mode command has run)
+ *         vs the state after `hp` / `lp` / `ulp`. */
+static int cmd_probe(const struct shell *sh, size_t argc, char **argv)
+{
+	ARG_UNUSED(sh);
+	ARG_UNUSED(argc);
+	ARG_UNUSED(argv);
+	pm_clock_probe();
+	return 0;
+}
+
+/* Register the top-level shell commands. */
 SHELL_CMD_REGISTER(ulp, NULL, "Enter Ultra-Low-Power mode (50 MHz)", cmd_ulp);
 SHELL_CMD_REGISTER(lp, NULL, "Enter Low-Power mode (66 MHz)", cmd_lp);
 SHELL_CMD_REGISTER(hp, NULL, "Enter High-Performance mode (200 MHz)", cmd_hp);
+SHELL_CMD_REGISTER(probe, NULL, "Measure actual clock frequencies", cmd_probe);
 
 int main(void)
 {

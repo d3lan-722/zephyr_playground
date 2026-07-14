@@ -80,6 +80,24 @@ const char *pm_mode_name(pm_mode_t m);
  */
 int pm_switch_to(pm_mode_t target);
 
+/**
+ * @brief Measure and print the frequency of the three clock nodes
+ *        that this demo cares about (DPLL_LP0 output, CLK_HF0 for
+ *        CM33, CLK_HF10 for SCB2 peripheral) using the SoC's
+ *        hardware clock-measurement counters.
+ *
+ * Uses @c Cy_SysClk_StartClkMeasurementCounters with IMO (8 MHz,
+ * fixed by silicon) as the reference clock, so the readouts do not
+ * depend on the very PLL state we are trying to verify. Output goes
+ * to the console via @c printk.
+ *
+ * Intended to be called after a mode transition (or on demand via
+ * the @c probe shell command) to answer "what did the hardware
+ * actually end up at?" without guessing from computed register
+ * readbacks.
+ */
+void pm_clock_probe(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -60,14 +60,14 @@
  * safe to poll unconditionally. This mirrors the PDL helper
  * Cy_SCB_IsTxComplete() which uses exactly these two fields.
  */
-#define APP_SCB2_BASE           0x529a0000u
+#define APP_SCB2_BASE 0x529a0000u
 #define APP_SCB2_TX_FIFO_STATUS (*(volatile uint32_t *)(APP_SCB2_BASE + 0x208u))
-#define APP_SCB2_TX_FIFO_WR     (*(volatile uint32_t *)(APP_SCB2_BASE + 0x240u))
+#define APP_SCB2_TX_FIFO_WR (*(volatile uint32_t *)(APP_SCB2_BASE + 0x240u))
 
 /* From cyip_scb.h SCB_TX_FIFO_STATUS_{USED,SR_VALID}_Msk -- exposed
  * here as local constants so the raw-SCB path stays completely
  * independent of the PDL. */
-#define APP_SCB2_TX_FIFO_STATUS_USED_Msk     0x000001FFu
+#define APP_SCB2_TX_FIFO_STATUS_USED_Msk 0x000001FFu
 #define APP_SCB2_TX_FIFO_STATUS_SR_VALID_Msk 0x00008000u
 
 /*

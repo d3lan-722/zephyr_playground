@@ -1,0 +1,84 @@
+/*
+ * Copyright (c) 2026
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Minimal DT overlay for apps/06_pse84_m33_s_shell_ulp_lp_hp.
+ *
+ * Kept enabled (from the board common.dtsi / kit_pse84_eval_m33.dts):
+ *   scb2 (uart2)              -> zephyr,console + zephyr,shell-uart
+ *   peri0_group1_16bit_1      -> scb2 peripheral clock divider
+ *   gpio_prt16                -> RGB LEDs (led0..led2 on P16.5-7)
+ *   flash_controller / rram0  -> code storage (--snippet rram redirects
+ *                                zephyr,flash here)
+ *   system clocks (dpll_lp0, path_mux0, clk_hf*, ...)
+ *                             -> untouched apart from the explicit
+ *                                clk_hf0 clock-div below
+ *
+ * Explicitly documented:
+ *   clk_hf0 is set to divide DPLL_LP0 by 2. With the board DT's
+ *   dpll_lp0 clock-frequency = 400 MHz, this yields CLK_HF0 = 200 MHz
+ *   -- the AN237976 Table 5 CM33 HP-mode maximum. The board DT
+ *   already selects the same divider, but pinning it here documents
+ *   the demo's clocking assumption so any accidental drift shows up
+ *   in review.
+ *
+ *   NOTE: the runtime PLL retune in power_manager.c currently
+ *   assumes CLK_HF0 = DPLL frequency (no divider), so an `hp`
+ *   command programs DPLL to 200 MHz -- with this /2 divider that
+ *   lands CLK_HF0 at only 100 MHz (half the HP spec), which is why
+ *   post-`hp` HP shows ~5.88 mA vs the boot HP ~15 mA at correct
+ *   200 MHz. Fixing that requires either changing the runtime
+ *   targets (HP=400 MHz DPLL, LP=160 MHz, ULP handled specially)
+ *   or overriding clk_hf0 clock-div to IFX_CLK_HF_NO_DIVIDE here
+ *   and accepting a 400 MHz over-spec CPU at boot until the first
+ *   mode command runs. That decision is left for a follow-up.
+ */
+
+#include <zephyr/dt-bindings/clock/ifx_clock_source_common.h>
+
+/ {
+	/* Disable the gpio-keys container so the user button (P8.3)
+	 * doesn't drag in gpio_prt8. The child node stays defined so
+	 * DT_ALIAS(sw0) remains resolvable (evaluates disabled). */
+	gpio_keys { status = "disabled"; };
+};
+
+&clk_hf0 {
+	/* Explicit /2: DPLL_LP0 (400 MHz board default) -> HF0 200 MHz.
+	 * Matches AN237976 CM33 HP frequency spec. */
+	clock-div = <IFX_CLK_HF_DIVIDE_BY_2>;
+};
+
+/* ------------------------------------------------------------------
+ * GPIO ports: keep only gpio_prt16 (RGB LEDs). SCB2 pins (P6.5/P6.7)
+ * are routed by the pinctrl subsystem and do NOT require the gpio_prt6
+ * node to be enabled -- the pinctrl driver programs HSIOM directly.
+ * ------------------------------------------------------------------ */
+&gpio_prt0  { status = "disabled"; };
+&gpio_prt2  { status = "disabled"; };
+&gpio_prt6  { status = "disabled"; };
+&gpio_prt7  { status = "disabled"; };
+&gpio_prt8  { status = "disabled"; };
+&gpio_prt10 { status = "disabled"; };
+&gpio_prt11 { status = "disabled"; };
+&gpio_prt13 { status = "disabled"; };
+&gpio_prt14 { status = "disabled"; };
+&gpio_prt17 { status = "disabled"; };
+
+/* ------------------------------------------------------------------
+ * SCBs we don't use.
+ * ------------------------------------------------------------------ */
+&scb0 { status = "disabled"; };   /* i2c0 + bmi270 accelerometer   */
+&scb4 { status = "disabled"; };   /* uart4 + bt_hci_uart + cyw55513 */
+
+/* Their peripheral clock dividers -- also unused. */
+&peri0_group1_16bit_3   { status = "disabled"; };  /* scb0 clock */
+&peri0_group1_16_5bit_0 { status = "disabled"; };  /* scb4 clock */
+
+/* ------------------------------------------------------------------
+ * Timers, watchdogs, storage, connectivity we don't use.
+ * ------------------------------------------------------------------ */
+&watchdog0 { status = "disabled"; };
+&mcwdt0    { status = "disabled"; };
+&sdhc0     { status = "disabled"; };   /* SDIO + airoc-wifi */
+&usbhs     { status = "disabled"; };
