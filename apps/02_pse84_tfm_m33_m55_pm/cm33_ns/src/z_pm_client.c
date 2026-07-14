@@ -47,3 +47,9 @@ psa_status_t z_pm_set_deep_sleep_mode(uint32_t mode)
 	return psa_call(Z_PM_SERVICE_HANDLE, Z_PM_OP_SET_DEEP_SLEEP_MODE,
 			in_vec, IOVEC_LEN(in_vec), NULL, 0);
 }
+
+psa_status_t z_pm_enter_ds_ram(void)
+{
+	return psa_call(Z_PM_SERVICE_HANDLE, Z_PM_OP_ENTER_DS_RAM, NULL, 0,
+			NULL, 0);
+}
