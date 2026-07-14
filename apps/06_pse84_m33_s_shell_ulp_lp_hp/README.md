@@ -214,10 +214,35 @@ tree, DPLL registers and their lock/bypass state, run
 `util/dump_hfclk.sh` from the workspace root while the board is
 connected via KitProg3. Useful for cross-checking `probe` output.
 
+## Utility: `cycle_modes.py` (host-side mode cycler)
+
+`cycle_modes.py` is a small Python helper (uses `pyserial`, already
+in the dev container's venv) that opens the KitProg3 CDC UART and
+sends `lp` -> `ulp` -> `hp` -> `lp` ... every 5 seconds, printing
+whatever the console emits after each command (mode banner + the
+auto-`probe` clock table + the `[pll]` status line). Useful for
+bench-current runs where you want a repeatable DVFS workload
+without tapping keys.
+
+```
+cd apps/06_pse84_m33_s_shell_ulp_lp_hp
+./cycle_modes.py                                   # /dev/ttyACM0, 5 s
+./cycle_modes.py --dev /dev/ttyACM0 --period 3     # override
+```
+
+Auto-detects the KitProg3 UART via
+`/dev/serial/by-id/usb-Cypress_Semiconductor_KitProg3_CMSIS-DAP_*-if02`
+(falls back to `/dev/ttyACM0`). Ctrl-C to stop. The firmware side is
+unchanged -- the script drives the same shell commands a human
+would, so pointing a bench meter at the VDDD shunt while it runs
+gives the current-draw sequence 6.61 mA (LP) -> 3.94 mA (ULP) ->
+15.12 mA (HP) -> ... on a 5-second cadence.
+
 ## What this project is NOT
 
 - **Not** a TF-M / CM33-NS demo — use project 05 for that.
 - **Not** a deep-sleep / DS-RAM / DS-OFF demo — use project 02 for
   those. HP/LP/ULP here are ACTIVE modes.
-- **Not** cycling automatically — mode changes are user-driven via
-  the shell.
+- **Not** cycling automatically from firmware — mode changes are
+  either user-driven via the shell or scripted from the host with
+  `cycle_modes.py`.
