@@ -39,13 +39,36 @@
  * `tmp/zephyr_dvfs_dpm_proposed/common/pse84_aliases.h` hard-codes
  * 0x429a0000 because that project's raw-console lives in CM33-NS.
  *
- * SCB register offsets from Infineon `cyip_scb.h`:
- *   TX_FIFO_STATUS  0x208   bits[7:0] = USED entry count
+ * SCB register offsets from Infineon `pdl/devices/include/ip/cyip_scb.h`
+ * (verified: TX_FIFO_STATUS at 0x208, TX_FIFO_WR at 0x240 -- these
+ * are IP-version-stable on the PSE84 SCB v3):
+ *   TX_FIFO_STATUS  0x208   bits[8:0]  = USED entry count
+ *                           bit  15    = SR_VALID (TX shift reg has a byte)
  *   TX_FIFO_WR      0x240   write here to enqueue a byte
+ *
+ * Earlier revisions of this file tried to use INTR_TX.UART_DONE
+ * (offset 0xF80, bit 9) for the "TX complete" check. UART_DONE is a
+ * LATCHED interrupt bit -- it only re-asserts on the transition
+ * from "TX busy" to "TX idle". If the FIFO is already empty when
+ * diag_trace_flush() is called (which is the norm at the end of
+ * pm_switch_to, because pm_pll_reconfigure() flushed inside the
+ * callback and nothing else was queued in the meantime), UART_DONE
+ * never transitions and the flush spins forever, freezing the
+ * console.
+ *
+ * TX_FIFO_STATUS.{USED, SR_VALID} are STATE bits, not latches --
+ * safe to poll unconditionally. This mirrors the PDL helper
+ * Cy_SCB_IsTxComplete() which uses exactly these two fields.
  */
-#define APP_SCB2_BASE 0x529a0000u
+#define APP_SCB2_BASE           0x529a0000u
 #define APP_SCB2_TX_FIFO_STATUS (*(volatile uint32_t *)(APP_SCB2_BASE + 0x208u))
-#define APP_SCB2_TX_FIFO_WR (*(volatile uint32_t *)(APP_SCB2_BASE + 0x240u))
+#define APP_SCB2_TX_FIFO_WR     (*(volatile uint32_t *)(APP_SCB2_BASE + 0x240u))
+
+/* From cyip_scb.h SCB_TX_FIFO_STATUS_{USED,SR_VALID}_Msk -- exposed
+ * here as local constants so the raw-SCB path stays completely
+ * independent of the PDL. */
+#define APP_SCB2_TX_FIFO_STATUS_USED_Msk     0x000001FFu
+#define APP_SCB2_TX_FIFO_STATUS_SR_VALID_Msk 0x00008000u
 
 /*
  * SCB v3 TX FIFO on PSE84 is 256 entries deep, but the block is
@@ -57,7 +80,8 @@
 
 void diag_trace_char(char c)
 {
-	while ((APP_SCB2_TX_FIFO_STATUS & 0xFFu) >= APP_SCB2_TX_FIFO_HEADROOM) {
+	while ((APP_SCB2_TX_FIFO_STATUS & APP_SCB2_TX_FIFO_STATUS_USED_Msk) >=
+	       APP_SCB2_TX_FIFO_HEADROOM) {
 		/* spin — wait for TX FIFO room */
 	}
 	APP_SCB2_TX_FIFO_WR = (uint32_t)(uint8_t)c;
@@ -74,6 +98,22 @@ void diag_trace(const char *s)
 		}
 		diag_trace_char(*s);
 		s++;
+	}
+}
+
+void diag_trace_flush(void)
+{
+	/* Wait until both the TX FIFO and the shift register are empty.
+	 * Both fields live in TX_FIFO_STATUS -- one register read per
+	 * loop iteration. Naturally returns immediately if the SCB is
+	 * already idle, because both fields are true state (not latches
+	 * that need a fresh transition to re-arm). Equivalent to the
+	 * PDL's Cy_SCB_IsTxComplete(). */
+	const uint32_t busy_mask = APP_SCB2_TX_FIFO_STATUS_USED_Msk |
+				   APP_SCB2_TX_FIFO_STATUS_SR_VALID_Msk;
+
+	while ((APP_SCB2_TX_FIFO_STATUS & busy_mask) != 0u) {
+		/* spin */
 	}
 }
 

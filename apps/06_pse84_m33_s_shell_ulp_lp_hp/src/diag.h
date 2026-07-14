@@ -43,4 +43,21 @@ void diag_trace_char(char c);
  */
 void diag_trace(const char *s);
 
+/**
+ * @brief Block until the SCB2 TX FIFO AND the TX shift register are
+ *        fully drained.
+ *
+ * Call this immediately before any operation that changes the SCB2
+ * peripheral clock (e.g. @c Cy_SysClk_PllDisable in
+ * @c pm_pll_reconfigure). Any byte still sitting in the TX FIFO or
+ * the shift register when the clock changes will be shifted out at
+ * the new/fallback bit-time, producing the corrupted-mid-string
+ * output that was visible on the console before this call was
+ * added.
+ *
+ * Cheap and safe -- polls two SCB registers, no locking, no calls
+ * into the Zephyr driver.
+ */
+void diag_trace_flush(void);
+
 #endif /* APP_DIAG_H_ */

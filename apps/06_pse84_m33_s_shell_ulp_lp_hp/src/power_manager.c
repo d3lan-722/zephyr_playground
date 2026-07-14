@@ -125,6 +125,40 @@ static void pm_reconfigure_console_uart(void)
  * on PSE84 boards). This is why calling this from RRAM-linked code
  * is safe: the CPU keeps fetching, just at IMO speed, until PLL is
  * relocked.
+ *
+ * Console-integrity contract
+ * ---------------------------
+ * The CM33 shell UART (SCB2) is peri-group (0,1) which sources CLK_HF10,
+ * which in turn is fed from DPLL_LP0 via the board's path_mux. So
+ * DPLL_LP0 IS the SCB2 peripheral clock, and every call into this
+ * function invalidates the SCB baud divider that was calibrated for
+ * the previous DPLL frequency.
+ *
+ * Two guarantees are required for the console to stay coherent:
+ *
+ *   1. Nothing may be in-flight when Cy_SysClk_PllDisable runs. Any
+ *      byte still sitting in the SCB2 TX FIFO or shift register will
+ *      be clocked out at whatever transient bit-time the SCB sees
+ *      during the disable/enable window, producing the garbled
+ *      mid-marker output that used to appear during transitions.
+ *      We drain the FIFO+SR via @ref diag_trace_flush before
+ *      touching the PLL.
+ *   2. The SCB baud divider must be recomputed against the new
+ *      CLK_HF10 before the next byte is emitted. That retune is
+ *      done by @ref pm_reconfigure_console_uart, but NOT here --
+ *      calling it from this function means it runs inside the
+ *      SysPm critical section (Cy_SysLib_EnterCriticalSection was
+ *      taken by Cy_SysPm_SystemEnter{...}), and empirically the
+ *      Zephyr ifx_cat1 UART driver's uart_configure() misbehaves in
+ *      that context: subsequent bytes on the shell were garbled or
+ *      the console froze entirely. Instead the retune runs once at
+ *      the END of pm_switch_to() with interrupts re-enabled, which
+ *      is reliable.
+ *
+ * Consequence: NO diagnostic bytes may be emitted between this
+ * function's return and pm_switch_to()'s trailing retune -- the
+ * baud divider is stale in that window. All TRACE() calls inside
+ * the SysPm callbacks have therefore been removed.
  * ------------------------------------------------------------------ */
 static cy_en_syspm_status_t pm_pll_reconfigure(uint32_t freq_hz)
 {
@@ -135,19 +169,26 @@ static cy_en_syspm_status_t pm_pll_reconfigure(uint32_t freq_hz)
 	};
 	cy_en_sysclk_status_t st;
 
+	/* Guarantee 1: nothing in flight when PLL drops. */
+	diag_trace_flush();
+
 	Cy_SysClk_PllDisable(SRSS_DPLL_LP_0_PATH_NUM);
 
 	st = Cy_SysClk_PllConfigure(SRSS_DPLL_LP_0_PATH_NUM, &cfg);
 	if (st != CY_SYSCLK_SUCCESS) {
-		TRACE("PLL:ConfigureFail");
+		/* Clock tree is not stable -- do NOT emit any byte;
+		 * baud is undefined right now. Caller sees the failure
+		 * via the SystemEnter* return path. */
 		return CY_SYSPM_FAIL;
 	}
 	st = Cy_SysClk_PllEnable(SRSS_DPLL_LP_0_PATH_NUM,
 				 DPLL_ENABLE_TIMEOUT_MS);
 	if (st != CY_SYSCLK_SUCCESS) {
-		TRACE("PLL:EnableFail");
 		return CY_SYSPM_FAIL;
 	}
+	/* Guarantee 2 is intentionally NOT done here -- see contract
+	 * comment above. pm_switch_to() will retune the SCB after
+	 * Cy_SysPm_SystemEnter* returns and IRQs are re-enabled. */
 	return CY_SYSPM_SUCCESS;
 }
 
@@ -169,13 +210,11 @@ pm_syspm_hp_cb(cy_stc_syspm_callback_params_t *params,
 		/* Any -> HP: voltage is about to rise. Take PLL to the
 		 * safe intermediate (75 MHz) which is inside both the
 		 * source (LP or ULP) and target (HP) envelopes. */
-		TRACE("HP-cb:BEFORE:pll-75MHz");
 		return pm_pll_reconfigure(DPLL_FREQ_INTERMEDIATE_LP_HZ);
 	}
 	if (mode == CY_SYSPM_AFTER_TRANSITION) {
 		/* Now at HP voltage: RRAM to HP timings, then PLL to
 		 * final HP frequency (200 MHz -- CM33 HP spec max). */
-		TRACE("HP-cb:AFTER:rram-HP+pll-200MHz");
 		Cy_RRAM_SetVoltageMode(RRAMC0, CY_RRAM_VMODE_HP);
 		return pm_pll_reconfigure(DPLL_FREQ_HP_HZ);
 	}
@@ -195,20 +234,17 @@ pm_syspm_lp_cb(cy_stc_syspm_callback_params_t *params,
 			 * voltage step (voltage is about to rise, but PLL
 			 * needs to be under the ULP ceiling while EnterLp
 			 * runs the SRAM-trim / core-buck sequence). */
-			TRACE("LP-cb:BEFORE(from-ULP):pll-41MHz");
 			return pm_pll_reconfigure(
 			    DPLL_FREQ_INTERMEDIATE_ULP_HZ);
 		}
 		/* HP -> LP down-transition: PLL to 75 MHz -- inside the
 		 * LP envelope so the CPU keeps fetching once EnterLp
 		 * drops core voltage. */
-		TRACE("LP-cb:BEFORE(from-HP):pll-75MHz");
 		return pm_pll_reconfigure(DPLL_FREQ_INTERMEDIATE_LP_HZ);
 	}
 	if (mode == CY_SYSPM_AFTER_TRANSITION) {
 		/* Now at LP voltage: RRAM to LP timings, then PLL to
 		 * final LP frequency (80 MHz -- CM33 LP spec max). */
-		TRACE("LP-cb:AFTER:rram-LP+pll-80MHz");
 		Cy_RRAM_SetVoltageMode(RRAMC0, CY_RRAM_VMODE_LP);
 		return pm_pll_reconfigure(DPLL_FREQ_LP_HZ);
 	}
@@ -226,11 +262,9 @@ pm_syspm_ulp_cb(cy_stc_syspm_callback_params_t *params,
 		 * envelope BEFORE the voltage drops or the PLL falls out
 		 * of lock and the CPU loses its clock. 41 MHz is the
 		 * vendor-tested safe transition value. */
-		TRACE("ULP-cb:BEFORE:pll-41MHz");
 		return pm_pll_reconfigure(DPLL_FREQ_INTERMEDIATE_ULP_HZ);
 	}
 	if (mode == CY_SYSPM_AFTER_TRANSITION) {
-		TRACE("ULP-cb:AFTER:rram-ULP+pll-50MHz");
 		Cy_RRAM_SetVoltageMode(RRAMC0, CY_RRAM_VMODE_ULP);
 		return pm_pll_reconfigure(DPLL_FREQ_ULP_HZ);
 	}
@@ -358,13 +392,19 @@ int pm_switch_to(pm_mode_t target)
 	}
 
 	s_current_mode = target;
-	TRACE("switch:before-SystemCoreClockUpdate");
 	SystemCoreClockUpdate();
 
-	/* SCB UART pclk just changed with the PLL retune; the driver's
-	 * baud divider is now wrong for the new pclk. Re-run
-	 * uart_configure so the driver recomputes it. */
-	TRACE("switch:before-uart-reconfigure");
+	/* Retune the SCB baud divider against the new CLK_HF10. This
+	 * MUST run here (with IRQs re-enabled after Cy_SysPm_SystemEnter*
+	 * returned) and NOT inside pm_pll_reconfigure -- calling
+	 * uart_configure() inside the SysPm critical section is
+	 * empirically unsafe on this SCB driver (subsequent bytes get
+	 * garbled or the console freezes entirely).
+	 *
+	 * Nothing has been emitted between the AFTER callback's PLL
+	 * change and this point, so there is nothing on the SCB2 TX
+	 * FIFO. Add a flush anyway for defensive safety, then retune. */
+	diag_trace_flush();
 	pm_reconfigure_console_uart();
 	TRACE("switch:complete");
 	return 0;
