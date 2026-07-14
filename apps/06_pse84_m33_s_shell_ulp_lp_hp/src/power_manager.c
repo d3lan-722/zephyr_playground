@@ -113,6 +113,13 @@
 static pm_mode_t s_current_mode = PM_MODE_HP;
 
 /**
+ * @brief Sentinel value for @ref s_last_pll_enable_st meaning
+ *        "PllEnable was not reached this attempt because
+ *         PllConfigure failed first".
+ */
+#define PM_PLL_ENABLE_NOT_REACHED 0xFFFFFFFFu
+
+/**
  * Latched status from the most recent pm_pll_reconfigure() call, so
  * pm_clock_probe() can print "did the PLL actually re-lock?" without
  * emitting bytes while the SCB baud is transient. Set inside
@@ -120,23 +127,33 @@ static pm_mode_t s_current_mode = PM_MODE_HP;
  * PllEnable return; printed later once the SCB is retuned and the
  * console is safe to write.
  *
- * s_last_pll_enable_st == 0xFFFFFFFF means "PllEnable was never
- * reached this call because PllConfigure failed first".
- * s_last_pll_target_hz == 0 means "no PLL retune has happened yet
- * since boot" -- pm_init() does not touch the PLL.
+ * @c s_last_pll_target_hz == 0 means "no PLL retune since boot"
+ * (pm_init() does not touch the PLL). See
+ * @ref PM_PLL_ENABLE_NOT_REACHED for the s_last_pll_enable_st
+ * sentinel.
  */
 static uint32_t s_last_pll_target_hz;
 static uint32_t s_last_pll_configure_st;
-static uint32_t s_last_pll_enable_st = 0xFFFFFFFFu;
+static uint32_t s_last_pll_enable_st = PM_PLL_ENABLE_NOT_REACHED;
 
 /**
- * Console UART. Re-configured after every mode change so the SCB
- * UART driver recomputes its baud divider against the new peripheral
- * clock (the shell backend caches the divider it last computed).
+ * Console UART handle. The SCB baud divider it caches at boot is
+ * only valid for the CLK_HF10 frequency that was live at that time,
+ * so we retune it after every mode change (see
+ * @ref pm_reconfigure_console_uart).
  */
 static const struct device *const console_uart =
     DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
 
+/**
+ * @brief Re-run @c uart_configure on the console SCB so the Infineon
+ *        ifx_cat1 driver recomputes its baud divider against the
+ *        currently-live CLK_HF10 frequency.
+ *
+ * Called from @ref pm_switch_to after every successful mode change
+ * (which retuned DPLL_LP0, therefore CLK_HF10). No-op if the console
+ * device is not yet ready or its configuration cannot be read back.
+ */
 static void pm_reconfigure_console_uart(void)
 {
 	struct uart_config cfg;
@@ -210,7 +227,7 @@ static cy_en_syspm_status_t pm_pll_reconfigure(uint32_t freq_hz)
 	if (st != CY_SYSCLK_SUCCESS) {
 		s_last_pll_target_hz = freq_hz;
 		s_last_pll_configure_st = (uint32_t)st;
-		s_last_pll_enable_st = 0xFFFFFFFFu; /* not reached */
+		s_last_pll_enable_st = PM_PLL_ENABLE_NOT_REACHED;
 		return CY_SYSPM_FAIL;
 	}
 	st = Cy_SysClk_PllEnable(SRSS_DPLL_LP_0_PATH_NUM,
@@ -395,6 +412,38 @@ void pm_init(void)
 
 pm_mode_t pm_current_mode(void) { return s_current_mode; }
 
+/**
+ * @brief Call the PDL @c Cy_SysPm_SystemEnter* entry point that
+ *        matches @p target and emit the raw-SCB "switch:Enter…"
+ *        marker on the wire so the last known step is visible if
+ *        the CPU hangs mid-transition.
+ *
+ * Single-purpose helper: dispatch only, no state mutation and no
+ * console retune. Keeping this separate from @ref pm_switch_to
+ * lets that function focus on the surrounding orchestration
+ * (marker, state update, SCB retune, probe).
+ *
+ * @return @c CY_SYSPM_SUCCESS on success; the PDL's status code
+ *         otherwise. Returns @c CY_SYSPM_FAIL for an unknown mode
+ *         so the caller can distinguish it from "hardware refused".
+ */
+static cy_en_syspm_status_t pm_syspm_enter(pm_mode_t target)
+{
+	switch (target) {
+	case PM_MODE_HP:
+		TRACE("switch:EnterHp");
+		return Cy_SysPm_SystemEnterHp();
+	case PM_MODE_LP:
+		TRACE("switch:EnterLp");
+		return Cy_SysPm_SystemEnterLp();
+	case PM_MODE_ULP:
+		TRACE("switch:EnterUlp");
+		return Cy_SysPm_SystemEnterUlp();
+	default:
+		return CY_SYSPM_FAIL;
+	}
+}
+
 int pm_switch_to(pm_mode_t target)
 {
 	cy_en_syspm_status_t st;
@@ -402,24 +451,12 @@ int pm_switch_to(pm_mode_t target)
 	if (target == s_current_mode) {
 		return 0;
 	}
-
-	switch (target) {
-	case PM_MODE_HP:
-		TRACE("switch:EnterHp");
-		st = Cy_SysPm_SystemEnterHp();
-		break;
-	case PM_MODE_LP:
-		TRACE("switch:EnterLp");
-		st = Cy_SysPm_SystemEnterLp();
-		break;
-	case PM_MODE_ULP:
-		TRACE("switch:EnterUlp");
-		st = Cy_SysPm_SystemEnterUlp();
-		break;
-	default:
+	if (target != PM_MODE_HP && target != PM_MODE_LP &&
+	    target != PM_MODE_ULP) {
 		return -EINVAL;
 	}
 
+	st = pm_syspm_enter(target);
 	if (st != CY_SYSPM_SUCCESS) {
 		TRACE("switch:FAIL");
 		printk("[pm] SystemEnter* failed (%d)\n", (int)st);
@@ -430,22 +467,20 @@ int pm_switch_to(pm_mode_t target)
 	SystemCoreClockUpdate();
 
 	/* Retune the SCB baud divider against the new CLK_HF10. This
-	 * MUST run here (with IRQs re-enabled after Cy_SysPm_SystemEnter*
-	 * returned) and NOT inside pm_pll_reconfigure -- calling
-	 * uart_configure() inside the SysPm critical section is
-	 * empirically unsafe on this SCB driver (subsequent bytes get
-	 * garbled or the console freezes entirely).
-	 *
-	 * Nothing has been emitted between the AFTER callback's PLL
-	 * change and this point, so there is nothing on the SCB2 TX
-	 * FIFO. Add a flush anyway for defensive safety, then retune. */
+	 * MUST run here (with IRQs re-enabled after
+	 * Cy_SysPm_SystemEnter* returned) and NOT inside
+	 * pm_pll_reconfigure -- calling uart_configure() inside the
+	 * SysPm critical section is empirically unsafe on this SCB
+	 * driver (subsequent bytes get garbled or the console freezes
+	 * entirely). The AFTER callback did not emit any diagnostic
+	 * bytes, so the SCB2 TX FIFO is empty here; flush is a cheap
+	 * defensive check. */
 	diag_trace_flush();
 	pm_reconfigure_console_uart();
 	TRACE("switch:complete");
 
-	/* Report actual (measured) clock frequencies so we don't have
-	 * to guess from register readbacks. See pm_clock_probe() for
-	 * how the measurement works. */
+	/* Report the actual live clock frequencies so we don't have
+	 * to guess from register readbacks. See pm_clock_probe(). */
 	pm_clock_probe();
 	return 0;
 }
@@ -489,19 +524,28 @@ int pm_switch_to(pm_mode_t target)
 
 #define PM_PROBE_REF_COUNT 50000u /* 1 ms at IHO 50 MHz */
 
+/**
+ * @brief Iteration cap for the polling loop that waits for a clock
+ *        measurement to finish. count1 = PM_PROBE_REF_COUNT gives a
+ *        1 ms wall time, so 1e6 iterations is roughly a >>100x
+ *        overhead safety net -- never taken in practice, only
+ *        exists to guarantee the loop can never spin forever if the
+ *        counter block wedges.
+ */
+#define PM_MEAS_SAFETY_ITERS 1000000u
+
 static uint32_t pm_measure_hz(cy_en_meas_clks_t measured)
 {
 	cy_en_sysclk_status_t st;
+	uint32_t safety;
 
 	st = Cy_SysClk_StartClkMeasurementCounters(
 	    CY_SYSCLK_MEAS_CLK_IHO, PM_PROBE_REF_COUNT, measured);
 	if (st != CY_SYSCLK_SUCCESS) {
 		return 0u;
 	}
-	/* Wall time bound = ~1 ms. Poll with a generous safety cap
-	 * to avoid an infinite spin if the counter block wedges. */
-	uint32_t safety = 1000000u;
 
+	safety = PM_MEAS_SAFETY_ITERS;
 	while (!Cy_SysClk_ClkMeasurementCountersDone() && (--safety != 0u)) {
 		/* spin */
 	}

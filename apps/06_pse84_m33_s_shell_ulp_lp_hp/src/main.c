@@ -4,12 +4,14 @@
  *
  * CM33-Secure shell-controlled active-power-mode demo.
  *
- * Registers three top-level Zephyr shell commands — @c ulp, @c lp,
- * @c hp — that switch the PSoC Edge active power mode between
- * Ultra-Low-Power (50 MHz), Low-Power (66 MHz) and High-Performance
- * (200 MHz). Each command drives the on-board RGB LEDs to indicate
- * the incoming mode BEFORE the SoC starts changing clocks and
- * voltage:
+ * Registers three top-level Zephyr shell commands -- @c ulp, @c lp,
+ * @c hp -- that switch the PSoC Edge active power mode between
+ * Ultra-Low-Power (50 MHz CM33 core), Low-Power (80 MHz) and
+ * High-Performance (200 MHz). A fourth command @c probe measures
+ * and prints the actual DPLL_LP0 / CLK_HF0 / CLK_HF10 frequencies.
+ *
+ * Each mode command drives the on-board RGB LEDs to indicate the
+ * incoming mode BEFORE the SoC starts changing clocks and voltage:
  *
  *   Mode  |  Red (led0)  Green (led1)
  *   ------|-----------------------------
@@ -91,7 +93,7 @@ static int cmd_ulp(const struct shell *sh, size_t argc, char **argv)
 	return do_switch(sh, PM_MODE_ULP, 0, 1);
 }
 
-/** @brief Shell handler for `lp` (red on, green off; 66 MHz). */
+/** @brief Shell handler for `lp` (red on, green off; 80 MHz). */
 static int cmd_lp(const struct shell *sh, size_t argc, char **argv)
 {
 	ARG_UNUSED(argc);
@@ -124,7 +126,7 @@ static int cmd_probe(const struct shell *sh, size_t argc, char **argv)
 
 /* Register the top-level shell commands. */
 SHELL_CMD_REGISTER(ulp, NULL, "Enter Ultra-Low-Power mode (50 MHz)", cmd_ulp);
-SHELL_CMD_REGISTER(lp, NULL, "Enter Low-Power mode (66 MHz)", cmd_lp);
+SHELL_CMD_REGISTER(lp, NULL, "Enter Low-Power mode (80 MHz)", cmd_lp);
 SHELL_CMD_REGISTER(hp, NULL, "Enter High-Performance mode (200 MHz)", cmd_hp);
 SHELL_CMD_REGISTER(probe, NULL, "Measure actual clock frequencies", cmd_probe);
 

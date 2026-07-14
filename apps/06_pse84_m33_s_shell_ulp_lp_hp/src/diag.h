@@ -19,11 +19,12 @@
  *   still blinking  stop at freeze          CPU alive; SCB UART dead
  *   frozen          stop at freeze          Hard CPU hang
  *
- * The raw-SCB path polls TX_FIFO_STATUS.USED (low 8 bits) and treats
- * >= 16 as "wait". This is the exact pattern used by the reference
- * `tmp/zephyr_dvfs_dpm_proposed/m33_ns/src/raw_console.c` — same
- * SCB2 base (0x429a0000) since both apps target the PSE84 kit_pse84
- * app-side console UART.
+ * The raw-SCB path polls @c TX_FIFO_STATUS.USED (bits [8:0], 9 bits
+ * wide per the SCB v3 IP) and treats >= 16 as "wait". SCB2 is
+ * accessed via its Secure alias 0x529a0000 -- we build for the
+ * secure-only board variant, so writing the Non-Secure alias
+ * 0x429a0000 (which the reference project's raw console uses
+ * because it runs from CM33-NS) would raise a BusFault.
  */
 #ifndef APP_DIAG_H_
 #define APP_DIAG_H_
