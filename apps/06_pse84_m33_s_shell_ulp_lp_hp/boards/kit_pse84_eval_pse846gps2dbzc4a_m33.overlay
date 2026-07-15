@@ -8,30 +8,30 @@
  *   scb2 (uart2)              -> zephyr,console + zephyr,shell-uart
  *   peri0_group1_16bit_1      -> scb2 peripheral clock divider
  *   gpio_prt16                -> RGB LEDs (led0..led2 on P16.5-7)
+ *   gpio_prt3                 -> pm_busy scope trigger on P3.1
  *   flash_controller / rram0  -> code storage (--snippet rram redirects
  *                                zephyr,flash here)
- *   system clocks (dpll_lp0, path_mux0, clk_hf*, ...)
- *                             -> untouched apart from the explicit
- *                                clk_hf0 clock-div below
  *
- * Explicitly documented:
- *   clk_hf0 is set to divide DPLL_LP0 by 2. With the board DT's
- *   dpll_lp0 clock-frequency = 400 MHz, this yields CLK_HF0 = 200 MHz
- *   -- the AN237976 Table 5 CM33 HP-mode maximum. The board DT
- *   already selects the same divider, but pinning it here documents
- *   the demo's clocking assumption so any accidental drift shows up
- *   in review.
+ * Clock-tree baseline (see PLAN_dual_dvfs.md for full rationale)
+ * ---------------------------------------------------------------
+ * DPLL_LP0 is retuned to 200 MHz (from the board default 400 MHz)
+ * and CLK_HF0 is set to divide-by-1, so:
  *
- *   NOTE: the runtime PLL retune in power_manager.c currently
- *   assumes CLK_HF0 = DPLL frequency (no divider), so an `hp`
- *   command programs DPLL to 200 MHz -- with this /2 divider that
- *   lands CLK_HF0 at only 100 MHz (half the HP spec), which is why
- *   post-`hp` HP shows ~5.88 mA vs the boot HP ~15 mA at correct
- *   200 MHz. Fixing that requires either changing the runtime
- *   targets (HP=400 MHz DPLL, LP=160 MHz, ULP handled specially)
- *   or overriding clk_hf0 clock-div to IFX_CLK_HF_NO_DIVIDE here
- *   and accepting a 400 MHz over-spec CPU at boot until the first
- *   mode command runs. That decision is left for a follow-up.
+ *   DPLL_LP0 = 200 MHz
+ *     |-- CLK_HF0  (/1)  = 200 MHz  -> CM33 core, AN237976 HP max
+ *     `-- CLK_HF10 (/4)  =  50 MHz  -> SCB2 peripheral clock
+ *
+ * Reasons for this baseline:
+ *   1. CM33 lands at exactly the AN237976 HP spec ceiling from boot,
+ *      no runtime action needed.
+ *   2. The maximum DPLL frequency ever seen at runtime is 200 MHz,
+ *      safely inside DPLL_LP's 10-500 MHz spec at every voltage --
+ *      the 400 MHz baseline previously flirted with the ULP-voltage
+ *      lock hazard whenever the PLL-retune path had to reprogram
+ *      it back up.
+ *   3. Both DVFS approaches (PLL-retune and divider-only, see
+ *      PLAN_dual_dvfs.md) share this same baseline so a switch
+ *      between them is a code-only change.
  */
 
 #include <zephyr/dt-bindings/clock/ifx_clock_source_common.h>
@@ -66,10 +66,30 @@
  * above). */
 &gpio_prt3 { status = "okay"; };
 
+/* ------------------------------------------------------------------
+ * DPLL_LP0 -- retune the board default from 400 MHz to 200 MHz.
+ *
+ * Formula: output = input * feedback-div / (reference-div * output-div)
+ * Input on this board is IHO = 50 MHz. Board default (400 MHz) uses
+ * FB=56, REF=7, OUT=1 -> 50 * 56 / (7 * 1) = 400. Halving FB to 28
+ * gives 50 * 28 / (7 * 1) = 200 MHz. Reference-div stays 7 to keep
+ * the same phase-noise / jitter profile the board vendor selected.
+ * ------------------------------------------------------------------ */
+&dpll_lp0 {
+	clock-frequency = <200000000>;
+	feedback-div = <28>;
+	reference-div = <7>;
+	output-div = <1>;
+	fraction-div = <0>;
+};
+
 &clk_hf0 {
-	/* Explicit /2: DPLL_LP0 (400 MHz board default) -> HF0 200 MHz.
-	 * Matches AN237976 CM33 HP frequency spec. */
-	clock-div = <IFX_CLK_HF_DIVIDE_BY_2>;
+	/* /1: DPLL_LP0 (200 MHz) -> CLK_HF0 200 MHz.
+	 * Matches AN237976 CM33 HP frequency spec. The board default
+	 * is /2 (was correct when DPLL was 400 MHz); we override to /1
+	 * now that DPLL is at 200 MHz so the same baseline works for
+	 * both DVFS approaches (see PLAN_dual_dvfs.md). */
+	clock-div = <IFX_CLK_HF_NO_DIVIDE>;
 };
 
 /* ------------------------------------------------------------------

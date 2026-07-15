@@ -27,14 +27,14 @@
  *   AFTER_TRANSITION  : Cy_RRAM_SetVoltageMode + DPLL_LP0 to the
  *                       mode's final target (400/160/100 MHz)
  *
- * CLK_HF0 = DPLL_LP0 / 2 (board DT default), so the DPLL targets
- * land CM33 at the AN237976 Table 5 spec:
+ * CLK_HF0 = DPLL_LP0 / 1 (DT overlay override), so the DPLL output
+ * IS the CM33 core frequency:
  *
  *   Mode  |  DPLL_LP0 |  CLK_HF0 (CM33) |  Core V
  *   ------|-----------|-----------------|--------
- *   ULP   | 100 MHz   |   50 MHz        |  0.7 V
- *   LP    | 160 MHz   |   80 MHz        |  0.8 V
- *   HP    | 400 MHz   |  200 MHz        |  0.9 V
+ *   ULP   |  50 MHz   |   50 MHz        |  0.7 V
+ *   LP    |  80 MHz   |   80 MHz        |  0.8 V
+ *   HP    | 200 MHz   |  200 MHz        |  0.9 V
  *
  * All rules that the callbacks enforce (raise voltage before clock
  * on up-transitions; drop clock before voltage on down-transitions;
@@ -62,13 +62,13 @@ typedef enum {
  * @brief Initialise the power-mode manager software state.
  *
  * Registers the HP/LP/ULP SysPm callbacks and records the initial
- * mode. Does NOT touch the PLL at boot -- the Zephyr SCB UART
- * driver was calibrated by cybsp against the 400 MHz DPLL_LP0
- * default, so retuning it here would immediately garble the console
- * (the driver has no chance to re-run uart_configure between our
- * PLL change and the next printk). The first mode command from the
- * shell brings the PLL onto the correct target and re-tunes the
- * SCB in the same critical section.
+ * mode. Does NOT touch the PLL at boot: the DT overlay has already
+ * landed the SoC in an in-spec HP state (DPLL_LP0 200 MHz ->
+ * CLK_HF0 200 MHz -> CM33 200 MHz, at the AN237976 HP ceiling), so
+ * there is nothing to correct here. Reprogramming the PLL just to
+ * re-assert the same target would still transiently invalidate
+ * CLK_HF10, garble the next printk, and gain nothing. See the
+ * implementation in power_manager.c for the full rationale.
  */
 void pm_init(void);
 

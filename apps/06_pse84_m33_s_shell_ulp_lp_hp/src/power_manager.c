@@ -19,9 +19,11 @@
  * `<T:LP2ULP:3:before-RRAM_ULP>` was the final marker before
  * introducing this callback-based path).
  *
- * PLL0 target frequencies match the mtb-example exactly:
- *   HP  : 400 MHz         intermediate LP<->HP  : 75 MHz
- *   LP  : 120 MHz         intermediate LP<->ULP : 41 MHz
+ * PLL0 target frequencies (per @ref DPLL_FREQ_HP_HZ etc. -- the DT
+ * overlay pins CLK_HF0 to DPLL_LP0 / 1, so the DPLL output IS the
+ * CM33 core frequency):
+ *   HP  : 200 MHz         intermediate LP<->HP  : 75 MHz
+ *   LP  :  80 MHz         intermediate LP<->ULP : 41 MHz
  *   ULP :  50 MHz
  *
  * The intermediate frequency is set in the BEFORE_TRANSITION phase
@@ -59,8 +61,8 @@
  * The DPLL_LP0 input on this board is IHO = 50 MHz. This is NOT the
  * 24 MHz value used by the Infineon mtb-example -- their example
  * targets a different reference. Confirmed against the board DT:
- *   dpll_lp0 { FB=56 REF=7 OUT=1  clock-frequency = 400 MHz }
- *   -> input = 400 * 7 / 56 = 50 MHz
+ *   dpll_lp0 { FB=28 REF=7 OUT=1  clock-frequency = 200 MHz }
+ *   -> input = 200 * 7 / 28 = 50 MHz
  * Using the wrong 24 MHz value here previously produced PLL outputs
  * ~2x the intended target -- observed with the runtime clock probe:
  *   `lp`  target 80 MHz -> measured DPLL_LP0 = 166.666 MHz
@@ -71,32 +73,32 @@
  *                       and the PLL stayed bypassed (asked to lock
  *                       at 50*25/3 = 416 MHz at 0.7 V, timed out).
  *
- * The kit_pse84_eval m33 board DT programs clk_hf0 as DPLL/2. Our
- * DPLL targets therefore have to be TWICE the CM33 spec frequency
- * so CLK_HF0 lands at the AN237976 Table 5 CM33-max:
- *   HP  : DPLL 400 MHz -> HF0 200 MHz  (CM33 HP  max)
- *   LP  : DPLL 160 MHz -> HF0  80 MHz  (CM33 LP  max)
- *   ULP : DPLL 100 MHz -> HF0  50 MHz  (CM33 ULP max)
+ * The DT overlay pins CLK_HF0 to DPLL_LP0 / 1, so DPLL frequency IS
+ * the CM33 core frequency. Targets are the AN237976 Table 5 CM33-max
+ * values directly:
+ *   HP  : DPLL 200 MHz -> HF0 200 MHz  (CM33 HP  max)
+ *   LP  : DPLL  80 MHz -> HF0  80 MHz  (CM33 LP  max)
+ *   ULP : DPLL  50 MHz -> HF0  50 MHz  (CM33 ULP max)
  *
- * Note: the ULP DPLL of 100 MHz is above the ULP "HF clock" 50 MHz
- * spec as measured at CLK_HFn, but the DPLL_LP block itself is
- * rated 10-500 MHz per AN237976 and only the derived CLK_HFn
- * outputs are limited by voltage. HF0 lands at 100/2 = 50 MHz which
- * is exactly at the CM33 / HF spec ceiling.
+ * The 50 MHz ULP target is at the DPLL_LP0's specified min-frequency
+ * lock envelope; no PLL lock issues have been observed at 0.7 V core
+ * voltage since the baseline was moved down from 400 MHz to 200 MHz
+ * (see PLAN_dual_dvfs.md for the history).
  *
  * The vendor-tested transition intermediates below are absolute
  * DPLL-side thresholds tied to the SRAM/RRAM trim window at the
- * target voltage. HP <-> LP: 75 MHz DPLL -> HF0 37.5 MHz, well
+ * target voltage. HP <-> LP: 75 MHz DPLL -> HF0 75 MHz, well
  * inside the "reduce by 82% below 400" rule (implies HF0 <= ~72
- * MHz). LP <-> ULP: 41 MHz DPLL -> HF0 20.5 MHz, inside the
- * "reduce by 66% below 140" rule (implies HF0 <= ~47 MHz).
+ * MHz -- 75 is a hair over, matches the Infineon mtb-example).
+ * LP <-> ULP: 41 MHz DPLL -> HF0 41 MHz, inside the "reduce by 66%
+ * below 140" rule (implies HF0 <= ~47 MHz).
  * ------------------------------------------------------------------ */
 #define DPLL_INPUT_FREQ_HZ (50000000U) /* IHO */
 #define DPLL_ENABLE_TIMEOUT_MS (10000U)
 
-#define DPLL_FREQ_HP_HZ (400000000U)  /* HF0 /2 -> CM33 200 MHz */
-#define DPLL_FREQ_LP_HZ (160000000U)  /* HF0 /2 -> CM33  80 MHz */
-#define DPLL_FREQ_ULP_HZ (100000000U) /* HF0 /2 -> CM33  50 MHz */
+#define DPLL_FREQ_HP_HZ (200000000U) /* HF0 /1 -> CM33 200 MHz */
+#define DPLL_FREQ_LP_HZ (80000000U)  /* HF0 /1 -> CM33  80 MHz */
+#define DPLL_FREQ_ULP_HZ (50000000U) /* HF0 /1 -> CM33  50 MHz */
 
 #define DPLL_FREQ_INTERMEDIATE_LP_HZ (75000000U)  /* HP <-> LP transitions */
 #define DPLL_FREQ_INTERMEDIATE_ULP_HZ (41000000U) /* LP <-> ULP transitions */
@@ -375,31 +377,34 @@ const char *pm_mode_name(pm_mode_t m)
 
 void pm_init(void)
 {
-	/* Zephyr boot (cybsp + board DT) leaves DPLL_LP0 at the board
-	 * `clock-frequency` (400 MHz on kit_pse84_eval). That is over
-	 * the CM33 HP spec max of 200 MHz per AN237976 Table 5, but
-	 * the CPU tolerates it AND -- crucially -- the SCB UART's
-	 * baud divider was calibrated by the driver init against that
-	 * 400 MHz HF tree. Reprogramming PLL0 here would immediately
-	 * garble the console (the driver has no chance to re-run
-	 * uart_configure between our PLL change and the next printk).
+	/* Nothing to reprogram on init. The DT overlay lands us in a
+	 * fully-in-spec HP state at boot:
 	 *
-	 * So do NOT touch the PLL on init -- just register the three
-	 * SysPm callbacks. The very first `lp` / `ulp` / `hp` command
-	 * the user issues will run the target-mode callback, which
-	 * reprograms PLL0 to the CM33-spec frequency AND triggers
-	 * pm_reconfigure_console_uart() at the end of pm_switch_to(),
-	 * bringing the shell UART back onto the new peripheral clock.
-	 * From that command onwards HP=200/LP=80/ULP=50 MHz and every
-	 * transition retunes the console cleanly.
+	 *   DPLL_LP0 = 200 MHz  (overlay clock-frequency, matches
+	 *                        DPLL_FREQ_HP_HZ)
+	 *   CLK_HF0  = DPLL/1 = 200 MHz  (CM33 HP spec max per
+	 *                                 AN237976 Table 5)
+	 *   CLK_HF10 = DPLL/4 =  50 MHz  (SCB2 peripheral clock,
+	 *                                 baud divider calibrated by
+	 *                                 the Zephyr SCB driver at
+	 *                                 init against this value)
 	 *
-	 * Trade-off: the *boot* HP state runs at 400 MHz until the
-	 * user issues their first mode command. If you want boot HP
-	 * to be 200 MHz too, you'd need to (a) call
-	 * pm_pll_reconfigure(200M) here AND (b) immediately re-run
-	 * uart_configure on the console -- which requires a
-	 * device-ready UART before pm_init runs. Not worth it for a
-	 * shell demo.
+	 * Reprogramming the PLL here even to the same target frequency
+	 * would still tear down/back up DPLL_LP0 momentarily, which
+	 * transiently invalidates CLK_HF10 and hence the SCB baud
+	 * divider. The Zephyr UART driver would then need an
+	 * uart_configure() call before the next printk to recompute
+	 * its divider, and there is nothing in the Zephyr bring-up
+	 * sequence that gives us a hook to insert that call between
+	 * our PLL change and the next console output. So we would
+	 * garble the very next printk for no benefit -- the state was
+	 * already correct.
+	 *
+	 * pm_init() therefore just registers the three SysPm callbacks
+	 * and returns. The first `lp` or `ulp` command runs its
+	 * callback (which reconfigures DPLL_LP0 to 80 or 50 MHz)
+	 * followed by pm_switch_to()'s trailing SCB retune, so the
+	 * console stays coherent across the transition.
 	 */
 	s_current_mode = PM_MODE_HP;
 
