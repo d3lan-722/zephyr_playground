@@ -14,6 +14,8 @@ project(pse84_m33_s_shell_ulp_lp_hp)
 target_sources(app PRIVATE
     src/main.c
     src/power_manager.c
+    src/power_manager_pll_retune.c
+    src/power_manager_hf0_divider.c
     src/shell_cmds.c
     src/gpio_indicators.c
     src/diag.c

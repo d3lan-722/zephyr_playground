@@ -1,0 +1,255 @@
+/*
+ * Copyright (c) 2026
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/**
+ * @file
+ * @brief DVFS strategy: reprogram DPLL_LP0 per mode via SysPm
+ *        callbacks. Selected by @c PM_STRATEGY_PLL_RETUNE.
+ *
+ * Three @c cy_stc_syspm_callback_t hooks (one per target mode)
+ * fire on the BEFORE_TRANSITION and AFTER_TRANSITION phases of
+ * @c Cy_SysPm_SystemEnter{Hp,Lp,Ulp}. BEFORE takes the PLL to a
+ * SRAM-safe intermediate frequency; AFTER sets the final target
+ * and retunes the RRAM controller.
+ *
+ * Scales all clocks derived from DPLL_LP0 with the mode -- CM33
+ * lands at the AN237976 spec ceiling for every mode, peripheral
+ * clocks drop with it. Cost: ~400-500 ms per transition
+ * (two @c Cy_SysClk_PllEnable lock waits + a mandatory SCB baud
+ * retune afterwards).
+ *
+ * See @c PLAN_dual_dvfs.md for the design rationale.
+ */
+
+#include "power_manager_internal.h"
+
+#ifdef PM_STRATEGY_PLL_RETUNE
+
+#include <errno.h>
+
+#include <zephyr/kernel.h>
+#include <zephyr/sys/printk.h>
+
+#include "cy_pdl.h"
+
+#include "diag.h"
+
+/* ------------------------------------------------------------------
+ * DPLL_LP0 target frequencies. Input is IHO = 50 MHz (see the DT
+ * overlay's dpll_lp0 { FB=28 REF=7 OUT=1 clock-frequency=200 MHz }).
+ * The overlay pins CLK_HF0 to DPLL_LP0 / 1, so the DPLL output IS
+ * the CM33 core frequency; targets match AN237976 Table 5 exactly.
+ *
+ * Intermediates are absolute DPLL-side thresholds tied to the
+ * SRAM/RRAM trim window at the destination voltage. Vendor-tested;
+ * see PLAN_dual_dvfs.md.
+ * ------------------------------------------------------------------ */
+#define DPLL_INPUT_FREQ_HZ            (50000000u)  /* IHO */
+#define DPLL_ENABLE_TIMEOUT_MS        (10000u)
+
+#define DPLL_FREQ_HP_HZ               (200000000u) /* CM33 HP  spec max */
+#define DPLL_FREQ_LP_HZ               (80000000u)  /* CM33 LP  spec max */
+#define DPLL_FREQ_ULP_HZ              (50000000u)  /* CM33 ULP spec max */
+
+#define DPLL_FREQ_INTERMEDIATE_LP_HZ  (75000000u)  /* HP <-> LP */
+#define DPLL_FREQ_INTERMEDIATE_ULP_HZ (41000000u)  /* LP <-> ULP */
+
+/* Sentinel for s_last_pll_enable_st meaning "PllEnable was not
+ * reached this call -- PllConfigure failed first". */
+#define PM_PLL_ENABLE_NOT_REACHED     0xFFFFFFFFu
+
+/**
+ * Latched status of the most recent pm_pll_reconfigure() call.
+ * Set inside the SysPm critical section; printed later by
+ * pm_strategy_probe_status() when the console is safe. Zero target
+ * means "no retune since boot".
+ */
+static uint32_t s_last_pll_target_hz;
+static uint32_t s_last_pll_configure_st;
+static uint32_t s_last_pll_enable_st = PM_PLL_ENABLE_NOT_REACHED;
+
+/**
+ * @brief Reprogram DPLL_LP0 to @p freq_hz.
+ *
+ * Console-integrity contract (called from a SysPm callback, inside
+ * the Cy_SysLib critical section):
+ *   - Drain SCB2 TX FIFO before Cy_SysClk_PllDisable so no byte is
+ *     in flight while CLK_HF10 collapses to its bypass source.
+ *   - Do NOT re-run uart_configure() here. The Zephyr SCB driver
+ *     misbehaves when reconfigured under a critical section (bytes
+ *     get garbled or the console freezes). The SCB retune happens
+ *     back in pm_switch_to() with IRQs re-enabled.
+ *   - No diagnostic bytes may be emitted between this function's
+ *     return and pm_switch_to()'s trailing SCB retune -- the baud
+ *     divider is stale in that window.
+ *
+ * @return CY_SYSPM_SUCCESS on lock or CY_SYSPM_FAIL if either
+ *         PllConfigure or PllEnable reported an error.
+ */
+static cy_en_syspm_status_t pm_pll_reconfigure(uint32_t freq_hz)
+{
+	cy_stc_pll_config_t cfg = {
+		.inputFreq  = DPLL_INPUT_FREQ_HZ,
+		.outputMode = CY_SYSCLK_FLLPLL_OUTPUT_AUTO,
+		.outputFreq = freq_hz,
+	};
+	cy_en_sysclk_status_t st;
+
+	diag_trace_flush();
+
+	Cy_SysClk_PllDisable(SRSS_DPLL_LP_0_PATH_NUM);
+
+	st = Cy_SysClk_PllConfigure(SRSS_DPLL_LP_0_PATH_NUM, &cfg);
+	if (st != CY_SYSCLK_SUCCESS) {
+		s_last_pll_target_hz    = freq_hz;
+		s_last_pll_configure_st = (uint32_t)st;
+		s_last_pll_enable_st    = PM_PLL_ENABLE_NOT_REACHED;
+		return CY_SYSPM_FAIL;
+	}
+	st = Cy_SysClk_PllEnable(SRSS_DPLL_LP_0_PATH_NUM,
+				 DPLL_ENABLE_TIMEOUT_MS);
+	s_last_pll_target_hz    = freq_hz;
+	s_last_pll_configure_st = 0u;
+	s_last_pll_enable_st    = (uint32_t)st;
+
+	return (st == CY_SYSCLK_SUCCESS) ? CY_SYSPM_SUCCESS : CY_SYSPM_FAIL;
+}
+
+/* ------------------------------------------------------------------
+ * SysPm callbacks. PDL calls each in the CHECK_READY /
+ * BEFORE_TRANSITION / AFTER_TRANSITION phases; we act only on the
+ * last two. Direction rule:
+ *   Down (voltage falls): drop PLL to safe intermediate BEFORE the
+ *                         voltage step so the still-running PLL
+ *                         survives it, then RRAM + final PLL AFTER.
+ *   Up   (voltage rises): same shape -- the intermediate keeps the
+ *                         PLL inside the source-mode envelope while
+ *                         Cy_SysPm_SystemEnter* raises voltage.
+ * ------------------------------------------------------------------ */
+
+static cy_en_syspm_status_t pm_syspm_hp_cb(cy_stc_syspm_callback_params_t *p,
+					   cy_en_syspm_callback_mode_t mode)
+{
+	ARG_UNUSED(p);
+
+	if (mode == CY_SYSPM_BEFORE_TRANSITION) {
+		return pm_pll_reconfigure(DPLL_FREQ_INTERMEDIATE_LP_HZ);
+	}
+	if (mode == CY_SYSPM_AFTER_TRANSITION) {
+		Cy_RRAM_SetVoltageMode(RRAMC0, CY_RRAM_VMODE_HP);
+		return pm_pll_reconfigure(DPLL_FREQ_HP_HZ);
+	}
+	return CY_SYSPM_SUCCESS;
+}
+
+static cy_en_syspm_status_t pm_syspm_lp_cb(cy_stc_syspm_callback_params_t *p,
+					   cy_en_syspm_callback_mode_t mode)
+{
+	ARG_UNUSED(p);
+
+	if (mode == CY_SYSPM_BEFORE_TRANSITION) {
+		/* Coming up from ULP the PLL must be under the ULP
+		 * ceiling; from HP just under the LP ceiling. */
+		uint32_t intermediate = Cy_SysPm_IsSystemUlp()
+			? DPLL_FREQ_INTERMEDIATE_ULP_HZ
+			: DPLL_FREQ_INTERMEDIATE_LP_HZ;
+		return pm_pll_reconfigure(intermediate);
+	}
+	if (mode == CY_SYSPM_AFTER_TRANSITION) {
+		Cy_RRAM_SetVoltageMode(RRAMC0, CY_RRAM_VMODE_LP);
+		return pm_pll_reconfigure(DPLL_FREQ_LP_HZ);
+	}
+	return CY_SYSPM_SUCCESS;
+}
+
+static cy_en_syspm_status_t pm_syspm_ulp_cb(cy_stc_syspm_callback_params_t *p,
+					    cy_en_syspm_callback_mode_t mode)
+{
+	ARG_UNUSED(p);
+
+	if (mode == CY_SYSPM_BEFORE_TRANSITION) {
+		return pm_pll_reconfigure(DPLL_FREQ_INTERMEDIATE_ULP_HZ);
+	}
+	if (mode == CY_SYSPM_AFTER_TRANSITION) {
+		Cy_RRAM_SetVoltageMode(RRAMC0, CY_RRAM_VMODE_ULP);
+		return pm_pll_reconfigure(DPLL_FREQ_ULP_HZ);
+	}
+	return CY_SYSPM_SUCCESS;
+}
+
+static cy_stc_syspm_callback_params_t pm_hp_params  = {NULL, NULL};
+static cy_stc_syspm_callback_params_t pm_lp_params  = {NULL, NULL};
+static cy_stc_syspm_callback_params_t pm_ulp_params = {NULL, NULL};
+
+static cy_stc_syspm_callback_t pm_hp_cb = {
+	.callback       = &pm_syspm_hp_cb,
+	.type           = CY_SYSPM_HP,
+	.callbackParams = &pm_hp_params,
+};
+
+static cy_stc_syspm_callback_t pm_lp_cb = {
+	.callback       = &pm_syspm_lp_cb,
+	.type           = CY_SYSPM_LP,
+	.callbackParams = &pm_lp_params,
+};
+
+static cy_stc_syspm_callback_t pm_ulp_cb = {
+	.callback       = &pm_syspm_ulp_cb,
+	.type           = CY_SYSPM_ULP,
+	.callbackParams = &pm_ulp_params,
+};
+
+/* ------------------------------------------------------------------
+ * Strategy interface (see power_manager_internal.h).
+ * ------------------------------------------------------------------ */
+
+void pm_strategy_init(void)
+{
+	(void)Cy_SysPm_RegisterCallback(&pm_hp_cb);
+	(void)Cy_SysPm_RegisterCallback(&pm_lp_cb);
+	(void)Cy_SysPm_RegisterCallback(&pm_ulp_cb);
+}
+
+int pm_strategy_transition(pm_mode_t source, pm_mode_t target)
+{
+	ARG_UNUSED(source); /* callbacks read Cy_SysPm_IsSystemUlp() etc.
+			     * themselves for direction-awareness. */
+
+	cy_en_syspm_status_t st = pm_syspm_enter(target);
+
+	if (st != CY_SYSPM_SUCCESS) {
+		printk("[pm] SystemEnter* failed (%d)\n", (int)st);
+		return -EIO;
+	}
+	return 0;
+}
+
+const char *pm_strategy_mode_name(pm_mode_t m)
+{
+	switch (m) {
+	case PM_MODE_HP:  return "HP  (200 MHz)";
+	case PM_MODE_LP:  return "LP  ( 80 MHz)";
+	case PM_MODE_ULP: return "ULP ( 50 MHz)";
+	default:          return "UNKNOWN";
+	}
+}
+
+void pm_strategy_probe_status(void)
+{
+	if (s_last_pll_target_hz == 0u) {
+		printk("[pll] no retune since boot (cybsp/board default)\n");
+		return;
+	}
+	printk("[pll] last target=%u Hz  Configure=0x%08x  Enable=0x%08x\n",
+	       s_last_pll_target_hz, s_last_pll_configure_st,
+	       s_last_pll_enable_st);
+}
+
+bool pm_strategy_needs_uart_retune(void)
+{
+	return true;
+}
+
+#endif /* PM_STRATEGY_PLL_RETUNE */
