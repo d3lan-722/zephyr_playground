@@ -253,4 +253,13 @@ void pm_strategy_probe_status(void)
 
 bool pm_strategy_needs_uart_retune(void) { return true; }
 
+void pm_strategy_print_last_phases(uint32_t effective_hz)
+{
+	(void)effective_hz;
+	/* Not instrumented for PLL-retune yet -- the phase timing here
+	 * lives inside the three SysPm callbacks, not in a linear PDL
+	 * sequence like the divider-only strategy. Left as a no-op so
+	 * pm_switch_to() can call it unconditionally. */
+}
+
 #endif /* PM_STRATEGY_PLL_RETUNE */

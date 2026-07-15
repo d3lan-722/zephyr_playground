@@ -185,6 +185,7 @@ int pm_switch_to(pm_mode_t target)
 	printk("[pm] transition %s -> %s : ~%u us (%u cycles @ %u MHz)\n",
 	       pm_mode_name(source), pm_mode_name(target), us, cycles,
 	       effective_hz / 1000000u);
+	pm_strategy_print_last_phases(effective_hz);
 
 	TRACE("switch:complete");
 	pm_clock_probe();

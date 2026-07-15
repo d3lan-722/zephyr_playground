@@ -93,6 +93,13 @@ void pm_strategy_probe_status(void);
  *  not). */
 bool pm_strategy_needs_uart_retune(void);
 
+/** Print a one-line breakdown of the phases inside the last
+ *  @c pm_strategy_transition() call, converted to microseconds
+ *  using @p effective_hz (the same MIN(pre, post) CLK_HF0 rate
+ *  that @c pm_switch_to uses for its aggregate "us" figure). A
+ *  strategy that has nothing to report may leave this empty. */
+void pm_strategy_print_last_phases(uint32_t effective_hz);
+
 /* ------------------------------------------------------------------
  * Shared helper -- implemented in power_manager.c, used by both
  * strategy files as the voltage-step primitive.

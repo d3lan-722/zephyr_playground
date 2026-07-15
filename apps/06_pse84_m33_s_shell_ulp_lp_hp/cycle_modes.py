@@ -1,7 +1,21 @@
 #!/usr/bin/env python3
-"""Cycle the pm shell commands (lp -> ulp -> hp -> ...) on the CM33-S
-shell of project 06 every 5 seconds and print whatever the console
-emits after each command.
+"""Cycle the pm shell commands on the CM33-S shell of project 06 so
+that every iteration exercises all six directed HP/LP/ULP transitions
+exactly once, printing whatever the console emits after each command.
+
+The command sequence ``ulp, lp, ulp, hp, lp, hp`` is an Euler circuit
+on the six-edge transition graph starting and ending at HP:
+
+    step  command   transition       kind
+    ----  -------   --------------   -----------------
+     1    ulp       HP  -> ULP       down direct
+     2    lp        ULP -> LP        up 1 step
+     3    ulp       LP  -> ULP       down 1 step
+     4    hp        ULP -> HP        up direct
+     5    lp        HP  -> LP        down 1 step
+     6    hp        LP  -> HP        up 1 step
+
+After step 6 the SoC is back in HP, so the loop repeats cleanly.
 
 Usage:
     ./cycle_modes.py                    # default: /dev/ttyACM0, 5 s
@@ -18,7 +32,10 @@ import time
 import serial
 
 BAUD = 115200
-COMMANDS = ["lp", "ulp", "hp"]
+
+# Euler circuit over the six directed HP/LP/ULP transitions, starting
+# and ending in HP -- see the module docstring for the per-step table.
+COMMANDS = ["ulp", "lp", "ulp", "hp", "lp", "hp"]
 
 # Stable udev id for the KitProg3 UART interface (CDC ACM). The
 # `-if02` suffix picks the UART CDC interface, not the DAP one.
