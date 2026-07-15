@@ -55,6 +55,103 @@
 
 #include "diag.h"
 
+/* ==================================================================
+ * DVFS approach selection (compile-time -- see PLAN_dual_dvfs.md).
+ *
+ * Exactly one of the two macros below must be defined at build time.
+ * They select which mode-switch strategy pm_switch_to() uses when the
+ * shell issues an lp / ulp / hp command:
+ *
+ *   PM_APPROACH_PLL_RETUNE   -- SysPm callbacks reconfigure DPLL_LP0
+ *                               around every voltage step. Hits the
+ *                               CM33 spec ceiling exactly for every
+ *                               mode (200 / 80 / 50 MHz) and drags
+ *                               peripheral clocks down along with
+ *                               the CPU. Transition wall time:
+ *                               ~400-500 ms (dominated by two
+ *                               PllEnable lock waits + SCB retune).
+ *
+ *   PM_APPROACH_DIVIDER_ONLY -- DPLL_LP0 stays at 200 MHz forever;
+ *                               only Cy_SysClk_ClkHfSetDivider(0, .)
+ *                               changes per mode. LP lands at 66 MHz
+ *                               (200 / 3) instead of 80 MHz because
+ *                               of integer-divider granularity, and
+ *                               peripheral clocks stay at their HP
+ *                               values. Transition wall time: ~1-5
+ *                               ms (voltage step only). Not yet
+ *                               implemented -- see step 3 of
+ *                               PLAN_dual_dvfs.md.
+ *
+ * To switch, comment out the current line and uncomment the other.
+ * Both approaches share the DT overlay's 200 MHz DPLL / HF0 /1
+ * baseline, so the switch is a code-only change (no overlay edits).
+ * ================================================================== */
+#define PM_APPROACH_PLL_RETUNE 1
+/* #define PM_APPROACH_DIVIDER_ONLY 1 */
+
+#if defined(PM_APPROACH_PLL_RETUNE) == defined(PM_APPROACH_DIVIDER_ONLY)
+#error                                                                         \
+    "Exactly one of PM_APPROACH_PLL_RETUNE / PM_APPROACH_DIVIDER_ONLY must be defined"
+#endif
+
+#if defined(PM_APPROACH_DIVIDER_ONLY)
+#error                                                                         \
+    "PM_APPROACH_DIVIDER_ONLY not implemented yet -- see PLAN_dual_dvfs.md step 3"
+#endif
+
+/* ==================================================================
+ * Shared state (used by both approaches).
+ * ================================================================== */
+
+/** Current active power mode. Boot leaves the SoC in HP. */
+static pm_mode_t s_current_mode = PM_MODE_HP;
+
+/**
+ * Console UART handle. The SCB baud divider it caches at boot is
+ * only valid for the CLK_HF10 frequency that was live at that time,
+ * so we retune it after every mode change (see
+ * @ref pm_reconfigure_console_uart).
+ */
+static const struct device *const console_uart =
+    DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
+
+/**
+ * @brief Re-run @c uart_configure on the console SCB so the Infineon
+ *        ifx_cat1 driver recomputes its baud divider against the
+ *        currently-live CLK_HF10 frequency.
+ *
+ * Called from @ref pm_switch_to after every successful mode change.
+ * For PM_APPROACH_PLL_RETUNE this is essential (CLK_HF10 changes
+ * across every transition). For PM_APPROACH_DIVIDER_ONLY it is a
+ * harmless no-op re-programming (HF10 stays at 50 MHz always).
+ */
+static void pm_reconfigure_console_uart(void)
+{
+	struct uart_config cfg;
+
+	if (!device_is_ready(console_uart)) {
+		return;
+	}
+	if (uart_config_get(console_uart, &cfg) != 0) {
+		return;
+	}
+	(void)uart_configure(console_uart, &cfg);
+}
+
+/*
+ * Raw-SCB2 step markers. Route diagnostic markers through diag_trace()
+ * so a hang inside the PDL / callback path leaves the last-known step
+ * visible on the console even if the Zephyr UART driver is broken by
+ * the transition. See src/diag.h for the alive/dead diagnosis matrix.
+ */
+#define TRACE(msg) diag_trace("<T:" msg ">\n")
+
+/* ==================================================================
+ * Approach A -- PLL retune (SysPm callback + Cy_SysClk_PllReconfigure).
+ * All symbols below are gated by PM_APPROACH_PLL_RETUNE.
+ * ================================================================== */
+#if defined(PM_APPROACH_PLL_RETUNE)
+
 /* ------------------------------------------------------------------
  * PLL0 target frequencies -- CM33-oriented per AN237976 Table 5.
  *
@@ -111,9 +208,6 @@
  */
 #define TRACE(msg) diag_trace("<T:" msg ">\n")
 
-/** Current active power mode. Boot leaves the SoC in HP. */
-static pm_mode_t s_current_mode = PM_MODE_HP;
-
 /**
  * @brief Sentinel value for @ref s_last_pll_enable_st meaning
  *        "PllEnable was not reached this attempt because
@@ -137,37 +231,6 @@ static pm_mode_t s_current_mode = PM_MODE_HP;
 static uint32_t s_last_pll_target_hz;
 static uint32_t s_last_pll_configure_st;
 static uint32_t s_last_pll_enable_st = PM_PLL_ENABLE_NOT_REACHED;
-
-/**
- * Console UART handle. The SCB baud divider it caches at boot is
- * only valid for the CLK_HF10 frequency that was live at that time,
- * so we retune it after every mode change (see
- * @ref pm_reconfigure_console_uart).
- */
-static const struct device *const console_uart =
-    DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
-
-/**
- * @brief Re-run @c uart_configure on the console SCB so the Infineon
- *        ifx_cat1 driver recomputes its baud divider against the
- *        currently-live CLK_HF10 frequency.
- *
- * Called from @ref pm_switch_to after every successful mode change
- * (which retuned DPLL_LP0, therefore CLK_HF10). No-op if the console
- * device is not yet ready or its configuration cannot be read back.
- */
-static void pm_reconfigure_console_uart(void)
-{
-	struct uart_config cfg;
-
-	if (!device_is_ready(console_uart)) {
-		return;
-	}
-	if (uart_config_get(console_uart, &cfg) != 0) {
-		return;
-	}
-	(void)uart_configure(console_uart, &cfg);
-}
 
 /* ------------------------------------------------------------------
  * PLL retune helper -- centralises Disable / Configure / Enable so
@@ -359,7 +422,11 @@ static cy_stc_syspm_callback_t pm_ulp_cb = {
     .order = 0U,
 };
 
-/* Public API ------------------------------------------------------- */
+#endif /* PM_APPROACH_PLL_RETUNE */
+
+/* ==================================================================
+ * Shared public API (both approaches).
+ * ================================================================== */
 
 const char *pm_mode_name(pm_mode_t m)
 {
