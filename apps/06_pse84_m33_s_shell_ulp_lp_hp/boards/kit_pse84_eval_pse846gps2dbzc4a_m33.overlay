@@ -41,7 +41,30 @@
 	 * doesn't drag in gpio_prt8. The child node stays defined so
 	 * DT_ALIAS(sw0) remains resolvable (evaluates disabled). */
 	gpio_keys { status = "disabled"; };
+
+	/* PM-transition scope trigger. P3.1 is driven high by the shell
+	 * command layer while a mode change is in progress and low
+	 * again once the transition (including SCB retune + clock
+	 * probe) has completed. Wire a scope / logic-analyzer probe
+	 * here to correlate current-draw waveforms with the actual
+	 * software transition window. */
+	pm_signals {
+		compatible = "gpio-leds";
+		pm_busy: pm_busy {
+			label = "PM_BUSY";
+			gpios = <&gpio_prt3 1 GPIO_ACTIVE_HIGH>;
+		};
+	};
+
+	aliases {
+		pm-busy = &pm_busy;
+	};
 };
+
+/* Enable gpio_prt3 -- disabled at the SoC-dtsi level, but we need
+ * it to drive the pm_busy scope trigger on P3.1 (see pm_signals
+ * above). */
+&gpio_prt3 { status = "okay"; };
 
 &clk_hf0 {
 	/* Explicit /2: DPLL_LP0 (400 MHz board default) -> HF0 200 MHz.
@@ -50,9 +73,11 @@
 };
 
 /* ------------------------------------------------------------------
- * GPIO ports: keep only gpio_prt16 (RGB LEDs). SCB2 pins (P6.5/P6.7)
- * are routed by the pinctrl subsystem and do NOT require the gpio_prt6
- * node to be enabled -- the pinctrl driver programs HSIOM directly.
+ * GPIO ports: keep only gpio_prt16 (RGB LEDs) and gpio_prt3 (see
+ * the pm_signals node above -- P3.1 is the pm_busy scope trigger).
+ * SCB2 pins (P6.5/P6.7) are routed by the pinctrl subsystem and do
+ * NOT require the gpio_prt6 node to be enabled -- the pinctrl
+ * driver programs HSIOM directly.
  * ------------------------------------------------------------------ */
 &gpio_prt0  { status = "disabled"; };
 &gpio_prt2  { status = "disabled"; };

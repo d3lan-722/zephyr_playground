@@ -11,64 +11,48 @@
  *   hp     -- transition SoC to High-Performance mode  (CM33 200 MHz)
  *   probe  -- measure and print live DPLL_LP0 / CLK_HF0 / CLK_HF10
  *
- * Each mode command drives the on-board RGB LEDs to the target
- * mode's color BEFORE the SoC starts changing clocks and voltage,
- * so the intended target is visible even if the transition itself
- * hangs. The colour map:
+ * Each mode command:
+ *   1. Prints "switching to <mode>".
+ *   2. Drives the mode-indicator LEDs to the target colour
+ *      BEFORE the SoC starts changing clocks and voltage, so the
+ *      intended target is visible even if the transition itself
+ *      hangs.
+ *   3. Asserts the PM-busy scope trigger (P3.1 high) so external
+ *      instrumentation can correlate the software transition
+ *      window with current-draw waveforms.
+ *   4. Calls pm_switch_to().
+ *   5. De-asserts the PM-busy scope trigger (P3.1 low).
+ *   6. Prints "now in <mode>" on success.
+ *
+ * LED colour map (see @c src/gpio_indicators.c):
  *
  *   Mode  |  Red (led0)  Green (led1)
  *   ------|-----------------------------
  *   ULP   |     off          on
  *   LP    |     on           off
  *   HP    |     off          off
- *
- * @note led2 (blue) is owned by the diagnostic heartbeat thread
- *       (see @c src/diag.c) and is deliberately NOT touched here.
  */
 
 #include "shell_cmds.h"
 
 #include <stddef.h>
 
-#include <zephyr/drivers/gpio.h>
 #include <zephyr/shell/shell.h>
 
+#include "gpio_indicators.h"
 #include "power_manager.h"
-
-/** @brief Devicetree handle for led0 (red -- LP indicator). */
-static const struct gpio_dt_spec led_red =
-    GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
-
-/** @brief Devicetree handle for led1 (green -- ULP indicator). */
-static const struct gpio_dt_spec led_green =
-    GPIO_DT_SPEC_GET(DT_ALIAS(led1), gpios);
-
-/**
- * @brief Drive the two indicator LEDs so red/green match the target
- *        power mode. Blue is left alone (see file comment).
- *
- * @param red    Non-zero to light red, zero to turn it off.
- * @param green  Non-zero to light green, zero to turn it off.
- */
-static void indicator_set(int red, int green)
-{
-	(void)gpio_pin_set_dt(&led_red, red);
-	(void)gpio_pin_set_dt(&led_green, green);
-}
 
 /**
  * @brief Common body for a mode-switch shell command.
  *
- * Prints "switching to <mode>", drives the indicator LEDs (so the
- * intended target is visible before the SoC starts changing clocks
- * and voltage), invokes @c pm_switch_to, and prints
- * "now in <mode>" on success or "power mode switch failed (%d)" on
- * failure.
+ * Drives the mode-indicator LEDs, asserts the PM-busy scope
+ * trigger, runs the transition, de-asserts the trigger, and
+ * prints the outcome.
  *
  * @param sh      Zephyr shell context to print to.
  * @param target  The power mode to enter.
- * @param red     Indicator-LED value for the red LED.
- * @param green   Indicator-LED value for the green LED.
+ * @param red     Value for the red indicator LED (0 = off, 1 = on).
+ * @param green   Value for the green indicator LED (0 = off, 1 = on).
  * @return 0 on success, negative errno-like value from
  *         @c pm_switch_to on failure.
  */
@@ -78,9 +62,12 @@ static int do_mode_switch(const struct shell *sh, pm_mode_t target, int red,
 	int rc;
 
 	shell_print(sh, "switching to %s", pm_mode_name(target));
-	indicator_set(red, green);
+	gpio_indicators_set_mode_leds(red, green);
 
+	gpio_indicators_transition_begin();
 	rc = pm_switch_to(target);
+	gpio_indicators_transition_end();
+
 	if (rc != 0) {
 		shell_error(sh, "power mode switch failed (%d)", rc);
 		return rc;
@@ -124,9 +111,7 @@ static int cmd_hp(const struct shell *sh, size_t argc, char **argv)
  *        print the actual measured frequencies.
  *
  * Useful for checking the boot-time HP state (before any mode
- * command has run) vs the state after `hp` / `lp` / `ulp`, and for
- * sanity-checking the numbers that @c pm_switch_to prints
- * automatically at the end of every transition.
+ * command has run) vs the state after `hp` / `lp` / `ulp`.
  */
 static int cmd_probe(const struct shell *sh, size_t argc, char **argv)
 {
@@ -137,24 +122,12 @@ static int cmd_probe(const struct shell *sh, size_t argc, char **argv)
 	return 0;
 }
 
-/* Register the top-level shell commands with the Zephyr shell.
- * SHELL_CMD_REGISTER uses linker sections, so simply linking this
- * translation unit into the image is enough -- no runtime hook. */
+/* Register the top-level shell commands. SHELL_CMD_REGISTER uses
+ * linker sections, so linking this translation unit into the image
+ * is enough -- no runtime registration hook needed. */
 SHELL_CMD_REGISTER(ulp, NULL, "Enter Ultra-Low-Power mode (CM33 50 MHz)",
 		   cmd_ulp);
 SHELL_CMD_REGISTER(lp, NULL, "Enter Low-Power mode (CM33 80 MHz)", cmd_lp);
 SHELL_CMD_REGISTER(hp, NULL, "Enter High-Performance mode (CM33 200 MHz)",
 		   cmd_hp);
 SHELL_CMD_REGISTER(probe, NULL, "Measure actual clock frequencies", cmd_probe);
-
-int shell_cmds_init(void)
-{
-	if (!gpio_is_ready_dt(&led_red) || !gpio_is_ready_dt(&led_green)) {
-		return -ENODEV;
-	}
-	if (gpio_pin_configure_dt(&led_red, GPIO_OUTPUT_INACTIVE) < 0 ||
-	    gpio_pin_configure_dt(&led_green, GPIO_OUTPUT_INACTIVE) < 0) {
-		return -EIO;
-	}
-	return 0;
-}

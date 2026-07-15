@@ -15,6 +15,7 @@ target_sources(app PRIVATE
     src/main.c
     src/power_manager.c
     src/shell_cmds.c
+    src/gpio_indicators.c
     src/diag.c
 )
 
