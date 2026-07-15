@@ -78,25 +78,18 @@
  *                               of integer-divider granularity, and
  *                               peripheral clocks stay at their HP
  *                               values. Transition wall time: ~1-5
- *                               ms (voltage step only). Not yet
- *                               implemented -- see step 3 of
- *                               PLAN_dual_dvfs.md.
+ *                               ms (voltage step only).
  *
  * To switch, comment out the current line and uncomment the other.
  * Both approaches share the DT overlay's 200 MHz DPLL / HF0 /1
  * baseline, so the switch is a code-only change (no overlay edits).
  * ================================================================== */
 #define PM_APPROACH_PLL_RETUNE 1
-/* #define PM_APPROACH_DIVIDER_ONLY 1 */
+// #define PM_APPROACH_DIVIDER_ONLY 1
 
 #if defined(PM_APPROACH_PLL_RETUNE) == defined(PM_APPROACH_DIVIDER_ONLY)
 #error                                                                         \
     "Exactly one of PM_APPROACH_PLL_RETUNE / PM_APPROACH_DIVIDER_ONLY must be defined"
-#endif
-
-#if defined(PM_APPROACH_DIVIDER_ONLY)
-#error                                                                         \
-    "PM_APPROACH_DIVIDER_ONLY not implemented yet -- see PLAN_dual_dvfs.md step 3"
 #endif
 
 /* ==================================================================
@@ -145,6 +138,40 @@ static void pm_reconfigure_console_uart(void)
  * the transition. See src/diag.h for the alive/dead diagnosis matrix.
  */
 #define TRACE(msg) diag_trace("<T:" msg ">\n")
+
+/**
+ * @brief Call the PDL @c Cy_SysPm_SystemEnter* entry point that
+ *        matches @p target and emit the raw-SCB "switch:Enter..."
+ *        marker on the wire so the last known step is visible if
+ *        the CPU hangs mid-transition.
+ *
+ * Shared between both DVFS approaches. In PM_APPROACH_PLL_RETUNE
+ * this is called once per transition and the registered SysPm
+ * callbacks do all the direction-aware PLL / RRAM work. In
+ * PM_APPROACH_DIVIDER_ONLY this is called from the direction-aware
+ * transition helpers (@ref trans_hp_to_lp etc.), which sequence
+ * the ClkHf divider and RRAM VMODE around this voltage step.
+ *
+ * @return @c CY_SYSPM_SUCCESS on success; the PDL's status code
+ *         otherwise. Returns @c CY_SYSPM_FAIL for an unknown mode
+ *         so the caller can distinguish it from "hardware refused".
+ */
+static cy_en_syspm_status_t pm_syspm_enter(pm_mode_t target)
+{
+	switch (target) {
+	case PM_MODE_HP:
+		TRACE("switch:EnterHp");
+		return Cy_SysPm_SystemEnterHp();
+	case PM_MODE_LP:
+		TRACE("switch:EnterLp");
+		return Cy_SysPm_SystemEnterLp();
+	case PM_MODE_ULP:
+		TRACE("switch:EnterUlp");
+		return Cy_SysPm_SystemEnterUlp();
+	default:
+		return CY_SYSPM_FAIL;
+	}
+}
 
 /* ==================================================================
  * Approach A -- PLL retune (SysPm callback + Cy_SysClk_PllReconfigure).
@@ -422,7 +449,204 @@ static cy_stc_syspm_callback_t pm_ulp_cb = {
     .order = 0U,
 };
 
+/**
+ * @brief Approach-A transition helper: dispatch to the appropriate
+ *        @c Cy_SysPm_SystemEnter* PDL entry. The registered SysPm
+ *        callbacks (@ref pm_syspm_hp_cb / lp_cb / ulp_cb) do the
+ *        PLL retune before + after the voltage step, so this
+ *        function just triggers the entry.
+ *
+ * @c source is ignored -- direction-awareness is entirely inside
+ * the callbacks (they read @c Cy_SysPm_IsSystemUlp etc. themselves).
+ */
+static int pm_transition_perform(pm_mode_t source, pm_mode_t target)
+{
+	ARG_UNUSED(source);
+
+	cy_en_syspm_status_t st = pm_syspm_enter(target);
+
+	if (st != CY_SYSPM_SUCCESS) {
+		TRACE("switch:FAIL");
+		printk("[pm] SystemEnter* failed (%d)\n", (int)st);
+		return -EIO;
+	}
+	return 0;
+}
+
 #endif /* PM_APPROACH_PLL_RETUNE */
+
+/* ==================================================================
+ * Approach B -- divider-only (no PLL retune, no SysPm callbacks).
+ * All symbols below are gated by PM_APPROACH_DIVIDER_ONLY.
+ *
+ * DPLL_LP0 stays at the DT overlay's boot frequency (200 MHz)
+ * forever. Only Cy_SysClk_ClkHfSetDivider(0, ...) changes per mode:
+ *
+ *   HP:   NO_DIVIDE     -> CLK_HF0 200 MHz  (CM33 HP  spec max)
+ *   LP:   DIVIDE_BY_3   -> CLK_HF0  66 MHz  (< 80 MHz LP spec max --
+ *                                            closest integer divider
+ *                                            from 200 MHz)
+ *   ULP:  DIVIDE_BY_4   -> CLK_HF0  50 MHz  (CM33 ULP spec max)
+ *
+ * Voltage step is Cy_SysPm_SystemEnter{Hp,Lp,Ulp} (shared with
+ * approach A -- goes through pm_syspm_enter). No SysPm callbacks
+ * are registered in this approach, so those calls just do the
+ * voltage / SRAM-trim step without any PLL work.
+ *
+ * Direction rule (matches the Infineon switch_power_modes reference
+ * and tmp/zephyr_dvfs_dpm_proposed/m33_ns):
+ *   Down (voltage falls): drop CLK_HF0 divider FIRST, then EnterX,
+ *                         then RRAM VMODE. If EnterX fails, restore
+ *                         the source-mode's divider.
+ *   Up   (voltage rises): EnterX FIRST, then RRAM VMODE, then
+ *                         remove the CLK_HF0 divider.
+ *
+ * CLK_HF10 (SCB2 pclk) stays at DPLL/4 = 50 MHz in every mode, so
+ * no console baud retune is needed after a transition -- the flush
+ * + pm_reconfigure_console_uart at the end of pm_switch_to() is
+ * skipped under this approach.
+ * ================================================================== */
+#if defined(PM_APPROACH_DIVIDER_ONLY)
+
+/* --- Direction-aware transition helpers --------------------------- */
+
+/** @brief HP -> LP down-transition: drop clock (/3), then EnterLp,
+ *         then RRAM_LP. */
+static int trans_hp_to_lp(void)
+{
+	cy_en_syspm_status_t st;
+
+	Cy_SysClk_ClkHfSetDivider(0, CY_SYSCLK_CLKHF_DIVIDE_BY_3);
+	st = pm_syspm_enter(PM_MODE_LP);
+	if (st != CY_SYSPM_SUCCESS) {
+		Cy_SysClk_ClkHfSetDivider(0, CY_SYSCLK_CLKHF_NO_DIVIDE);
+		printk("[pm] HP->LP EnterLp failed (%d)\n", (int)st);
+		return -EIO;
+	}
+	Cy_RRAM_SetVoltageMode(RRAMC0, CY_RRAM_VMODE_LP);
+	return 0;
+}
+
+/** @brief HP -> ULP direct down-transition: drop clock (/4), then
+ *         EnterUlp (handles the internal two-step voltage drop),
+ *         then RRAM_ULP. */
+static int trans_hp_to_ulp(void)
+{
+	cy_en_syspm_status_t st;
+
+	Cy_SysClk_ClkHfSetDivider(0, CY_SYSCLK_CLKHF_DIVIDE_BY_4);
+	st = pm_syspm_enter(PM_MODE_ULP);
+	if (st != CY_SYSPM_SUCCESS) {
+		Cy_SysClk_ClkHfSetDivider(0, CY_SYSCLK_CLKHF_NO_DIVIDE);
+		printk("[pm] HP->ULP EnterUlp failed (%d)\n", (int)st);
+		return -EIO;
+	}
+	Cy_RRAM_SetVoltageMode(RRAMC0, CY_RRAM_VMODE_ULP);
+	return 0;
+}
+
+/** @brief LP -> ULP down-transition: drop clock (/4), then EnterUlp,
+ *         then RRAM_ULP. On failure restore the LP divider (/3). */
+static int trans_lp_to_ulp(void)
+{
+	cy_en_syspm_status_t st;
+
+	Cy_SysClk_ClkHfSetDivider(0, CY_SYSCLK_CLKHF_DIVIDE_BY_4);
+	st = pm_syspm_enter(PM_MODE_ULP);
+	if (st != CY_SYSPM_SUCCESS) {
+		Cy_SysClk_ClkHfSetDivider(0, CY_SYSCLK_CLKHF_DIVIDE_BY_3);
+		printk("[pm] LP->ULP EnterUlp failed (%d)\n", (int)st);
+		return -EIO;
+	}
+	Cy_RRAM_SetVoltageMode(RRAMC0, CY_RRAM_VMODE_ULP);
+	return 0;
+}
+
+/** @brief ULP -> LP up-transition: EnterLp (voltage rises), then
+ *         RRAM_LP, then adjust divider to /3. */
+static int trans_ulp_to_lp(void)
+{
+	cy_en_syspm_status_t st = pm_syspm_enter(PM_MODE_LP);
+
+	if (st != CY_SYSPM_SUCCESS) {
+		printk("[pm] ULP->LP EnterLp failed (%d)\n", (int)st);
+		return -EIO;
+	}
+	Cy_RRAM_SetVoltageMode(RRAMC0, CY_RRAM_VMODE_LP);
+	Cy_SysClk_ClkHfSetDivider(0, CY_SYSCLK_CLKHF_DIVIDE_BY_3);
+	return 0;
+}
+
+/** @brief LP -> HP up-transition: EnterHp, RRAM_HP, remove divider. */
+static int trans_lp_to_hp(void)
+{
+	cy_en_syspm_status_t st = pm_syspm_enter(PM_MODE_HP);
+
+	if (st != CY_SYSPM_SUCCESS) {
+		printk("[pm] LP->HP EnterHp failed (%d)\n", (int)st);
+		return -EIO;
+	}
+	Cy_RRAM_SetVoltageMode(RRAMC0, CY_RRAM_VMODE_HP);
+	Cy_SysClk_ClkHfSetDivider(0, CY_SYSCLK_CLKHF_NO_DIVIDE);
+	return 0;
+}
+
+/** @brief ULP -> HP direct up-transition: EnterHp (handles the
+ *         internal two-step voltage rise), RRAM_HP, remove divider. */
+static int trans_ulp_to_hp(void)
+{
+	cy_en_syspm_status_t st = pm_syspm_enter(PM_MODE_HP);
+
+	if (st != CY_SYSPM_SUCCESS) {
+		printk("[pm] ULP->HP EnterHp failed (%d)\n", (int)st);
+		return -EIO;
+	}
+	Cy_RRAM_SetVoltageMode(RRAMC0, CY_RRAM_VMODE_HP);
+	Cy_SysClk_ClkHfSetDivider(0, CY_SYSCLK_CLKHF_NO_DIVIDE);
+	return 0;
+}
+
+/**
+ * @brief Approach-B transition helper: dispatch to the direction-
+ *        aware helper for the (source, target) pair.
+ *
+ * @return 0 on success, -EINVAL for an unknown (source, target)
+ *         combination, -EIO if the underlying PDL call failed.
+ */
+static int pm_transition_perform(pm_mode_t source, pm_mode_t target)
+{
+	switch (source) {
+	case PM_MODE_HP:
+		if (target == PM_MODE_LP) {
+			return trans_hp_to_lp();
+		}
+		if (target == PM_MODE_ULP) {
+			return trans_hp_to_ulp();
+		}
+		break;
+	case PM_MODE_LP:
+		if (target == PM_MODE_HP) {
+			return trans_lp_to_hp();
+		}
+		if (target == PM_MODE_ULP) {
+			return trans_lp_to_ulp();
+		}
+		break;
+	case PM_MODE_ULP:
+		if (target == PM_MODE_HP) {
+			return trans_ulp_to_hp();
+		}
+		if (target == PM_MODE_LP) {
+			return trans_ulp_to_lp();
+		}
+		break;
+	default:
+		break;
+	}
+	return -EINVAL;
+}
+
+#endif /* PM_APPROACH_DIVIDER_ONLY */
 
 /* ==================================================================
  * Shared public API (both approaches).
@@ -434,7 +658,13 @@ const char *pm_mode_name(pm_mode_t m)
 	case PM_MODE_HP:
 		return "HP  (200 MHz)";
 	case PM_MODE_LP:
+#if defined(PM_APPROACH_DIVIDER_ONLY)
+		/* Integer-divider granularity: 200 MHz / 3 = 66 MHz.
+		 * Under the 80 MHz LP spec ceiling but not at it. */
+		return "LP  ( 66 MHz)";
+#else
 		return "LP  ( 80 MHz)";
+#endif
 	case PM_MODE_ULP:
 		return "ULP ( 50 MHz)";
 	default:
@@ -475,50 +705,22 @@ void pm_init(void)
 	 */
 	s_current_mode = PM_MODE_HP;
 
+#if defined(PM_APPROACH_PLL_RETUNE)
 	(void)Cy_SysPm_RegisterCallback(&pm_hp_cb);
 	(void)Cy_SysPm_RegisterCallback(&pm_lp_cb);
 	(void)Cy_SysPm_RegisterCallback(&pm_ulp_cb);
+#endif /* PM_APPROACH_DIVIDER_ONLY registers no callbacks -- the               \
+	* direction-aware trans_*() helpers do the RRAM VMODE +                \
+	* ClkHf divider work directly. */
 
 	SystemCoreClockUpdate();
 }
 
 pm_mode_t pm_current_mode(void) { return s_current_mode; }
 
-/**
- * @brief Call the PDL @c Cy_SysPm_SystemEnter* entry point that
- *        matches @p target and emit the raw-SCB "switch:Enter…"
- *        marker on the wire so the last known step is visible if
- *        the CPU hangs mid-transition.
- *
- * Single-purpose helper: dispatch only, no state mutation and no
- * console retune. Keeping this separate from @ref pm_switch_to
- * lets that function focus on the surrounding orchestration
- * (marker, state update, SCB retune, probe).
- *
- * @return @c CY_SYSPM_SUCCESS on success; the PDL's status code
- *         otherwise. Returns @c CY_SYSPM_FAIL for an unknown mode
- *         so the caller can distinguish it from "hardware refused".
- */
-static cy_en_syspm_status_t pm_syspm_enter(pm_mode_t target)
-{
-	switch (target) {
-	case PM_MODE_HP:
-		TRACE("switch:EnterHp");
-		return Cy_SysPm_SystemEnterHp();
-	case PM_MODE_LP:
-		TRACE("switch:EnterLp");
-		return Cy_SysPm_SystemEnterLp();
-	case PM_MODE_ULP:
-		TRACE("switch:EnterUlp");
-		return Cy_SysPm_SystemEnterUlp();
-	default:
-		return CY_SYSPM_FAIL;
-	}
-}
-
 int pm_switch_to(pm_mode_t target)
 {
-	cy_en_syspm_status_t st;
+	int rc;
 
 	if (target == s_current_mode) {
 		return 0;
@@ -528,16 +730,17 @@ int pm_switch_to(pm_mode_t target)
 		return -EINVAL;
 	}
 
-	st = pm_syspm_enter(target);
-	if (st != CY_SYSPM_SUCCESS) {
-		TRACE("switch:FAIL");
-		printk("[pm] SystemEnter* failed (%d)\n", (int)st);
-		return -EIO;
+	/* Per-approach direction-aware transition. Implemented by the
+	 * selected PM_APPROACH_* block above. */
+	rc = pm_transition_perform(s_current_mode, target);
+	if (rc != 0) {
+		return rc;
 	}
 
 	s_current_mode = target;
 	SystemCoreClockUpdate();
 
+#if defined(PM_APPROACH_PLL_RETUNE)
 	/* Retune the SCB baud divider against the new CLK_HF10. This
 	 * MUST run here (with IRQs re-enabled after
 	 * Cy_SysPm_SystemEnter* returned) and NOT inside
@@ -546,9 +749,14 @@ int pm_switch_to(pm_mode_t target)
 	 * driver (subsequent bytes get garbled or the console freezes
 	 * entirely). The AFTER callback did not emit any diagnostic
 	 * bytes, so the SCB2 TX FIFO is empty here; flush is a cheap
-	 * defensive check. */
+	 * defensive check.
+	 *
+	 * Skipped for PM_APPROACH_DIVIDER_ONLY: DPLL_LP0 never changes
+	 * in that mode, so CLK_HF10 (SCB2 pclk) stays constant at
+	 * 50 MHz and the baud divider is already correct. */
 	diag_trace_flush();
 	pm_reconfigure_console_uart();
+#endif
 	TRACE("switch:complete");
 
 	/* Report the actual live clock frequencies so we don't have
@@ -660,6 +868,7 @@ void pm_clock_probe(void)
 	pm_print_hz("CLK_HF0  ", m_hf0, c_hf0);	  /* CM33 core   */
 	pm_print_hz("CLK_HF10 ", m_hf10, c_hf10); /* SCB2 peri   */
 
+#if defined(PM_APPROACH_PLL_RETUNE)
 	/* Report the return code of the most recent PLL reconfigure so
 	 * we can spot "the PLL never came back" failures cheaply. Zero
 	 * (CY_SYSCLK_SUCCESS) is good; anything else means the PLL is
@@ -676,4 +885,11 @@ void pm_clock_probe(void)
 		       s_last_pll_target_hz, s_last_pll_configure_st,
 		       s_last_pll_enable_st);
 	}
+#else
+	/* Approach B never retunes the PLL -- DPLL_LP0 stays at the
+	 * boot 200 MHz for the whole runtime. Emit an equivalent status
+	 * line so parsers can distinguish the two approaches at a
+	 * glance in the console log. */
+	printk("[div] approach=divider-only  DPLL frozen at boot value\n");
+#endif
 }
