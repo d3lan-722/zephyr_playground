@@ -46,19 +46,19 @@
  * SRAM/RRAM trim window at the destination voltage. Vendor-tested;
  * see PLAN_dual_dvfs.md.
  * ------------------------------------------------------------------ */
-#define DPLL_INPUT_FREQ_HZ            (50000000u)  /* IHO */
-#define DPLL_ENABLE_TIMEOUT_MS        (10000u)
+#define DPLL_INPUT_FREQ_HZ (50000000u) /* IHO */
+#define DPLL_ENABLE_TIMEOUT_MS (10000u)
 
-#define DPLL_FREQ_HP_HZ               (200000000u) /* CM33 HP  spec max */
-#define DPLL_FREQ_LP_HZ               (80000000u)  /* CM33 LP  spec max */
-#define DPLL_FREQ_ULP_HZ              (50000000u)  /* CM33 ULP spec max */
+#define DPLL_FREQ_HP_HZ (200000000u) /* CM33 HP  spec max */
+#define DPLL_FREQ_LP_HZ (80000000u)  /* CM33 LP  spec max */
+#define DPLL_FREQ_ULP_HZ (50000000u) /* CM33 ULP spec max */
 
-#define DPLL_FREQ_INTERMEDIATE_LP_HZ  (75000000u)  /* HP <-> LP */
-#define DPLL_FREQ_INTERMEDIATE_ULP_HZ (41000000u)  /* LP <-> ULP */
+#define DPLL_FREQ_INTERMEDIATE_LP_HZ (75000000u)  /* HP <-> LP */
+#define DPLL_FREQ_INTERMEDIATE_ULP_HZ (41000000u) /* LP <-> ULP */
 
 /* Sentinel for s_last_pll_enable_st meaning "PllEnable was not
  * reached this call -- PllConfigure failed first". */
-#define PM_PLL_ENABLE_NOT_REACHED     0xFFFFFFFFu
+#define PM_PLL_ENABLE_NOT_REACHED 0xFFFFFFFFu
 
 /**
  * Latched status of the most recent pm_pll_reconfigure() call.
@@ -91,9 +91,9 @@ static uint32_t s_last_pll_enable_st = PM_PLL_ENABLE_NOT_REACHED;
 static cy_en_syspm_status_t pm_pll_reconfigure(uint32_t freq_hz)
 {
 	cy_stc_pll_config_t cfg = {
-		.inputFreq  = DPLL_INPUT_FREQ_HZ,
-		.outputMode = CY_SYSCLK_FLLPLL_OUTPUT_AUTO,
-		.outputFreq = freq_hz,
+	    .inputFreq = DPLL_INPUT_FREQ_HZ,
+	    .outputMode = CY_SYSCLK_FLLPLL_OUTPUT_AUTO,
+	    .outputFreq = freq_hz,
 	};
 	cy_en_sysclk_status_t st;
 
@@ -103,16 +103,16 @@ static cy_en_syspm_status_t pm_pll_reconfigure(uint32_t freq_hz)
 
 	st = Cy_SysClk_PllConfigure(SRSS_DPLL_LP_0_PATH_NUM, &cfg);
 	if (st != CY_SYSCLK_SUCCESS) {
-		s_last_pll_target_hz    = freq_hz;
+		s_last_pll_target_hz = freq_hz;
 		s_last_pll_configure_st = (uint32_t)st;
-		s_last_pll_enable_st    = PM_PLL_ENABLE_NOT_REACHED;
+		s_last_pll_enable_st = PM_PLL_ENABLE_NOT_REACHED;
 		return CY_SYSPM_FAIL;
 	}
 	st = Cy_SysClk_PllEnable(SRSS_DPLL_LP_0_PATH_NUM,
 				 DPLL_ENABLE_TIMEOUT_MS);
-	s_last_pll_target_hz    = freq_hz;
+	s_last_pll_target_hz = freq_hz;
 	s_last_pll_configure_st = 0u;
-	s_last_pll_enable_st    = (uint32_t)st;
+	s_last_pll_enable_st = (uint32_t)st;
 
 	return (st == CY_SYSCLK_SUCCESS) ? CY_SYSPM_SUCCESS : CY_SYSPM_FAIL;
 }
@@ -153,8 +153,8 @@ static cy_en_syspm_status_t pm_syspm_lp_cb(cy_stc_syspm_callback_params_t *p,
 		/* Coming up from ULP the PLL must be under the ULP
 		 * ceiling; from HP just under the LP ceiling. */
 		uint32_t intermediate = Cy_SysPm_IsSystemUlp()
-			? DPLL_FREQ_INTERMEDIATE_ULP_HZ
-			: DPLL_FREQ_INTERMEDIATE_LP_HZ;
+					    ? DPLL_FREQ_INTERMEDIATE_ULP_HZ
+					    : DPLL_FREQ_INTERMEDIATE_LP_HZ;
 		return pm_pll_reconfigure(intermediate);
 	}
 	if (mode == CY_SYSPM_AFTER_TRANSITION) {
@@ -179,26 +179,26 @@ static cy_en_syspm_status_t pm_syspm_ulp_cb(cy_stc_syspm_callback_params_t *p,
 	return CY_SYSPM_SUCCESS;
 }
 
-static cy_stc_syspm_callback_params_t pm_hp_params  = {NULL, NULL};
-static cy_stc_syspm_callback_params_t pm_lp_params  = {NULL, NULL};
+static cy_stc_syspm_callback_params_t pm_hp_params = {NULL, NULL};
+static cy_stc_syspm_callback_params_t pm_lp_params = {NULL, NULL};
 static cy_stc_syspm_callback_params_t pm_ulp_params = {NULL, NULL};
 
 static cy_stc_syspm_callback_t pm_hp_cb = {
-	.callback       = &pm_syspm_hp_cb,
-	.type           = CY_SYSPM_HP,
-	.callbackParams = &pm_hp_params,
+    .callback = &pm_syspm_hp_cb,
+    .type = CY_SYSPM_HP,
+    .callbackParams = &pm_hp_params,
 };
 
 static cy_stc_syspm_callback_t pm_lp_cb = {
-	.callback       = &pm_syspm_lp_cb,
-	.type           = CY_SYSPM_LP,
-	.callbackParams = &pm_lp_params,
+    .callback = &pm_syspm_lp_cb,
+    .type = CY_SYSPM_LP,
+    .callbackParams = &pm_lp_params,
 };
 
 static cy_stc_syspm_callback_t pm_ulp_cb = {
-	.callback       = &pm_syspm_ulp_cb,
-	.type           = CY_SYSPM_ULP,
-	.callbackParams = &pm_ulp_params,
+    .callback = &pm_syspm_ulp_cb,
+    .type = CY_SYSPM_ULP,
+    .callbackParams = &pm_ulp_params,
 };
 
 /* ------------------------------------------------------------------
@@ -229,10 +229,14 @@ int pm_strategy_transition(pm_mode_t source, pm_mode_t target)
 const char *pm_strategy_mode_name(pm_mode_t m)
 {
 	switch (m) {
-	case PM_MODE_HP:  return "HP  (200 MHz)";
-	case PM_MODE_LP:  return "LP  ( 80 MHz)";
-	case PM_MODE_ULP: return "ULP ( 50 MHz)";
-	default:          return "UNKNOWN";
+	case PM_MODE_HP:
+		return "HP  (200 MHz)";
+	case PM_MODE_LP:
+		return "LP  ( 80 MHz)";
+	case PM_MODE_ULP:
+		return "ULP ( 50 MHz)";
+	default:
+		return "UNKNOWN";
 	}
 }
 
@@ -247,9 +251,6 @@ void pm_strategy_probe_status(void)
 	       s_last_pll_enable_st);
 }
 
-bool pm_strategy_needs_uart_retune(void)
-{
-	return true;
-}
+bool pm_strategy_needs_uart_retune(void) { return true; }
 
 #endif /* PM_STRATEGY_PLL_RETUNE */

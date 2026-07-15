@@ -64,9 +64,7 @@ static int do_mode_switch(const struct shell *sh, pm_mode_t target, int red,
 	shell_print(sh, "switching to %s", pm_mode_name(target));
 	gpio_indicators_set_mode_leds(red, green);
 
-	gpio_indicators_transition_begin();
 	rc = pm_switch_to(target);
-	gpio_indicators_transition_end();
 
 	if (rc != 0) {
 		shell_error(sh, "power mode switch failed (%d)", rc);

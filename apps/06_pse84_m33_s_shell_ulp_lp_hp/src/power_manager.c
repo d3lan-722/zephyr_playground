@@ -37,6 +37,7 @@
 #include "cy_pdl.h"
 
 #include "diag.h"
+#include "gpio_indicators.h"
 #include "power_manager_internal.h"
 
 /* ==================================================================
@@ -49,7 +50,7 @@ static pm_mode_t s_current_mode = PM_MODE_HP;
 /** Console UART handle. The SCB baud divider it caches at boot is
  *  only valid for the CLK_HF10 in effect at that time. */
 static const struct device *const console_uart =
-	DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
+    DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
 
 /**
  * @brief Re-run @c uart_configure() so the Infineon SCB driver
@@ -97,15 +98,9 @@ cy_en_syspm_status_t pm_syspm_enter(pm_mode_t target)
  * Public API.
  * ================================================================== */
 
-const char *pm_mode_name(pm_mode_t m)
-{
-	return pm_strategy_mode_name(m);
-}
+const char *pm_mode_name(pm_mode_t m) { return pm_strategy_mode_name(m); }
 
-pm_mode_t pm_current_mode(void)
-{
-	return s_current_mode;
-}
+pm_mode_t pm_current_mode(void) { return s_current_mode; }
 
 void pm_init(void)
 {
@@ -122,6 +117,9 @@ void pm_init(void)
 int pm_switch_to(pm_mode_t target)
 {
 	int rc;
+	pm_mode_t source;
+	uint32_t t_start, t_end, cycles, us;
+	uint32_t cpu_hz_pre, cpu_hz_post, effective_hz;
 
 	if (target == s_current_mode) {
 		return 0;
@@ -131,7 +129,36 @@ int pm_switch_to(pm_mode_t target)
 		return -EINVAL;
 	}
 
-	rc = pm_strategy_transition(s_current_mode, target);
+	source = s_current_mode;
+
+	/* P3.1 (pm-busy) is asserted around ONLY the strategy call so
+	 * the scope trace captures the DVFS transient itself, not the
+	 * shell prints, UART retune, or clock probe that follow.
+	 *
+	 * The same window is timed in software. Zephyr's cycle counter
+	 * comes from Cortex-M SysTick sourced from CLK_HF0, so it
+	 * accumulates at whatever the CPU frequency is at any instant
+	 * -- and the compile-time CONFIG_SYS_CLOCK_HW_CYCLES_PER_SEC
+	 * (200 MHz) is only correct at HP. To recover an honest us
+	 * number we snapshot the live CLK_HF0 rate before and after
+	 * and use MIN(pre, post):
+	 *   HF0-divider down (HP->LP/ULP): divider drops FIRST, so
+	 *     ~100% of the window is at the target (lower) rate.
+	 *   HF0-divider up   (LP/ULP->HP): divider rises LAST, so
+	 *     ~100% of the window is at the source (lower) rate.
+	 *   Either way, MIN(pre, post) matches the effective rate
+	 *   to within a few percent, agreeing with the scope.
+	 * PLL-retune passes through an intermediate freq lower than
+	 * either endpoint, so the printed us slightly underestimates
+	 * real wall time there. */
+	cpu_hz_pre = Cy_SysClk_ClkHfGetFrequency(0u);
+	t_start = k_cycle_get_32();
+	gpio_indicators_transition_begin();
+	rc = pm_strategy_transition(source, target);
+	gpio_indicators_transition_end();
+	t_end = k_cycle_get_32();
+	cpu_hz_post = Cy_SysClk_ClkHfGetFrequency(0u);
+
 	if (rc != 0) {
 		TRACE("switch:FAIL");
 		return rc;
@@ -148,6 +175,17 @@ int pm_switch_to(pm_mode_t target)
 		diag_trace_flush();
 		pm_reconfigure_console_uart();
 	}
+
+	cycles = t_end - t_start;
+	effective_hz = (cpu_hz_pre < cpu_hz_post) ? cpu_hz_pre : cpu_hz_post;
+	if (effective_hz == 0u) {
+		effective_hz = 1u;
+	}
+	us = (uint32_t)(((uint64_t)cycles * 1000000ULL) / effective_hz);
+	printk("[pm] transition %s -> %s : ~%u us (%u cycles @ %u MHz)\n",
+	       pm_mode_name(source), pm_mode_name(target), us, cycles,
+	       effective_hz / 1000000u);
+
 	TRACE("switch:complete");
 	pm_clock_probe();
 	return 0;
@@ -162,8 +200,10 @@ int pm_switch_to(pm_mode_t target)
  * counter is immediately visible.
  * ================================================================== */
 
-#define PM_PROBE_REF_COUNT   50000u   /* 1 ms wall time at IHO 50 MHz */
-#define PM_MEAS_SAFETY_ITERS 1000000u /* >>100x headroom over the 1 ms window */
+#define PM_PROBE_REF_COUNT 50000u /* 1 ms wall time at IHO 50 MHz */
+#define PM_MEAS_SAFETY_ITERS                                                   \
+	1000000u /* >>100x headroom over the 1 ms window                       \
+		  */
 
 static uint32_t pm_measure_hz(cy_en_meas_clks_t measured)
 {
@@ -171,7 +211,7 @@ static uint32_t pm_measure_hz(cy_en_meas_clks_t measured)
 	uint32_t safety;
 
 	st = Cy_SysClk_StartClkMeasurementCounters(
-		CY_SYSCLK_MEAS_CLK_IHO, PM_PROBE_REF_COUNT, measured);
+	    CY_SYSCLK_MEAS_CLK_IHO, PM_PROBE_REF_COUNT, measured);
 	if (st != CY_SYSCLK_SUCCESS) {
 		return 0u;
 	}
@@ -188,25 +228,25 @@ static uint32_t pm_measure_hz(cy_en_meas_clks_t measured)
 
 static void pm_print_hz(const char *label, uint32_t meas_hz, uint32_t comp_hz)
 {
-	printk("[clk] %s meas=%3u.%03u MHz (%9u Hz)  comp=%3u.%03u MHz (%9u Hz)\n",
-	       label,
-	       meas_hz / 1000000u, (meas_hz / 1000u) % 1000u, meas_hz,
-	       comp_hz / 1000000u, (comp_hz / 1000u) % 1000u, comp_hz);
+	printk(
+	    "[clk] %s meas=%3u.%03u MHz (%9u Hz)  comp=%3u.%03u MHz (%9u Hz)\n",
+	    label, meas_hz / 1000000u, (meas_hz / 1000u) % 1000u, meas_hz,
+	    comp_hz / 1000000u, (comp_hz / 1000u) % 1000u, comp_hz);
 }
 
 void pm_clock_probe(void)
 {
 	uint32_t m_path0 = pm_measure_hz(CY_SYSCLK_MEAS_CLK_PATH0);
-	uint32_t m_hf0   = pm_measure_hz(CY_SYSCLK_MEAS_CLK_CLKHF0);
-	uint32_t m_hf10  = pm_measure_hz(CY_SYSCLK_MEAS_CLK_CLKHF10);
+	uint32_t m_hf0 = pm_measure_hz(CY_SYSCLK_MEAS_CLK_CLKHF0);
+	uint32_t m_hf10 = pm_measure_hz(CY_SYSCLK_MEAS_CLK_CLKHF10);
 
 	uint32_t c_path0 = Cy_SysClk_ClkPathGetFrequency(0u);
-	uint32_t c_hf0   = Cy_SysClk_ClkHfGetFrequency(0u);
-	uint32_t c_hf10  = Cy_SysClk_ClkHfGetFrequency(10u);
+	uint32_t c_hf0 = Cy_SysClk_ClkHfGetFrequency(0u);
+	uint32_t c_hf10 = Cy_SysClk_ClkHfGetFrequency(10u);
 
 	pm_print_hz("DPLL_LP0 ", m_path0, c_path0);
-	pm_print_hz("CLK_HF0  ", m_hf0,   c_hf0);   /* CM33 core   */
-	pm_print_hz("CLK_HF10 ", m_hf10,  c_hf10);  /* SCB2 peri   */
+	pm_print_hz("CLK_HF0  ", m_hf0, c_hf0);	  /* CM33 core   */
+	pm_print_hz("CLK_HF10 ", m_hf10, c_hf10); /* SCB2 peri   */
 
 	pm_strategy_probe_status();
 }

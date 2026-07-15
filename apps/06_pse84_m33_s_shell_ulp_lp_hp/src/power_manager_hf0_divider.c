@@ -153,16 +153,28 @@ int pm_strategy_transition(pm_mode_t source, pm_mode_t target)
 {
 	switch (source) {
 	case PM_MODE_HP:
-		if (target == PM_MODE_LP)  { return trans_hp_to_lp(); }
-		if (target == PM_MODE_ULP) { return trans_hp_to_ulp(); }
+		if (target == PM_MODE_LP) {
+			return trans_hp_to_lp();
+		}
+		if (target == PM_MODE_ULP) {
+			return trans_hp_to_ulp();
+		}
 		break;
 	case PM_MODE_LP:
-		if (target == PM_MODE_HP)  { return trans_lp_to_hp(); }
-		if (target == PM_MODE_ULP) { return trans_lp_to_ulp(); }
+		if (target == PM_MODE_HP) {
+			return trans_lp_to_hp();
+		}
+		if (target == PM_MODE_ULP) {
+			return trans_lp_to_ulp();
+		}
 		break;
 	case PM_MODE_ULP:
-		if (target == PM_MODE_HP)  { return trans_ulp_to_hp(); }
-		if (target == PM_MODE_LP)  { return trans_ulp_to_lp(); }
+		if (target == PM_MODE_HP) {
+			return trans_ulp_to_hp();
+		}
+		if (target == PM_MODE_LP) {
+			return trans_ulp_to_lp();
+		}
 		break;
 	default:
 		break;
@@ -173,12 +185,16 @@ int pm_strategy_transition(pm_mode_t source, pm_mode_t target)
 const char *pm_strategy_mode_name(pm_mode_t m)
 {
 	switch (m) {
-	case PM_MODE_HP:  return "HP  (200 MHz)";
+	case PM_MODE_HP:
+		return "HP  (200 MHz)";
 	/* 200 MHz / 3 = 66 MHz -- closest integer divider from 200 to
 	 * the 80 MHz LP spec ceiling; unavoidable with this strategy. */
-	case PM_MODE_LP:  return "LP  ( 66 MHz)";
-	case PM_MODE_ULP: return "ULP ( 50 MHz)";
-	default:          return "UNKNOWN";
+	case PM_MODE_LP:
+		return "LP  ( 66 MHz)";
+	case PM_MODE_ULP:
+		return "ULP ( 50 MHz)";
+	default:
+		return "UNKNOWN";
 	}
 }
 
@@ -187,9 +203,6 @@ void pm_strategy_probe_status(void)
 	printk("[div] approach=divider-only  DPLL frozen at boot value\n");
 }
 
-bool pm_strategy_needs_uart_retune(void)
-{
-	return false;
-}
+bool pm_strategy_needs_uart_retune(void) { return false; }
 
 #endif /* PM_STRATEGY_HF0_DIVIDER */
