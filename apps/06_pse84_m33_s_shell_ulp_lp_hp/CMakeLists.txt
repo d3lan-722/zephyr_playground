@@ -14,6 +14,7 @@ project(pse84_m33_s_shell_ulp_lp_hp)
 target_sources(app PRIVATE
     src/main.c
     src/power_manager.c
+    src/shell_cmds.c
     src/diag.c
 )
 
