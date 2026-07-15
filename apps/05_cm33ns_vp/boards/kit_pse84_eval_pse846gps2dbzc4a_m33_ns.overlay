@@ -1,0 +1,51 @@
+/*
+ * Minimal DTS overlay: keep only what is required to boot and print
+ * "Hello World" on the console UART (uart2 / scb2).
+ *
+ * Kept enabled from the board files:
+ *   - scb2 (uart2)              -> zephyr,console / zephyr,shell-uart
+ *   - peri0_group1_16bit_1      -> uart2 clock divider
+ *   - flash_controller / rram0  -> code / storage (required for boot)
+ *   - system clocks             -> untouched (SoC default)
+ *
+ * Everything else that the board enables at boot is turned off here.
+ */
+
+/ {
+	/* Disable LED / button containers so they do not pull in GPIO ports.
+	 * The nodes are kept (not deleted) so that aliases referencing their
+	 * child labels (led0..led2, sw0) remain valid.
+	 */
+	leds      { status = "disabled"; };
+	gpio_keys { status = "disabled"; };
+};
+
+/* --- GPIO ports (none needed for bare UART console) --------------------- */
+&gpio_prt0  { status = "disabled"; };
+&gpio_prt2  { status = "disabled"; };
+&gpio_prt6  { status = "disabled"; };
+&gpio_prt7  { status = "disabled"; };
+&gpio_prt8  { status = "disabled"; };
+&gpio_prt10 { status = "disabled"; };
+&gpio_prt11 { status = "disabled"; };
+&gpio_prt13 { status = "disabled"; };
+&gpio_prt14 { status = "disabled"; };
+&gpio_prt16 { status = "disabled"; };
+&gpio_prt17 { status = "disabled"; };
+
+/* --- SCBs / serial we do not use --------------------------------------- */
+&scb0 { status = "disabled"; };   /* i2c0 + bmi270 */
+&scb4 { status = "disabled"; };   /* uart4 / bt_hci_uart / cyw55513 */
+
+/* --- Timers / watchdog ------------------------------------------------- */
+&watchdog0 { status = "disabled"; };
+&mcwdt0    { status = "disabled"; };
+
+/* --- Storage / connectivity ------------------------------------------- */
+&sdhc0  { status = "disabled"; };  /* SDIO + airoc-wifi */
+&usbhs  { status = "disabled"; };
+
+/* --- Peripheral clock dividers only used by disabled peripherals ------ */
+&peri0_group1_16bit_3   { status = "disabled"; };  /* i2c0  */
+&peri0_group1_16_5bit_0 { status = "disabled"; };  /* uart4 */
+&peri1_group2_8bit_0    { status = "disabled"; };  /* sdhc0 */
