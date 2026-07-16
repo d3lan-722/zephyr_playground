@@ -11,6 +11,7 @@ Prints:
 Plots (if matplotlib is available and --no-plots is not passed):
   - current per mode          -> current_per_mode.png
   - transition duration       -> transition_duration.png
+  - energy per transition     -> energy_per_transition.png
   - break-even chart          -> break_even.png
 
 By default PNGs are written next to the input JSON (typically
@@ -45,6 +46,21 @@ def fmt_duration(s: float) -> str:
     if s >= 1e-3:
         return f"{s*1e3:6.3f} ms"
     return f"{s*1e6:6.1f} us"
+
+
+def fmt_energy(uj: float) -> str:
+    """Format energy in the most human-readable unit for the range
+    typical of this project (single-transition = a few mJ, idle
+    residence over seconds = tens of mJ)."""
+    if abs(uj) >= 1000.0:
+        return f"{uj/1000.0:8.3f} mJ"
+    return f"{uj:8.1f} uJ"
+
+
+def energy_uj(charge_uc: float, supply_mv: int) -> float:
+    """Convert charge (uC) at a given supply voltage (mV) to
+    energy (uJ). Q(uC) * V(V) = E(uJ); V(V) = V_mV / 1000."""
+    return charge_uc * supply_mv / 1000.0
 
 
 def load(path: Path) -> dict[str, Any]:
@@ -177,12 +193,14 @@ def print_report(doc: dict[str, Any]) -> None:
 
     # --- per-direction transition ---
     txns = summarize_transitions(doc)
+    supply_mv = doc["meta"].get("supply_mv", 3300)
     if txns:
-        print("== per-direction transition stats ==")
+        print(f"== per-direction transition stats "
+              f"(supply {supply_mv} mV) ==")
         print(f"  {'direction':<12}  {'n':>3}  "
               f"{'cycles_mean':>12}  "
               f"{'ppk_dur_mean':>13}  {'ppk_mean_ua':>13}  "
-              f"{'charge':>12}")
+              f"{'charge':>12}  {'energy':>12}")
         for key in ["HP->LP", "HP->ULP",
                     "LP->HP", "LP->ULP",
                     "ULP->HP", "ULP->LP"]:
@@ -193,18 +211,21 @@ def print_report(doc: dict[str, Any]) -> None:
             dur = s.get("duration_s_mean", 0.0)
             ua = s.get("mean_ua_mean", 0.0)
             charge_uC = ua * dur
+            energy_uJ = energy_uj(charge_uC, supply_mv)
             print(f"  {key:<12}  {s['n']:>3}  "
                   f"{cyc:>12.0f}  "
                   f"{fmt_duration(dur):>13}  "
                   f"{fmt_current(ua):>13}  "
-                  f"{charge_uC:>9.1f} uC")
+                  f"{charge_uC:>9.1f} uC  "
+                  f"{fmt_energy(energy_uJ):>12}")
         print()
 
     # --- break-even for round-trips ---
     if modes and txns:
-        print("== break-even residence for HP -> X -> HP round-trips ==")
+        print(f"== break-even residence for HP -> X -> HP "
+              f"round-trips (supply {supply_mv} mV) ==")
         print(f"  {'target':<4}  {'HP_ua':>10}  {'X_ua':>10}  "
-              f"{'q_extra':>10}  {'breakeven':>12}")
+              f"{'q_extra':>10}  {'e_extra':>12}  {'breakeven':>12}")
         hp_ua = modes.get("HP", {}).get("mean_ua")
         if hp_ua is None:
             print("  (need HP baseline in the data)")
@@ -226,11 +247,12 @@ def print_report(doc: dict[str, Any]) -> None:
                     pulse_dur_s_up=u.get("duration_s_mean", 0),
                     pulse_ua_up=u.get("mean_ua_mean", 0),
                 )
+                e = energy_uj(q, supply_mv)
                 be_str = ("--" if be == float("inf")
                           else fmt_duration(be))
                 print(f"  {tgt:<4}  {fmt_current(hp_ua):>10}  "
                       f"{fmt_current(modes[tgt]['mean_ua']):>10}  "
-                      f"{q:>7.1f} uC  {be_str:>12}")
+                      f"{q:>7.1f} uC  {fmt_energy(e):>12}  {be_str:>12}")
         print()
 
 
@@ -272,6 +294,7 @@ def make_plots(doc: dict[str, Any], save_dir: Path | None) -> None:
         figs.append(("current_per_mode", fig))
 
     # Plot 2: transition duration per direction (bar chart).
+    supply_mv = doc["meta"].get("supply_mv", 3300)
     if txns and ppk.get("available"):
         fig, ax = plt.subplots(figsize=(8, 4))
         keys = [k for k in ["HP->LP", "HP->ULP",
@@ -292,6 +315,32 @@ def make_plots(doc: dict[str, Any], save_dir: Path | None) -> None:
                     ha="center", va="bottom", fontsize=8)
         fig.tight_layout()
         figs.append(("transition_duration", fig))
+
+    # Plot 2b: energy per transition (mJ, computed via V_supply).
+    if txns and ppk.get("available"):
+        fig, ax = plt.subplots(figsize=(8, 4))
+        keys = [k for k in ["HP->LP", "HP->ULP",
+                            "LP->HP", "LP->ULP",
+                            "ULP->HP", "ULP->LP"] if k in txns]
+        energies_mj = []
+        for k in keys:
+            dur_s = txns[k].get("duration_s_mean", 0)
+            ua = txns[k].get("mean_ua_mean", 0)
+            charge_uc = ua * dur_s
+            energies_mj.append(energy_uj(charge_uc, supply_mv) / 1000.0)
+        x = range(len(keys))
+        ax.bar(x, energies_mj, color="#c63")
+        ax.set_xticks(list(x))
+        ax.set_xticklabels(keys, rotation=45, ha="right")
+        ax.set_ylabel("mean energy per transition (mJ)")
+        ax.set_title(f"Transition energy at {supply_mv} mV -- "
+                     f"{doc['meta']['strategy']}")
+        ax.grid(axis="y", alpha=0.3)
+        for i, e in enumerate(energies_mj):
+            ax.text(i, e, f"{e:.2f} mJ",
+                    ha="center", va="bottom", fontsize=8)
+        fig.tight_layout()
+        figs.append(("energy_per_transition", fig))
 
     # Plot 3: break-even chart.
     if modes and txns and "HP" in modes:

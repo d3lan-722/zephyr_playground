@@ -277,36 +277,41 @@ Emits, alongside the JSON:
 
 - `current_per_mode.png`      — HP / LP / ULP steady-state current
 - `transition_duration.png`   — mean pm-busy pulse width per direction
+- `energy_per_transition.png` — mean transition energy (mJ) per direction
 - `break_even.png`            — HP→X→HP break-even residence
 
-Example report from a 3-loop PLL_RETUNE capture:
+Example report from a 3-loop PLL_RETUNE capture at 3.3 V supply:
 
 ```
 == steady-state current per mode (post-200ms settling) ==
   mode    n        mean         std
-  HP      7   10.498 mA     13.2 uA
-  LP      6    5.221 mA      2.9 uA
-  ULP     6    3.133 mA      2.4 uA
+  HP      7   10.500 mA     17.4 uA
+  LP      6    5.210 mA      7.8 uA
+  ULP     6    3.131 mA      6.1 uA
 
-== per-direction transition stats ==
-  direction   n   cycles_mean   ppk_dur_mean   ppk_mean_ua   charge
-  HP->LP      3       7115988      209.097 ms      5.941 mA   1242 uC
-  HP->ULP     3       6658952      199.627 ms      5.411 mA   1080 uC
-  LP->HP      3       9174078      220.860 ms      5.850 mA   1292 uC
-  ULP->HP     3       8779359      213.163 ms      5.310 mA   1132 uC
-  LP->ULP     3       6951945      176.377 ms      4.271 mA    753 uC
-  ULP->LP     3       6877992      177.493 ms      4.224 mA    750 uC
+== per-direction transition stats (supply 3300 mV) ==
+  direction   n   cycles_mean   ppk_dur_mean   ppk_mean_ua   charge     energy
+  HP->LP      3       7115968     209.090 ms      5.940 mA   1242 uC   4.099 mJ
+  HP->ULP     3       6658979     199.557 ms      5.408 mA   1079 uC   3.561 mJ
+  LP->HP      3       9174055     220.803 ms      5.852 mA   1292 uC   4.264 mJ
+  LP->ULP     3       6951911     176.363 ms      4.267 mA    752 uC   2.484 mJ
+  ULP->HP     3       8663019     213.077 ms      5.306 mA   1130 uC   3.731 mJ
+  ULP->LP     3       6878093     177.457 ms      4.222 mA    749 uC   2.473 mJ
 
-== break-even residence for HP -> X -> HP round-trips ==
-  target       HP_ua        X_ua     q_extra   breakeven
-  LP     10.498 mA    5.221 mA    -814 uC       0.0 us
-  ULP    10.498 mA    3.133 mA    -552 uC       0.0 us
+== break-even residence for HP -> X -> HP round-trips (supply 3300 mV) ==
+  target       HP_ua        X_ua     q_extra     e_extra    breakeven
+  LP     10.500 mA    5.210 mA    -812 uC   -2.678 mJ       0.0 us
+  ULP    10.500 mA    3.131 mA    -553 uC   -1.825 mJ       0.0 us
 ```
 
-The transition mean current is *below* HP steady-state (CPU spends
-most of the window at a lower clock rate), so `q_extra` is
-negative and the break-even is immediate — any drop out of HP is
-an instant energy win with these two strategies.
+Energy is computed as `charge × V_supply` using the `supply_mv`
+value stored in the JSON's `meta` section (nominally 3.3 V for the
+kit_pse84_eval board). Round-trip `e_extra` is negative because the
+transition mean current is *below* HP steady-state (CPU spends
+most of the window at a lower clock rate), so `q_extra` — and thus
+`e_extra` — comes out negative and the break-even residence is
+immediate: any drop out of HP is an instant energy win with these
+two strategies.
 
 ## Typical workflow
 
