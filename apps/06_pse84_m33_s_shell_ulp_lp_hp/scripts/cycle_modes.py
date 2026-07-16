@@ -30,7 +30,9 @@ current directory by default.
 import argparse
 import glob
 import json
+import os
 import re
+import signal
 import sys
 import threading
 import time
@@ -142,6 +144,73 @@ def drain_shell(ser: serial.Serial, quiet_ms: int = 500, max_ms: int = 3000) -> 
 # ------------------------------------------------------------------
 # PPK2 background capture (optional)
 # ------------------------------------------------------------------
+
+# Matches the pidfile written by scripts/ppk2_power.py -- see that
+# script's docstring. If a keeper daemon is running, we need to stop
+# it before opening the PPK2 ourselves; otherwise we hit an
+# EAGAIN / 'Resource temporarily unavailable' on the exclusive lock.
+PPK2_KEEPER_PIDFILE = f"/tmp/ppk2-power-{os.getuid()}.pid"
+
+
+def _stop_ppk2_keeper() -> None:
+    """If scripts/ppk2_power.py is holding the PPK2 port open (its
+    keeper daemon), stop it and wait for the port to be released."""
+    if not os.path.exists(PPK2_KEEPER_PIDFILE):
+        return
+    try:
+        with open(PPK2_KEEPER_PIDFILE) as f:
+            pid = int(f.read().strip())
+    except Exception:
+        return
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        # Stale pidfile.
+        try:
+            os.remove(PPK2_KEEPER_PIDFILE)
+        except FileNotFoundError:
+            pass
+        return
+    print(f"# [ppk2] stopping keeper pid {pid} to take PPK2 port")
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except OSError:
+        return
+    for _ in range(50):  # up to 5 s
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            break
+        time.sleep(0.1)
+    # Extra settle so the kernel releases the CDC exclusive lock.
+    time.sleep(0.3)
+
+
+def _patch_ppk2_mp_del() -> None:
+    """PPK2_MP.__del__ references self._quit_evt without checking
+    that __init__ finished. If exclusive-open failed early in the
+    base PPK2_API.__init__, _quit_evt is never set and the destructor
+    raises AttributeError (harmless but noisy). Wrap it once."""
+    try:
+        from ppk2_api.ppk2_api import PPK2_MP as _PPK2_MP
+    except ImportError:
+        return
+    if getattr(_PPK2_MP.__del__, "_patched", False):
+        return
+    _orig = _PPK2_MP.__del__
+
+    def _safe_del(self):
+        try:
+            _orig(self)
+        except AttributeError:
+            pass
+        except Exception:
+            pass
+
+    _safe_del._patched = True  # type: ignore[attr-defined]
+    _PPK2_MP.__del__ = _safe_del  # type: ignore[method-assign]
+
+
 class Ppk2Capture:
     """Optional PPK2 background capture. Silently becomes a no-op
     if ppk2-api isn't installed, no PPK2 is attached, or --no-ppk
@@ -164,6 +233,9 @@ class Ppk2Capture:
         except ImportError:
             print("# [ppk2] ppk2-api not installed -- skipping current capture")
             return
+
+        _patch_ppk2_mp_del()
+        _stop_ppk2_keeper()
 
         if dev is None:
             matches = glob.glob(PPK2_GLOB)

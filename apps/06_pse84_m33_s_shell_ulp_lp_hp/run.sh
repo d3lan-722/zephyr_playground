@@ -31,24 +31,24 @@ build() {
 }
 
 # If a PPK2 is attached in ampere-meter mode with its VIN/VOUT in
-# series with the DUT's VDD rail, the DUT is powered off whenever the
-# PPK2's internal FET switch is open (its default state on script exit
-# and after USB re-enumeration). KitProg's DAP cannot program a
-# powered-off target, so ensure the switch is closed before
-# west flash.
+# series with the DUT's VDD rail, the DUT is powered off whenever
+# the PPK2 is not actively "measuring" -- the toggle_DUT_power("ON")
+# command only asserts the internal FET switch WHILE start_measuring
+# is running. So we can't just fire-and-forget an ON toggle: we
+# spawn a small keeper daemon (scripts/ppk2_power.py on --daemon)
+# that holds the port open. The keeper persists after run.sh flash
+# so you can immediately interact with the just-flashed target;
+# stop it explicitly with `scripts/ppk2_power.py off` when done.
+# If no PPK2 is attached the helper is a no-op.
 #
-# We deliberately do NOT power the DUT off after flashing:
-# KitProg's DAP-acquire-in-test-mode sequence requires XRES-vs-SWD
-# timing that is only reliable when KitProg itself controls power.
-# With PPK2 in the VDD path, every power cycle leaves the ROM
-# bootloader locking the DAP and 'kitprog3: failed to acquire the
-# device' after the next attempted flash. Keeping the DUT powered
-# after flashing preserves the DAP-enabled state (Zephyr does not
-# lock it) so subsequent re-flashes work. If you specifically need
-# to remove DUT power, run `scripts/ppk2_power.py off` manually.
+# Also note: KitProg's DAP-acquire-in-test-mode needs XRES vs SWD
+# timing that only works when KitProg itself owns power. If the DUT
+# is currently in a DAP-locked state after a PPK2 power cycle, this
+# wrapper alone won't recover it -- see the README for the one-time
+# bypass procedure.
 flash() {
-    "$HERE/scripts/ppk2_power.py" on || true
-    sleep 0.3
+    "$HERE/scripts/ppk2_power.py" on --daemon || true
+    sleep 0.5
     west flash -d "$HERE/build"
 }
 
