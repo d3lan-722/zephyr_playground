@@ -20,11 +20,14 @@ Usage:
     ./cycle_modes.py --no-ppk               # skip ppk2 even if attached
     ./cycle_modes.py --output out.json      # override the auto-named output file
 
-The output JSON is named `<strategy>_<timestamp>.json` where
-<strategy> is derived from the firmware console output
+The output is written to
+    <app-root>/measurements/<strategy>_<YYYYMMDD-HHMMSS>/data.json
+where <strategy> is derived from the firmware console output
 (`pll_retune` from `[pll] ...` lines, `hf0_divider` from
-`[div] ...` lines, `unknown` otherwise). Written into the
-current directory by default.
+`[div] ...` lines, `unknown` otherwise). The self-describing
+subfolder makes captures easy to identify at a glance and gives
+scripts/postprocess.py a natural place to drop its PNG plots
+alongside the JSON.
 """
 
 import argparse
@@ -38,6 +41,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 import serial
@@ -462,9 +466,18 @@ class TxnRecord:
     parsed: dict[str, Any] | None = field(default=None)
 
 
-def default_output_name(strategy: str) -> str:
+def default_output_path(strategy: str) -> Path:
+    """Build the default JSON output path for a capture:
+      <app_root>/measurements/<strategy>_<YYYYMMDD-HHMMSS>/data.json
+    The subfolder name identifies the strategy + timestamp so a
+    directory of captures self-describes; the filename inside is
+    always `data.json` so post-processing scripts can glob for it.
+
+    <app_root> is the parent of this script's directory (i.e.
+    apps/06_pse84_m33_s_shell_ulp_lp_hp/)."""
     ts = datetime.now().strftime("%Y%m%d-%H%M%S")
-    return f"{strategy}_{ts}.json"
+    app_root = Path(__file__).resolve().parent.parent
+    return app_root / "measurements" / f"{strategy}_{ts}" / "data.json"
 
 
 def main() -> int:
@@ -494,7 +507,8 @@ def main() -> int:
     p.add_argument(
         "--output",
         default=None,
-        help="output JSON path (default: <strategy>_<ts>.json)",
+        help="output JSON path (default: "
+        "<app-root>/measurements/<strategy>_<YYYYMMDD-HHMMSS>/data.json)",
     )
     args = p.parse_args()
 
@@ -520,8 +534,7 @@ def main() -> int:
     try:
         banner = drain_shell(ser, quiet_ms=500, max_ms=2000)
     except ShellDisconnected as e:
-        print(f"# [shell] disconnected during initial drain ({e})",
-              file=sys.stderr)
+        print(f"# [shell] disconnected during initial drain ({e})", file=sys.stderr)
         banner = ""
     if banner:
         sys.stdout.write(banner)
@@ -545,8 +558,10 @@ def main() -> int:
                 # current spike). Try to reopen once; if it works,
                 # note the disruption in the record and keep going.
                 # If it doesn't, save what we have and stop.
-                print(f"\n# [shell] disconnected ({e}); trying to "
-                      "reconnect...", flush=True)
+                print(
+                    f"\n# [shell] disconnected ({e}); trying to " "reconnect...",
+                    flush=True,
+                )
                 try:
                     ser.close()
                 except Exception:
@@ -556,13 +571,20 @@ def main() -> int:
                     ser = serial.Serial(dev, SHELL_BAUD, timeout=0.1)
                     text = f"<shell disconnected: {e}>"
                 except Exception as reopen_err:
-                    print(f"# [shell] reconnect failed: {reopen_err}; "
-                          "stopping capture", flush=True)
-                    txns.append(TxnRecord(
-                        seq=i + 1, cmd=cmd, sent_at_s=sent_at,
-                        console=f"<disconnected before send: {e}>",
-                        parsed=None,
-                    ))
+                    print(
+                        f"# [shell] reconnect failed: {reopen_err}; "
+                        "stopping capture",
+                        flush=True,
+                    )
+                    txns.append(
+                        TxnRecord(
+                            seq=i + 1,
+                            cmd=cmd,
+                            sent_at_s=sent_at,
+                            console=f"<disconnected before send: {e}>",
+                            parsed=None,
+                        )
+                    )
                     break
             sys.stdout.write(text)
             sys.stdout.flush()
@@ -590,7 +612,7 @@ def main() -> int:
             pass
 
     strategy = detect_strategy("\n".join(t.console for t in txns))
-    output = args.output or default_output_name(strategy)
+    output = Path(args.output) if args.output else default_output_path(strategy)
 
     doc: dict[str, Any] = {
         "meta": {
@@ -689,6 +711,7 @@ def main() -> int:
     else:
         doc["ppk2"] = {"available": False}
 
+    output.parent.mkdir(parents=True, exist_ok=True)
     with open(output, "w") as f:
         json.dump(doc, f, indent=2)
     print(f"\n# wrote {output}")

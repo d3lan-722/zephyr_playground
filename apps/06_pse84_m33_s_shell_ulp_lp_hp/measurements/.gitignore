@@ -1,0 +1,5 @@
+# .gitignore
+*.json
+*.png
+# except this file
+!.gitignore

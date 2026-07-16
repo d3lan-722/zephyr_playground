@@ -8,15 +8,20 @@ Prints:
   - per-direction firmware cycle counts vs PPK2 pulse widths
   - break-even residence time to justify a round-trip transition
 
-Plots (if matplotlib is available and --plot is passed):
-  - current histogram per mode
-  - transition duration histogram per direction
-  - break-even chart per direction
+Plots (if matplotlib is available and --no-plots is not passed):
+  - current per mode          -> current_per_mode.png
+  - transition duration       -> transition_duration.png
+  - break-even chart          -> break_even.png
+
+By default PNGs are written next to the input JSON (typically
+<app-root>/measurements/<strategy>_<ts>/), matching the layout
+cycle_modes.py produces.
 
 Usage:
-    ./postprocess.py capture.json
-    ./postprocess.py capture.json --plot
-    ./postprocess.py capture.json --plot --save-plots outdir/
+    ./postprocess.py measurements/pll_retune_20260716-093305/data.json
+    ./postprocess.py <json> --show                # also open interactive windows
+    ./postprocess.py <json> --no-plots            # report only
+    ./postprocess.py <json> --save-plots outdir/  # override save location
 """
 
 import argparse
@@ -338,11 +343,14 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("json", type=Path,
                     help="capture JSON produced by cycle_modes.py")
-    ap.add_argument("--plot", action="store_true",
-                    help="show matplotlib plots (interactive)")
+    ap.add_argument("--show", action="store_true",
+                    help="also open the matplotlib windows interactively "
+                    "instead of only saving them to disk")
+    ap.add_argument("--no-plots", action="store_true",
+                    help="don't generate plots (report only)")
     ap.add_argument("--save-plots", type=Path, default=None,
                     metavar="DIR",
-                    help="save plots as PNG to DIR instead of showing them")
+                    help="write PNGs to DIR (default: alongside the JSON)")
     args = ap.parse_args()
 
     if not args.json.exists():
@@ -351,8 +359,14 @@ def main() -> int:
     doc = load(args.json)
     print_report(doc)
 
-    if args.plot or args.save_plots:
-        make_plots(doc, args.save_plots)
+    if not args.no_plots:
+        # Default: put PNGs next to the JSON. --save-plots overrides.
+        save_dir = args.save_plots or args.json.resolve().parent
+        make_plots(doc, save_dir if not args.show else None)
+        if args.show:
+            # If --show was passed we opened interactive windows and
+            # deliberately skipped saving. Save too, for the record.
+            make_plots(doc, save_dir)
 
     return 0
 
