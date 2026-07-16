@@ -169,16 +169,12 @@ static void trim_smif(void)
  */
 static void trim_app_domain(void)
 {
-	struct ppu_v1_reg *ppu_pd1 =
-	    (struct ppu_v1_reg *)CY_PPU_PD1_BASE;
-	struct ppu_v1_reg *ppu_socmem =
-	    (struct ppu_v1_reg *)CY_PPU_SOCMEM_BASE;
+	struct ppu_v1_reg *ppu_pd1 = (struct ppu_v1_reg *)CY_PPU_PD1_BASE;
+	struct ppu_v1_reg *ppu_socmem = (struct ppu_v1_reg *)CY_PPU_SOCMEM_BASE;
 	struct ppu_v1_reg *ppu_appcpuss =
 	    (struct ppu_v1_reg *)CY_PPU_APPCPUSS_BASE;
-	struct ppu_v1_reg *ppu_appcpu =
-	    (struct ppu_v1_reg *)CY_PPU_APPCPU_BASE;
-	struct ppu_v1_reg *ppu_u55 =
-	    (struct ppu_v1_reg *)CY_PPU_U55_BASE;
+	struct ppu_v1_reg *ppu_appcpu = (struct ppu_v1_reg *)CY_PPU_APPCPU_BASE;
+	struct ppu_v1_reg *ppu_u55 = (struct ppu_v1_reg *)CY_PPU_U55_BASE;
 
 	/* (a) Break the boot-ROM PDCM edge SYSCPU->APPCPUSS. */
 	(void)cy_pd_pdcm_clear_dependency(CY_PD_PDCM_APPCPUSS,
@@ -190,16 +186,11 @@ static void trim_app_domain(void)
 	/* Request OFF on parent first, then children. Actual
 	 * sequencing is enforced by the Q-channel handshake, not
 	 * by these register writes. */
-	(void)cy_pd_ppu_set_power_mode(ppu_pd1,
-				       (uint32_t)PPU_V1_MODE_OFF);
-	(void)cy_pd_ppu_set_power_mode(ppu_socmem,
-				       (uint32_t)PPU_V1_MODE_OFF);
-	(void)cy_pd_ppu_set_power_mode(ppu_appcpuss,
-				       (uint32_t)PPU_V1_MODE_OFF);
-	(void)cy_pd_ppu_set_power_mode(ppu_appcpu,
-				       (uint32_t)PPU_V1_MODE_OFF);
-	(void)cy_pd_ppu_set_power_mode(ppu_u55,
-				       (uint32_t)PPU_V1_MODE_OFF);
+	(void)cy_pd_ppu_set_power_mode(ppu_pd1, (uint32_t)PPU_V1_MODE_OFF);
+	(void)cy_pd_ppu_set_power_mode(ppu_socmem, (uint32_t)PPU_V1_MODE_OFF);
+	(void)cy_pd_ppu_set_power_mode(ppu_appcpuss, (uint32_t)PPU_V1_MODE_OFF);
+	(void)cy_pd_ppu_set_power_mode(ppu_appcpu, (uint32_t)PPU_V1_MODE_OFF);
+	(void)cy_pd_ppu_set_power_mode(ppu_u55, (uint32_t)PPU_V1_MODE_OFF);
 }
 
 /**
