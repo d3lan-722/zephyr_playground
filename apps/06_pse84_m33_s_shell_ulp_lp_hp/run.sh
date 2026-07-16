@@ -34,22 +34,26 @@ build() {
 # series with the DUT's VDD rail, the DUT is powered off whenever
 # the PPK2 is not actively "measuring" -- the toggle_DUT_power("ON")
 # command only asserts the internal FET switch WHILE start_measuring
-# is running. So we can't just fire-and-forget an ON toggle: we
-# spawn a small keeper daemon (scripts/ppk2_power.py on --daemon)
-# that holds the port open. The keeper persists after run.sh flash
-# so you can immediately interact with the just-flashed target;
-# stop it explicitly with `scripts/ppk2_power.py off` when done.
+# is running. So we spawn scripts/ppk2_power.py's keeper daemon
+# (which holds the port open with start_measuring active) for the
+# duration of `west flash`, then stop it afterwards. Downstream
+# scripts (scripts/cycle_modes.py) are then responsible for their
+# own PPK2 lifecycle -- flash and cycle_modes are independent.
+#
 # If no PPK2 is attached the helper is a no-op.
 #
-# Also note: KitProg's DAP-acquire-in-test-mode needs XRES vs SWD
-# timing that only works when KitProg itself owns power. If the DUT
-# is currently in a DAP-locked state after a PPK2 power cycle, this
+# Note on DAP acquire: KitProg's acquire-in-test-mode needs XRES vs
+# SWD timing that only works when KitProg itself owns power. If the
+# DUT ends up in a DAP-locked state after a PPK2 power cycle, this
 # wrapper alone won't recover it -- see the README for the one-time
 # bypass procedure.
 flash() {
     "$HERE/scripts/ppk2_power.py" on --daemon || true
     sleep 0.5
-    west flash -d "$HERE/build"
+    local rc=0
+    west flash -d "$HERE/build" || rc=$?
+    "$HERE/scripts/ppk2_power.py" off || true
+    return $rc
 }
 
 clean() {
