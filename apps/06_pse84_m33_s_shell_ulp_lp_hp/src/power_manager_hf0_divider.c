@@ -41,40 +41,49 @@
 
 #include "cy_pdl.h"
 
+#include "pm_phase_log.h"
+
 /* ------------------------------------------------------------------
  * Per-phase timing capture.
  *
  * Each trans_ helper below records a k_cycle_get_32() timestamp
- * between each PDL call and stores the three cycle-delta values +
- * their labels in the module-static tables below. After the strategy
- * returns to pm_switch_to(), it calls
- * pm_strategy_print_last_phases() which walks these tables and
- * emits one line like:
+ * between each PDL call and pushes the three cycle-delta values
+ * into the shared pm_phase_log module. After the strategy returns
+ * to pm_switch_to(), pm_strategy_print_last_phases() forwards to
+ * pm_phase_log_print() which emits e.g.:
  *   [pm] hp2ulp phases: div=1us enter=2745us rram=68us total=2814us
- * Conversion uses the effective_hz value pm_switch_to already
- * computed (MIN of CLK_HF0 pre/post) so the per-phase numbers add
- * up to the aggregate line printed just above.
+ *
+ * Every phase in the divider-only strategy runs at the SAME
+ * CLK_HF0 rate -- MIN(source, target) -- because the divider
+ * change happens either strictly before (down) or strictly after
+ * (up) all three phases execute. So each helper computes that one
+ * rate up front and passes it as the third argument to every
+ * pm_phase_log_record call.
  * ------------------------------------------------------------------ */
-#define PM_MAX_PHASES 3
 
-static uint32_t s_phase_cycles[PM_MAX_PHASES];
-static const char *s_phase_names[PM_MAX_PHASES];
-static uint8_t s_phase_count;
-static const char *s_transition_label = "";
-
-static inline void phase_reset(const char *label)
+/** CLK_HF0 (CM33 core) rate at each mode with the divider-only
+ *  strategy. DPLL_LP0 is frozen at 200 MHz; the divider is /1, /3,
+ *  /4 for HP, LP, ULP respectively. */
+static uint32_t hf0_hz_at(pm_mode_t m)
 {
-	s_transition_label = label;
-	s_phase_count = 0;
+	switch (m) {
+	case PM_MODE_HP:
+		return 200000000u;
+	case PM_MODE_LP:
+		return 66666667u; /* 200 MHz / 3 */
+	case PM_MODE_ULP:
+		return 50000000u; /* 200 MHz / 4 */
+	default:
+		return 1u;
+	}
 }
 
-static inline void phase_record(const char *name, uint32_t cycles)
+static inline uint32_t phase_hz(pm_mode_t src, pm_mode_t tgt)
 {
-	if (s_phase_count < PM_MAX_PHASES) {
-		s_phase_names[s_phase_count] = name;
-		s_phase_cycles[s_phase_count] = cycles;
-		s_phase_count++;
-	}
+	uint32_t s = hf0_hz_at(src);
+	uint32_t t = hf0_hz_at(tgt);
+
+	return (s < t) ? s : t;
 }
 
 /* ------------------------------------------------------------------
@@ -90,8 +99,9 @@ static int trans_hp_to_lp(void)
 {
 	cy_en_syspm_status_t st;
 	uint32_t t0, t1, t2, t3;
+	uint32_t hz = phase_hz(PM_MODE_HP, PM_MODE_LP);
 
-	phase_reset("hp2lp");
+	pm_phase_log_reset("hp2lp");
 
 	t0 = k_cycle_get_32();
 	Cy_SysClk_ClkHfSetDivider(0, CY_SYSCLK_CLKHF_DIVIDE_BY_3);
@@ -106,9 +116,9 @@ static int trans_hp_to_lp(void)
 	Cy_RRAM_SetVoltageMode(RRAMC0, CY_RRAM_VMODE_LP);
 	t3 = k_cycle_get_32();
 
-	phase_record("div",   t1 - t0);
-	phase_record("enter", t2 - t1);
-	phase_record("rram",  t3 - t2);
+	pm_phase_log_record("div", t1 - t0, hz);
+	pm_phase_log_record("enter", t2 - t1, hz);
+	pm_phase_log_record("rram", t3 - t2, hz);
 	return 0;
 }
 
@@ -118,8 +128,9 @@ static int trans_hp_to_ulp(void)
 {
 	cy_en_syspm_status_t st;
 	uint32_t t0, t1, t2, t3;
+	uint32_t hz = phase_hz(PM_MODE_HP, PM_MODE_ULP);
 
-	phase_reset("hp2ulp");
+	pm_phase_log_reset("hp2ulp");
 
 	t0 = k_cycle_get_32();
 	Cy_SysClk_ClkHfSetDivider(0, CY_SYSCLK_CLKHF_DIVIDE_BY_4);
@@ -134,9 +145,9 @@ static int trans_hp_to_ulp(void)
 	Cy_RRAM_SetVoltageMode(RRAMC0, CY_RRAM_VMODE_ULP);
 	t3 = k_cycle_get_32();
 
-	phase_record("div",   t1 - t0);
-	phase_record("enter", t2 - t1);
-	phase_record("rram",  t3 - t2);
+	pm_phase_log_record("div", t1 - t0, hz);
+	pm_phase_log_record("enter", t2 - t1, hz);
+	pm_phase_log_record("rram", t3 - t2, hz);
 	return 0;
 }
 
@@ -146,8 +157,9 @@ static int trans_lp_to_ulp(void)
 {
 	cy_en_syspm_status_t st;
 	uint32_t t0, t1, t2, t3;
+	uint32_t hz = phase_hz(PM_MODE_LP, PM_MODE_ULP);
 
-	phase_reset("lp2ulp");
+	pm_phase_log_reset("lp2ulp");
 
 	t0 = k_cycle_get_32();
 	Cy_SysClk_ClkHfSetDivider(0, CY_SYSCLK_CLKHF_DIVIDE_BY_4);
@@ -162,9 +174,9 @@ static int trans_lp_to_ulp(void)
 	Cy_RRAM_SetVoltageMode(RRAMC0, CY_RRAM_VMODE_ULP);
 	t3 = k_cycle_get_32();
 
-	phase_record("div",   t1 - t0);
-	phase_record("enter", t2 - t1);
-	phase_record("rram",  t3 - t2);
+	pm_phase_log_record("div", t1 - t0, hz);
+	pm_phase_log_record("enter", t2 - t1, hz);
+	pm_phase_log_record("rram", t3 - t2, hz);
 	return 0;
 }
 
@@ -173,8 +185,9 @@ static int trans_ulp_to_lp(void)
 {
 	cy_en_syspm_status_t st;
 	uint32_t t0, t1, t2, t3;
+	uint32_t hz = phase_hz(PM_MODE_ULP, PM_MODE_LP);
 
-	phase_reset("ulp2lp");
+	pm_phase_log_reset("ulp2lp");
 
 	t0 = k_cycle_get_32();
 	st = pm_syspm_enter(PM_MODE_LP);
@@ -188,9 +201,9 @@ static int trans_ulp_to_lp(void)
 	Cy_SysClk_ClkHfSetDivider(0, CY_SYSCLK_CLKHF_DIVIDE_BY_3);
 	t3 = k_cycle_get_32();
 
-	phase_record("enter", t1 - t0);
-	phase_record("rram",  t2 - t1);
-	phase_record("div",   t3 - t2);
+	pm_phase_log_record("enter", t1 - t0, hz);
+	pm_phase_log_record("rram", t2 - t1, hz);
+	pm_phase_log_record("div", t3 - t2, hz);
 	return 0;
 }
 
@@ -199,8 +212,9 @@ static int trans_lp_to_hp(void)
 {
 	cy_en_syspm_status_t st;
 	uint32_t t0, t1, t2, t3;
+	uint32_t hz = phase_hz(PM_MODE_LP, PM_MODE_HP);
 
-	phase_reset("lp2hp");
+	pm_phase_log_reset("lp2hp");
 
 	t0 = k_cycle_get_32();
 	st = pm_syspm_enter(PM_MODE_HP);
@@ -214,9 +228,9 @@ static int trans_lp_to_hp(void)
 	Cy_SysClk_ClkHfSetDivider(0, CY_SYSCLK_CLKHF_NO_DIVIDE);
 	t3 = k_cycle_get_32();
 
-	phase_record("enter", t1 - t0);
-	phase_record("rram",  t2 - t1);
-	phase_record("div",   t3 - t2);
+	pm_phase_log_record("enter", t1 - t0, hz);
+	pm_phase_log_record("rram", t2 - t1, hz);
+	pm_phase_log_record("div", t3 - t2, hz);
 	return 0;
 }
 
@@ -226,8 +240,9 @@ static int trans_ulp_to_hp(void)
 {
 	cy_en_syspm_status_t st;
 	uint32_t t0, t1, t2, t3;
+	uint32_t hz = phase_hz(PM_MODE_ULP, PM_MODE_HP);
 
-	phase_reset("ulp2hp");
+	pm_phase_log_reset("ulp2hp");
 
 	t0 = k_cycle_get_32();
 	st = pm_syspm_enter(PM_MODE_HP);
@@ -241,9 +256,9 @@ static int trans_ulp_to_hp(void)
 	Cy_SysClk_ClkHfSetDivider(0, CY_SYSCLK_CLKHF_NO_DIVIDE);
 	t3 = k_cycle_get_32();
 
-	phase_record("enter", t1 - t0);
-	phase_record("rram",  t2 - t1);
-	phase_record("div",   t3 - t2);
+	pm_phase_log_record("enter", t1 - t0, hz);
+	pm_phase_log_record("rram", t2 - t1, hz);
+	pm_phase_log_record("div", t3 - t2, hz);
 	return 0;
 }
 
@@ -313,23 +328,6 @@ void pm_strategy_probe_status(void)
 
 bool pm_strategy_needs_uart_retune(void) { return false; }
 
-void pm_strategy_print_last_phases(uint32_t effective_hz)
-{
-	uint32_t total_us = 0u;
-	uint8_t i;
-
-	if (s_phase_count == 0u || effective_hz == 0u) {
-		return;
-	}
-	printk("[pm] %s phases:", s_transition_label);
-	for (i = 0u; i < s_phase_count; i++) {
-		uint32_t us = (uint32_t)(((uint64_t)s_phase_cycles[i] *
-					  1000000ULL) /
-					 effective_hz);
-		total_us += us;
-		printk(" %s=%uus", s_phase_names[i], us);
-	}
-	printk(" total=%uus\n", total_us);
-}
+void pm_strategy_print_last_phases(void) { pm_phase_log_print(); }
 
 #endif /* PM_STRATEGY_HF0_DIVIDER */

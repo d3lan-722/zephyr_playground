@@ -38,6 +38,7 @@
 
 #include "diag.h"
 #include "gpio_indicators.h"
+#include "pm_phase_log.h"
 #include "power_manager_internal.h"
 
 /* ==================================================================
@@ -119,7 +120,6 @@ int pm_switch_to(pm_mode_t target)
 	int rc;
 	pm_mode_t source;
 	uint32_t t_start, t_end, cycles, us;
-	uint32_t cpu_hz_pre, cpu_hz_post, effective_hz;
 
 	if (target == s_current_mode) {
 		return 0;
@@ -135,29 +135,21 @@ int pm_switch_to(pm_mode_t target)
 	 * the scope trace captures the DVFS transient itself, not the
 	 * shell prints, UART retune, or clock probe that follow.
 	 *
-	 * The same window is timed in software. Zephyr's cycle counter
-	 * comes from Cortex-M SysTick sourced from CLK_HF0, so it
-	 * accumulates at whatever the CPU frequency is at any instant
-	 * -- and the compile-time CONFIG_SYS_CLOCK_HW_CYCLES_PER_SEC
-	 * (200 MHz) is only correct at HP. To recover an honest us
-	 * number we snapshot the live CLK_HF0 rate before and after
-	 * and use MIN(pre, post):
-	 *   HF0-divider down (HP->LP/ULP): divider drops FIRST, so
-	 *     ~100% of the window is at the target (lower) rate.
-	 *   HF0-divider up   (LP/ULP->HP): divider rises LAST, so
-	 *     ~100% of the window is at the source (lower) rate.
-	 *   Either way, MIN(pre, post) matches the effective rate
-	 *   to within a few percent, agreeing with the scope.
-	 * PLL-retune passes through an intermediate freq lower than
-	 * either endpoint, so the printed us slightly underestimates
-	 * real wall time there. */
-	cpu_hz_pre = Cy_SysClk_ClkHfGetFrequency(0u);
+	 * Raw cycle count is captured with k_cycle_get_32() (Cortex-M
+	 * SysTick, sourced from CLK_HF0). The accurate microsecond
+	 * total comes from the strategy's per-phase log rather than
+	 * dividing the raw cycles by a single frequency: for PLL
+	 * retune the CPU frequency changes several times mid-window
+	 * (source -> IHO bypass -> intermediate -> IHO bypass ->
+	 * target), so no single-frequency conversion is right for the
+	 * whole span. Each phase records the CPU rate it actually ran
+	 * at (see pm_phase_log_record) and the aggregate is just the
+	 * sum. */
 	t_start = k_cycle_get_32();
 	gpio_indicators_transition_begin();
 	rc = pm_strategy_transition(source, target);
 	gpio_indicators_transition_end();
 	t_end = k_cycle_get_32();
-	cpu_hz_post = Cy_SysClk_ClkHfGetFrequency(0u);
 
 	if (rc != 0) {
 		TRACE("switch:FAIL");
@@ -177,15 +169,10 @@ int pm_switch_to(pm_mode_t target)
 	}
 
 	cycles = t_end - t_start;
-	effective_hz = (cpu_hz_pre < cpu_hz_post) ? cpu_hz_pre : cpu_hz_post;
-	if (effective_hz == 0u) {
-		effective_hz = 1u;
-	}
-	us = (uint32_t)(((uint64_t)cycles * 1000000ULL) / effective_hz);
-	printk("[pm] transition %s -> %s : ~%u us (%u cycles @ %u MHz)\n",
-	       pm_mode_name(source), pm_mode_name(target), us, cycles,
-	       effective_hz / 1000000u);
-	pm_strategy_print_last_phases(effective_hz);
+	us = pm_phase_log_total_us();
+	printk("[pm] transition %s -> %s : %u us (%u cycles)\n",
+	       pm_mode_name(source), pm_mode_name(target), us, cycles);
+	pm_strategy_print_last_phases();
 
 	TRACE("switch:complete");
 	pm_clock_probe();

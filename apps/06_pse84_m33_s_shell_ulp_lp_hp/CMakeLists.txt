@@ -16,6 +16,7 @@ target_sources(app PRIVATE
     src/power_manager.c
     src/power_manager_pll_retune.c
     src/power_manager_hf0_divider.c
+    src/pm_phase_log.c
     src/shell_cmds.c
     src/gpio_indicators.c
     src/diag.c

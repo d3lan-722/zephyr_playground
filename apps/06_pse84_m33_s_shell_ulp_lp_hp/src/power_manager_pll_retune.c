@@ -35,6 +35,7 @@
 #include "cy_pdl.h"
 
 #include "diag.h"
+#include "pm_phase_log.h"
 
 /* ------------------------------------------------------------------
  * DPLL_LP0 target frequencies. Input is IHO = 50 MHz (see the DT
@@ -69,6 +70,65 @@
 static uint32_t s_last_pll_target_hz;
 static uint32_t s_last_pll_configure_st;
 static uint32_t s_last_pll_enable_st = PM_PLL_ENABLE_NOT_REACHED;
+
+/* ------------------------------------------------------------------
+ * Per-phase timing capture.
+ *
+ * The three natural phases of a PLL-retune transition are:
+ *   pll_pre  -- BEFORE_TRANSITION cb: retune PLL down to a safe
+ *               intermediate before Cy_SysPm_SystemTransition* runs.
+ *   volt     -- the actual voltage step inside
+ *               Cy_SysPm_SystemTransition* (analog rail change,
+ *               state-machine walk).
+ *   pll_post -- AFTER_TRANSITION cb: RRAM retune + PLL retune up to
+ *               the final target for the new voltage mode.
+ *
+ * We snapshot k_cycle_get_32() at four points:
+ *   t_enter_start  -- before Cy_SysPm_SystemEnter* is called
+ *   s_before_end   -- last instruction of the BEFORE_TRANSITION cb
+ *   s_after_start  -- first instruction of the AFTER_TRANSITION cb
+ *   t_enter_end    -- after Cy_SysPm_SystemEnter* returns
+ * and record the three deltas via pm_phase_log_record().
+ *
+ * Per-phase effective CPU rate for the cycle-to-us conversion:
+ *
+ *   pll_pre / pll_post: Cy_SysClk_PllDisable() switches CLK_PATH0
+ *     to its bypass source before the PLL is reconfigured; on this
+ *     board the DPLL_LP0 reference is IHO (50 MHz), so during the
+ *     PllEnable lock wait (which dominates the phase) CLK_HF0
+ *     runs at ~50 MHz. Small transients at each end where the CPU
+ *     is at source / intermediate / target are negligible compared
+ *     to the >100 ms lock wait, so 50 MHz is used for both phases.
+ *
+ *   volt: the CPU is at whatever intermediate the BEFORE callback
+ *     set. Direction-dependent -- see intermediate_hz_for().
+ *
+ * If a strategy path skips a callback phase (never observed in
+ * practice but defensive), the sentinel 0 makes pm_phase_log_print
+ * emit a zero for the missing phase rather than crash.
+ * ------------------------------------------------------------------ */
+static uint32_t s_before_end_cyc;
+static uint32_t s_after_start_cyc;
+
+/** DPLL_LP0 rate the callback chain parks CLK_HF0 at during the
+ *  Cy_SysPm_SystemTransition* voltage step, given source and target
+ *  power modes. Matches the intermediate frequency picked in
+ *  pm_syspm_{hp,lp,ulp}_cb BEFORE_TRANSITION. */
+static uint32_t intermediate_hz_for(pm_mode_t src, pm_mode_t tgt)
+{
+	if (tgt == PM_MODE_HP) {
+		/* pm_syspm_hp_cb BEFORE always picks LP intermediate. */
+		return DPLL_FREQ_INTERMEDIATE_LP_HZ;
+	}
+	if (tgt == PM_MODE_ULP) {
+		/* pm_syspm_ulp_cb BEFORE always picks ULP intermediate. */
+		return DPLL_FREQ_INTERMEDIATE_ULP_HZ;
+	}
+	/* tgt == PM_MODE_LP: pm_syspm_lp_cb BEFORE branches on
+	 * Cy_SysPm_IsSystemUlp(), which reflects the current source. */
+	return (src == PM_MODE_ULP) ? DPLL_FREQ_INTERMEDIATE_ULP_HZ
+				    : DPLL_FREQ_INTERMEDIATE_LP_HZ;
+}
 
 /**
  * @brief Reprogram DPLL_LP0 to @p freq_hz.
@@ -135,9 +195,13 @@ static cy_en_syspm_status_t pm_syspm_hp_cb(cy_stc_syspm_callback_params_t *p,
 	ARG_UNUSED(p);
 
 	if (mode == CY_SYSPM_BEFORE_TRANSITION) {
-		return pm_pll_reconfigure(DPLL_FREQ_INTERMEDIATE_LP_HZ);
+		cy_en_syspm_status_t st =
+		    pm_pll_reconfigure(DPLL_FREQ_INTERMEDIATE_LP_HZ);
+		s_before_end_cyc = k_cycle_get_32();
+		return st;
 	}
 	if (mode == CY_SYSPM_AFTER_TRANSITION) {
+		s_after_start_cyc = k_cycle_get_32();
 		Cy_RRAM_SetVoltageMode(RRAMC0, CY_RRAM_VMODE_HP);
 		return pm_pll_reconfigure(DPLL_FREQ_HP_HZ);
 	}
@@ -150,14 +214,18 @@ static cy_en_syspm_status_t pm_syspm_lp_cb(cy_stc_syspm_callback_params_t *p,
 	ARG_UNUSED(p);
 
 	if (mode == CY_SYSPM_BEFORE_TRANSITION) {
+		cy_en_syspm_status_t st;
 		/* Coming up from ULP the PLL must be under the ULP
 		 * ceiling; from HP just under the LP ceiling. */
 		uint32_t intermediate = Cy_SysPm_IsSystemUlp()
 					    ? DPLL_FREQ_INTERMEDIATE_ULP_HZ
 					    : DPLL_FREQ_INTERMEDIATE_LP_HZ;
-		return pm_pll_reconfigure(intermediate);
+		st = pm_pll_reconfigure(intermediate);
+		s_before_end_cyc = k_cycle_get_32();
+		return st;
 	}
 	if (mode == CY_SYSPM_AFTER_TRANSITION) {
+		s_after_start_cyc = k_cycle_get_32();
 		Cy_RRAM_SetVoltageMode(RRAMC0, CY_RRAM_VMODE_LP);
 		return pm_pll_reconfigure(DPLL_FREQ_LP_HZ);
 	}
@@ -170,9 +238,13 @@ static cy_en_syspm_status_t pm_syspm_ulp_cb(cy_stc_syspm_callback_params_t *p,
 	ARG_UNUSED(p);
 
 	if (mode == CY_SYSPM_BEFORE_TRANSITION) {
-		return pm_pll_reconfigure(DPLL_FREQ_INTERMEDIATE_ULP_HZ);
+		cy_en_syspm_status_t st =
+		    pm_pll_reconfigure(DPLL_FREQ_INTERMEDIATE_ULP_HZ);
+		s_before_end_cyc = k_cycle_get_32();
+		return st;
 	}
 	if (mode == CY_SYSPM_AFTER_TRANSITION) {
+		s_after_start_cyc = k_cycle_get_32();
 		Cy_RRAM_SetVoltageMode(RRAMC0, CY_RRAM_VMODE_ULP);
 		return pm_pll_reconfigure(DPLL_FREQ_ULP_HZ);
 	}
@@ -214,15 +286,47 @@ void pm_strategy_init(void)
 
 int pm_strategy_transition(pm_mode_t source, pm_mode_t target)
 {
-	ARG_UNUSED(source); /* callbacks read Cy_SysPm_IsSystemUlp() etc.
-			     * themselves for direction-awareness. */
+	/* labels[source_idx][target_idx] -- rows and columns follow the
+	 * pm_mode_t enum ordering (ULP=0, LP=1, HP=2). Diagonal entries
+	 * are unused because pm_switch_to filters no-op transitions. */
+	static const char *const labels[3][3] = {
+		/*             target=ULP    target=LP    target=HP  */
+		/* source=ULP */ {"ulp2ulp", "ulp2lp",   "ulp2hp"},
+		/* source=LP  */ {"lp2ulp",  "lp2lp",    "lp2hp"},
+		/* source=HP  */ {"hp2ulp",  "hp2lp",    "hp2hp"},
+	};
+	uint32_t t_enter_start, t_enter_end;
+	cy_en_syspm_status_t st;
 
-	cy_en_syspm_status_t st = pm_syspm_enter(target);
+	pm_phase_log_reset(labels[source][target]);
+	s_before_end_cyc = 0u;
+	s_after_start_cyc = 0u;
+
+	t_enter_start = k_cycle_get_32();
+	st = pm_syspm_enter(target);
+	t_enter_end = k_cycle_get_32();
 
 	if (st != CY_SYSPM_SUCCESS) {
 		printk("[pm] SystemEnter* failed (%d)\n", (int)st);
 		return -EIO;
 	}
+
+	/* Defensive: if a callback phase somehow didn't fire, fall
+	 * back to placing the missing boundary at the whole window's
+	 * start / end so cycle counts stay non-negative. */
+	if (s_before_end_cyc == 0u) {
+		s_before_end_cyc = t_enter_start;
+	}
+	if (s_after_start_cyc == 0u) {
+		s_after_start_cyc = t_enter_end;
+	}
+
+	pm_phase_log_record("pll_pre", s_before_end_cyc - t_enter_start,
+			    DPLL_INPUT_FREQ_HZ);
+	pm_phase_log_record("volt", s_after_start_cyc - s_before_end_cyc,
+			    intermediate_hz_for(source, target));
+	pm_phase_log_record("pll_post", t_enter_end - s_after_start_cyc,
+			    DPLL_INPUT_FREQ_HZ);
 	return 0;
 }
 
@@ -253,13 +357,6 @@ void pm_strategy_probe_status(void)
 
 bool pm_strategy_needs_uart_retune(void) { return true; }
 
-void pm_strategy_print_last_phases(uint32_t effective_hz)
-{
-	(void)effective_hz;
-	/* Not instrumented for PLL-retune yet -- the phase timing here
-	 * lives inside the three SysPm callbacks, not in a linear PDL
-	 * sequence like the divider-only strategy. Left as a no-op so
-	 * pm_switch_to() can call it unconditionally. */
-}
+void pm_strategy_print_last_phases(void) { pm_phase_log_print(); }
 
 #endif /* PM_STRATEGY_PLL_RETUNE */

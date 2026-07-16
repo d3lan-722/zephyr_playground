@@ -59,8 +59,8 @@ extern "C" {
  *                               per transition.
  * ------------------------------------------------------------------ */
 
-// #define PM_STRATEGY_PLL_RETUNE 1
-#define PM_STRATEGY_HF0_DIVIDER 1
+#define PM_STRATEGY_PLL_RETUNE 1
+// #define PM_STRATEGY_HF0_DIVIDER 1
 
 #if defined(PM_STRATEGY_PLL_RETUNE) == defined(PM_STRATEGY_HF0_DIVIDER)
 #error                                                                         \
@@ -94,11 +94,12 @@ void pm_strategy_probe_status(void);
 bool pm_strategy_needs_uart_retune(void);
 
 /** Print a one-line breakdown of the phases inside the last
- *  @c pm_strategy_transition() call, converted to microseconds
- *  using @p effective_hz (the same MIN(pre, post) CLK_HF0 rate
- *  that @c pm_switch_to uses for its aggregate "us" figure). A
- *  strategy that has nothing to report may leave this empty. */
-void pm_strategy_print_last_phases(uint32_t effective_hz);
+ *  @c pm_strategy_transition() call. Each phase carries its own
+ *  effective CPU frequency (see @c pm_phase_log_record()), so the
+ *  microsecond values are accurate even when the CPU rate changes
+ *  mid-transition (which is the norm for PLL retune). A strategy
+ *  that has nothing to report may leave this empty. */
+void pm_strategy_print_last_phases(void);
 
 /* ------------------------------------------------------------------
  * Shared helper -- implemented in power_manager.c, used by both
