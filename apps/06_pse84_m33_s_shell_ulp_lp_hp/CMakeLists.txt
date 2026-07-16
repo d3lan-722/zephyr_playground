@@ -20,6 +20,7 @@ target_sources(app PRIVATE
     src/pm_boot_optimize.c
     src/shell_cmds.c
     src/cmd_noidle.c
+    src/cmd_sleep.c
     src/gpio_indicators.c
     src/diag.c
 )
