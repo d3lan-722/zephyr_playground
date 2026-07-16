@@ -119,7 +119,7 @@ int pm_switch_to(pm_mode_t target)
 {
 	int rc;
 	pm_mode_t source;
-	uint32_t t_start, t_end, cycles, us;
+	uint32_t t_start, t_end, cycles;
 
 	if (target == s_current_mode) {
 		return 0;
@@ -132,19 +132,18 @@ int pm_switch_to(pm_mode_t target)
 	source = s_current_mode;
 
 	/* P3.1 (pm-busy) is asserted around ONLY the strategy call so
-	 * the scope trace captures the DVFS transient itself, not the
-	 * shell prints, UART retune, or clock probe that follow.
+	 * an external instrument (PPK2 D7, scope on P3.1) captures the
+	 * DVFS transient itself and nothing else -- no shell prints,
+	 * no UART retune, no clock probe. That GPIO pulse width is the
+	 * authoritative transition wall time.
 	 *
-	 * Raw cycle count is captured with k_cycle_get_32() (Cortex-M
-	 * SysTick, sourced from CLK_HF0). The accurate microsecond
-	 * total comes from the strategy's per-phase log rather than
-	 * dividing the raw cycles by a single frequency: for PLL
-	 * retune the CPU frequency changes several times mid-window
-	 * (source -> IHO bypass -> intermediate -> IHO bypass ->
-	 * target), so no single-frequency conversion is right for the
-	 * whole span. Each phase records the CPU rate it actually ran
-	 * at (see pm_phase_log_record) and the aggregate is just the
-	 * sum. */
+	 * The cycle counters below record CPU work only. They cannot
+	 * be trusted as absolute wall time because CLK_HF0 (which
+	 * SysTick is sourced from) changes several times inside a
+	 * transition -- source rate at entry, IHO bypass while the
+	 * PLL is disabled, intermediate rate while the PLL is locked
+	 * to it, target rate at exit. Cross-reference these counts
+	 * with the PPK2 pulse width via scripts/postprocess.py. */
 	t_start = k_cycle_get_32();
 	gpio_indicators_transition_begin();
 	rc = pm_strategy_transition(source, target);
@@ -169,9 +168,8 @@ int pm_switch_to(pm_mode_t target)
 	}
 
 	cycles = t_end - t_start;
-	us = pm_phase_log_total_us();
-	printk("[pm] transition %s -> %s : %u us (%u cycles)\n",
-	       pm_mode_name(source), pm_mode_name(target), us, cycles);
+	printk("[pm] transition %s -> %s : %u cycles\n",
+	       pm_mode_name(source), pm_mode_name(target), cycles);
 	pm_strategy_print_last_phases();
 
 	TRACE("switch:complete");

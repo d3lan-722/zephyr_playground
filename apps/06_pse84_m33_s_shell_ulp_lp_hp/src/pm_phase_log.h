@@ -15,8 +15,17 @@
  * @c pm_phase_log_record() calls between the transition's PDL
  * primitives. Dumped by @c pm_phase_log_print() from
  * @c pm_switch_to() right after its aggregate "[pm] transition ..."
- * line, using the same @c effective_hz (MIN of CLK_HF0 pre/post)
- * so per-phase values sum to that aggregate figure.
+ * line.
+ *
+ * The log stores RAW SysTick cycle counts, not microseconds. The
+ * CPU frequency changes several times mid-transition (source ->
+ * IHO bypass -> intermediate -> IHO bypass -> target for PLL
+ * retune; source -> target for HF0 divider), and no single-rate
+ * conversion is correct for the whole span -- so the firmware
+ * side prints cycles and leaves wall-time authority to external
+ * instrumentation (PPK2 D7 GPIO pulse, scope on P3.1, ...).
+ * Post-processing (scripts/postprocess.py) cross-references cycle
+ * counts with PPK2-observed pulse widths.
  *
  * Single-slot: only the most recent transition is stored. That is
  * sufficient because @c pm_switch_to() is the sole consumer and
@@ -33,9 +42,9 @@ extern "C" {
 #endif
 
 /** Discard any prior record and set the transition label
- *  (printed as "[pm] <label> phases: ..."). @p label must remain
- *  valid until the next @c pm_phase_log_print() call -- pass a
- *  string literal. */
+ *  (printed as "[pm] <label> phase cycles: ..."). @p label must
+ *  remain valid until the next @c pm_phase_log_print() call --
+ *  pass a string literal. */
 void pm_phase_log_reset(const char *label);
 
 /** Append a named phase.
@@ -45,27 +54,19 @@ void pm_phase_log_reset(const char *label);
  *                 string literal.
  *  @param cycles  Cortex-M SysTick cycle count elapsed during the
  *                 phase (delta of two @c k_cycle_get_32() reads).
- *  @param hz      CPU frequency the SysTick was ACCUMULATING AT
- *                 during that phase. Must be per-phase because the
- *                 CPU may run at different rates in different
- *                 phases of a single transition (e.g. PLL retune
- *                 goes source-freq -> IHO bypass -> intermediate ->
- *                 IHO bypass -> target). Silently drops entries
- *                 once the internal capacity is exceeded.
+ *                 Raw count -- do NOT convert to us here, because
+ *                 the CPU clock rate changes across phases.
  */
-void pm_phase_log_record(const char *name, uint32_t cycles, uint32_t hz);
+void pm_phase_log_record(const char *name, uint32_t cycles);
 
 /** Emit one line:
- *    [pm] <label> phases: name1=NNus name2=NNus ... total=NNus
- *  Each phase converts its own cycles to microseconds via its own
- *  recorded @c hz. No-op if the log is empty. */
+ *    [pm] <label> phase cycles: name1=NN name2=NN ... total=NN
+ *  Values are raw cycle counts. No-op if the log is empty. */
 void pm_phase_log_print(void);
 
-/** Total wall time of the recorded phases, in microseconds.
- *  Computed as sum-of-(cycles / hz) per entry, so it exactly
- *  matches what @c pm_phase_log_print emits as `total=`. Returns 0
- *  if the log is empty. */
-uint32_t pm_phase_log_total_us(void);
+/** Total cycles across the recorded phases (sum). Returns 0 if
+ *  the log is empty. */
+uint32_t pm_phase_log_total_cycles(void);
 
 #ifdef __cplusplus
 }

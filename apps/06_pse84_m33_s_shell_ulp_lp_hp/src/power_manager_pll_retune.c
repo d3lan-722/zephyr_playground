@@ -90,18 +90,14 @@ static uint32_t s_last_pll_enable_st = PM_PLL_ENABLE_NOT_REACHED;
  *   t_enter_end    -- after Cy_SysPm_SystemEnter* returns
  * and record the three deltas via pm_phase_log_record().
  *
- * Per-phase effective CPU rate for the cycle-to-us conversion:
- *
- *   pll_pre / pll_post: Cy_SysClk_PllDisable() switches CLK_PATH0
- *     to its bypass source before the PLL is reconfigured; on this
- *     board the DPLL_LP0 reference is IHO (50 MHz), so during the
- *     PllEnable lock wait (which dominates the phase) CLK_HF0
- *     runs at ~50 MHz. Small transients at each end where the CPU
- *     is at source / intermediate / target are negligible compared
- *     to the >100 ms lock wait, so 50 MHz is used for both phases.
- *
- *   volt: the CPU is at whatever intermediate the BEFORE callback
- *     set. Direction-dependent -- see intermediate_hz_for().
+ * The recorded values are RAW SysTick cycle counts. Do NOT try to
+ * convert to microseconds here: the CPU rate changes several times
+ * across this window (source -> IHO bypass while PLL is disabled ->
+ * intermediate after PLL relocks -> IHO bypass again -> target
+ * after the second relock), so no single-rate conversion is right.
+ * Post-processing (scripts/postprocess.py) correlates cycles with
+ * the PPK2-observed pm-busy pulse width, which is the authoritative
+ * wall-time source.
  *
  * If a strategy path skips a callback phase (never observed in
  * practice but defensive), the sentinel 0 makes pm_phase_log_print
@@ -109,26 +105,6 @@ static uint32_t s_last_pll_enable_st = PM_PLL_ENABLE_NOT_REACHED;
  * ------------------------------------------------------------------ */
 static uint32_t s_before_end_cyc;
 static uint32_t s_after_start_cyc;
-
-/** DPLL_LP0 rate the callback chain parks CLK_HF0 at during the
- *  Cy_SysPm_SystemTransition* voltage step, given source and target
- *  power modes. Matches the intermediate frequency picked in
- *  pm_syspm_{hp,lp,ulp}_cb BEFORE_TRANSITION. */
-static uint32_t intermediate_hz_for(pm_mode_t src, pm_mode_t tgt)
-{
-	if (tgt == PM_MODE_HP) {
-		/* pm_syspm_hp_cb BEFORE always picks LP intermediate. */
-		return DPLL_FREQ_INTERMEDIATE_LP_HZ;
-	}
-	if (tgt == PM_MODE_ULP) {
-		/* pm_syspm_ulp_cb BEFORE always picks ULP intermediate. */
-		return DPLL_FREQ_INTERMEDIATE_ULP_HZ;
-	}
-	/* tgt == PM_MODE_LP: pm_syspm_lp_cb BEFORE branches on
-	 * Cy_SysPm_IsSystemUlp(), which reflects the current source. */
-	return (src == PM_MODE_ULP) ? DPLL_FREQ_INTERMEDIATE_ULP_HZ
-				    : DPLL_FREQ_INTERMEDIATE_LP_HZ;
-}
 
 /**
  * @brief Reprogram DPLL_LP0 to @p freq_hz.
@@ -321,12 +297,9 @@ int pm_strategy_transition(pm_mode_t source, pm_mode_t target)
 		s_after_start_cyc = t_enter_end;
 	}
 
-	pm_phase_log_record("pll_pre", s_before_end_cyc - t_enter_start,
-			    DPLL_INPUT_FREQ_HZ);
-	pm_phase_log_record("volt", s_after_start_cyc - s_before_end_cyc,
-			    intermediate_hz_for(source, target));
-	pm_phase_log_record("pll_post", t_enter_end - s_after_start_cyc,
-			    DPLL_INPUT_FREQ_HZ);
+	pm_phase_log_record("pll_pre",  s_before_end_cyc  - t_enter_start);
+	pm_phase_log_record("volt",     s_after_start_cyc - s_before_end_cyc);
+	pm_phase_log_record("pll_post", t_enter_end       - s_after_start_cyc);
 	return 0;
 }
 
