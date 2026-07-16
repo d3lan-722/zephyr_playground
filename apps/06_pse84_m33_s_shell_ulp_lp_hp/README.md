@@ -304,20 +304,32 @@ Example report from a 3-loop PLL_RETUNE capture at 3.3 V supply:
   ULP vs HP      50.00 MHz    7.368 mA     24.316 mW     486.31 pJ
   ULP vs LP      50.00 MHz    2.079 mA      6.859 mW     137.19 pJ
 
-== break-even residence for HP -> X -> HP round-trips (supply 3300 mV) ==
-  target       HP_ua        X_ua     q_trans     e_trans    breakeven     be_cycles
-  LP     10.500 mA    5.210 mA    2534 uC    8.363 mJ    479.084 ms     38.33 Mc
-  ULP    10.500 mA    3.131 mA    2210 uC    7.292 mJ    299.884 ms     14.99 Mc
+== break-even for HP -> X -> HP round-trip (supply 3300 mV) ==
+  cost      = energy the two transitions burn (both wasted -- no useful work)
+  savings/s = HP steady-state power - X steady-state power (from the table above)
+  break_even = cost / (savings/s), i.e. time in X needed to recover 'cost'
+
+  target        cost     savings/s                 break_even
+  LP       8.363 mJ     17.456 mW  479.084 ms  =  38.33 Mc @ 80MHz
+  ULP      7.292 mJ     24.316 mW  299.884 ms  =  14.99 Mc @ 50MHz
 ```
 
-`savings/cyc` is per one CPU cycle at the low mode's clock rate,
-so it's the incremental energy you save each time the low-mode
-CPU ticks vs. a HP-clocked CPU tick.
+The two tables share their arithmetic: `savings/s` in the
+break-even row is the same value as the `savings/s` column in the
+savings-rate table (`17.456 mW` = LP vs HP, `24.316 mW` = ULP vs
+HP). And `cost / (savings/s)` gives `break_even`:
 
-`be_cycles` is `breakeven * low_mode_freq` — the number of CPU
-cycles the low mode has to execute (at its own clock rate) before
-the round-trip is amortised. Useful when reasoning about "N loop
-iterations of low-mode work" vs. "stay in HP".
+    LP:   8.363 mJ / 17.456 mW = 479.1 ms
+    ULP:  7.292 mJ / 24.316 mW = 299.9 ms
+
+Expressed in CPU cycles at the low mode's clock rate:
+`be_ms × low_freq_MHz = be_cycles`. Useful when reasoning about
+"N loop iterations of low-mode work" vs. "stay in HP".
+
+`savings/cyc` in the first table is the incremental energy saved
+per one low-mode CPU cycle vs. a HP-clocked cycle (`218 pJ` for
+LP, `486 pJ` for ULP). Reciprocal of the transition cost gives
+the same break-even in cycles from a different angle.
 
 Energy is computed as `charge × V_supply` using the `supply_mv`
 value stored in the JSON's `meta` section (3.3 V on the
@@ -326,30 +338,16 @@ kit_pse84_eval board).
 The break-even model treats every microcoulomb drawn during a
 transition as **pure overhead** — the CPU busy-polls the PMU state
 machine, writes SRAM/RRAM trim registers, and waits for the PLL
-to relock; none of that is useful work. Break-even is the ULP (or
-LP) residence time whose steady-state savings *cover* that
-overhead:
+to relock; none of that is useful work. `cost` in the break-even
+table is the round-trip sum of `HP->X` and `X->HP` transition
+energy from the per-direction table above.
 
-```
-q_trans     = (I_down * t_down) + (I_up * t_up)          uC       (raw transition charge)
-savings/sec = (I_HP - I_target)                          uA
-breakeven   = q_trans / (I_HP - I_target)                s
-```
-
-For the numbers above:
-
-- HP→LP→HP round-trip: 8.36 mJ of transition overhead → must
-  stay ~479 ms in LP for the (10.5 − 5.2) mA savings to pay it
-  back.
-- HP→ULP→HP round-trip: 7.29 mJ overhead → must stay ~300 ms in
-  ULP for the (10.5 − 3.1) mA savings to pay it back.
-
-So DVFS pays off when the mode drop is long enough to amortise
-the two PLL relocks and the voltage step at the ends. If your
-firmware wakes to service a 1 ms interrupt and then goes back to
-sleep, PLL retune is a net *loss*; the HF0-divider strategy
-(much cheaper transitions) or plain deep-sleep are the right
-choice for that duty cycle.
+**Design implication:** DVFS pays off when the mode drop is long
+enough to amortise the two PLL relocks and the voltage step. If
+your firmware wakes to service a 1 ms interrupt and then goes back
+to sleep, PLL retune is a net *loss*; the HF0-divider strategy
+(transitions ~3 ms, break-even ~10–16 ms) or plain deep-sleep are
+the right choice for that duty cycle.
 
 ## Typical workflow
 

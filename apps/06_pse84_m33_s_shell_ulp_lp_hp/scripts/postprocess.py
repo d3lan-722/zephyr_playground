@@ -305,14 +305,18 @@ def print_report(doc: dict[str, Any]) -> None:
                     mode_hz[m] = int(hz)
 
         print(
-            f"== break-even residence for HP -> X -> HP "
-            f"round-trips (supply {supply_mv} mV) =="
+            f"== break-even for HP -> X -> HP round-trip "
+            f"(supply {supply_mv} mV) =="
         )
-        print(
-            f"  {'target':<4}  {'HP_ua':>10}  {'X_ua':>10}  "
-            f"{'q_trans':>10}  {'e_trans':>12}  "
-            f"{'breakeven':>12}  {'be_cycles':>12}"
-        )
+        print("  cost      = energy the two transitions burn "
+              "(both wasted -- no useful work)")
+        print("  savings/s = HP steady-state power - X steady-state "
+              "power (from the table above)")
+        print("  break_even = cost / (savings/s), i.e. time in X "
+              "needed to recover 'cost'")
+        print()
+        print(f"  {'target':<4}  {'cost':>10}  {'savings/s':>12}  "
+              f"{'break_even':>25}")
         hp_ua = modes.get("HP", {}).get("mean_ua")
         if hp_ua is None:
             print("  (need HP baseline in the data)")
@@ -334,26 +338,32 @@ def print_report(doc: dict[str, Any]) -> None:
                     pulse_dur_s_up=u.get("duration_s_mean", 0),
                     pulse_ua_up=u.get("mean_ua_mean", 0),
                 )
-                e = energy_uj(q, supply_mv)
-                be_str = "--" if be == float("inf") else fmt_duration(be)
-                # Break-even in target-mode CPU cycles.
+                cost_uj = energy_uj(q, supply_mv)
+                # savings per second (µW = µJ/s) -- same value that
+                # appears in the savings-rate table above.
+                savings_uw = (hp_ua - modes[tgt]["mean_ua"]) * supply_mv / 1000.0
+                if savings_uw >= 1000.0:
+                    sps = f"{savings_uw/1000.0:8.3f} mW"
+                else:
+                    sps = f"{savings_uw:8.1f} uW"
+                # Break-even wall time + cycles at the target mode freq.
                 f_tgt = mode_hz.get(tgt, 0)
-                if be == float("inf") or f_tgt == 0:
-                    bec_str = "--"
+                if be == float("inf"):
+                    be_combo = "--"
+                elif f_tgt == 0:
+                    be_combo = f"{fmt_duration(be):>10}"
                 else:
                     bec = be * f_tgt
                     if bec >= 1e6:
-                        bec_str = f"{bec/1e6:8.2f} Mc"
+                        bec_str = f"{bec/1e6:6.2f} Mc"
                     elif bec >= 1e3:
-                        bec_str = f"{bec/1e3:8.2f} kc"
+                        bec_str = f"{bec/1e3:6.2f} kc"
                     else:
-                        bec_str = f"{bec:8.0f}  c"
-                print(
-                    f"  {tgt:<4}  {fmt_current(hp_ua):>10}  "
-                    f"{fmt_current(modes[tgt]['mean_ua']):>10}  "
-                    f"{q:>7.1f} uC  {fmt_energy(e):>12}  "
-                    f"{be_str:>12}  {bec_str:>12}"
-                )
+                        bec_str = f"{bec:6.0f}  c"
+                    be_combo = (f"{fmt_duration(be):>10}  = "
+                                f"{bec_str} @ {f_tgt/1e6:.0f}MHz")
+                print(f"  {tgt:<4}  {fmt_energy(cost_uj):>10}  "
+                      f"{sps:>12}  {be_combo:>25}")
         print()
 
 
