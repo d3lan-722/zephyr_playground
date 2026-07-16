@@ -500,8 +500,9 @@ def make_plots(doc: dict[str, Any], save_dir: Path | None) -> None:
                 pulse_ua_up=txns[ku].get("mean_ua_mean", 0),
             )
             cost_mj = energy_uj(q, supply_mv) / 1000.0
-            savings_mw = ((hp_ua - modes[tgt]["mean_ua"]) * supply_mv
-                          / 1000.0 / 1000.0)  # µA*mV / 1e6 = mW
+            savings_mw = (
+                (hp_ua - modes[tgt]["mean_ua"]) * supply_mv / 1000.0 / 1000.0
+            )  # µA*mV / 1e6 = mW
             rows.append((tgt, cost_mj, savings_mw, be * 1000.0))  # be in ms
 
         if rows:
@@ -512,24 +513,39 @@ def make_plots(doc: dict[str, Any], save_dir: Path | None) -> None:
                 # net(t_ms) [mJ] = cost - savings/s * t_s
                 #                = cost_mj - savings_mw * t_ms / 1000
                 y = [cost_mj - savings_mw * tt / 1000.0 for tt in t]
-                ax.plot(t, y, color=colors.get(tgt, "#333"),
-                        linewidth=2, label=f"HP → {tgt} → HP")
+                ax.plot(
+                    t,
+                    y,
+                    color=colors.get(tgt, "#333"),
+                    linewidth=2,
+                    label=f"HP → {tgt} → HP",
+                )
                 # Mark break-even with dashed vertical + annotation.
-                ax.axvline(be_ms, linestyle="--", linewidth=1,
-                           color=colors.get(tgt, "#333"), alpha=0.5)
+                ax.axvline(
+                    be_ms,
+                    linestyle="--",
+                    linewidth=1,
+                    color=colors.get(tgt, "#333"),
+                    alpha=0.5,
+                )
                 ax.annotate(
                     f"{tgt}: {be_ms:.0f} ms",
-                    xy=(be_ms, 0), xytext=(be_ms, -cost_mj * 0.3),
-                    ha="center", fontsize=9,
+                    xy=(be_ms, 0),
+                    xytext=(be_ms, -cost_mj * 0.3),
+                    ha="center",
+                    fontsize=9,
                     color=colors.get(tgt, "#333"),
                 )
             ax.axhline(0, color="#000", linewidth=0.8)
             ax.set_xlabel("residence time in low mode (ms)")
-            ax.set_ylabel("net energy delta vs. staying in HP (mJ)\n"
-                          "(positive = extra energy spent, "
-                          "negative = net savings)")
-            ax.set_title(f"HP → X → HP break-even recovery -- "
-                         f"{doc['meta']['strategy']}")
+            ax.set_ylabel(
+                "net energy delta vs. staying in HP (mJ)\n"
+                "(positive = extra energy spent, "
+                "negative = net savings)"
+            )
+            ax.set_title(
+                f"HP → X → HP break-even recovery -- " f"{doc['meta']['strategy']}"
+            )
             ax.grid(alpha=0.3)
             ax.legend(loc="upper right")
             fig.tight_layout()
