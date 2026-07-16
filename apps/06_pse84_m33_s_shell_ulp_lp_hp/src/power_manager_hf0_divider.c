@@ -74,7 +74,6 @@ static int trans_hp_to_lp(void)
 	cy_en_syspm_status_t st;
 	uint32_t t0, t1, t2, t3;
 
-
 	pm_phase_log_reset("hp2lp");
 
 	t0 = k_cycle_get_32();
@@ -102,7 +101,6 @@ static int trans_hp_to_ulp(void)
 {
 	cy_en_syspm_status_t st;
 	uint32_t t0, t1, t2, t3;
-
 
 	pm_phase_log_reset("hp2ulp");
 
@@ -132,7 +130,6 @@ static int trans_lp_to_ulp(void)
 	cy_en_syspm_status_t st;
 	uint32_t t0, t1, t2, t3;
 
-
 	pm_phase_log_reset("lp2ulp");
 
 	t0 = k_cycle_get_32();
@@ -160,7 +157,6 @@ static int trans_ulp_to_lp(void)
 	cy_en_syspm_status_t st;
 	uint32_t t0, t1, t2, t3;
 
-
 	pm_phase_log_reset("ulp2lp");
 
 	t0 = k_cycle_get_32();
@@ -186,7 +182,6 @@ static int trans_lp_to_hp(void)
 {
 	cy_en_syspm_status_t st;
 	uint32_t t0, t1, t2, t3;
-
 
 	pm_phase_log_reset("lp2hp");
 
@@ -214,7 +209,6 @@ static int trans_ulp_to_hp(void)
 {
 	cy_en_syspm_status_t st;
 	uint32_t t0, t1, t2, t3;
-
 
 	pm_phase_log_reset("ulp2hp");
 

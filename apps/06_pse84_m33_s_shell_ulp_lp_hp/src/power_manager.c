@@ -168,8 +168,8 @@ int pm_switch_to(pm_mode_t target)
 	}
 
 	cycles = t_end - t_start;
-	printk("[pm] transition %s -> %s : %u cycles\n",
-	       pm_mode_name(source), pm_mode_name(target), cycles);
+	printk("[pm] transition %s -> %s : %u cycles\n", pm_mode_name(source),
+	       pm_mode_name(target), cycles);
 	pm_strategy_print_last_phases();
 
 	TRACE("switch:complete");

@@ -46,9 +46,7 @@ import serial
 SHELL_BAUD = 115200
 COMMANDS = ["ulp", "lp", "ulp", "hp", "lp", "hp"]  # Euler cycle
 
-KITPROG_GLOB = (
-    "/dev/serial/by-id/usb-Cypress_Semiconductor_KitProg3_CMSIS-DAP_*-if02"
-)
+KITPROG_GLOB = "/dev/serial/by-id/usb-Cypress_Semiconductor_KitProg3_CMSIS-DAP_*-if02"
 PPK2_GLOB = "/dev/serial/by-id/usb-Nordic_Semiconductor_PPK2_*-if01"
 
 # PPK2 hardware sample rate.
@@ -71,9 +69,7 @@ RE_TRANSITION = re.compile(
     r"\[pm\] transition (?P<src>\S+)\s+\(\s*(?P<src_hz>\d+)\s*MHz\)\s*->\s*"
     r"(?P<tgt>\S+)\s+\(\s*(?P<tgt_hz>\d+)\s*MHz\)\s*:\s*(?P<cycles>\d+) cycles"
 )
-RE_PHASES = re.compile(
-    r"\[pm\] (?P<label>\S+) phase cycles:\s*(?P<body>[^\n]+)"
-)
+RE_PHASES = re.compile(r"\[pm\] (?P<label>\S+) phase cycles:\s*(?P<body>[^\n]+)")
 RE_PHASE_ENTRY = re.compile(r"(\w+)=(\d+)")
 
 
@@ -125,8 +121,7 @@ def find_kitprog(cli_dev: str | None) -> str:
     )
 
 
-def drain_shell(ser: serial.Serial, quiet_ms: int = 500,
-                max_ms: int = 3000) -> str:
+def drain_shell(ser: serial.Serial, quiet_ms: int = 500, max_ms: int = 3000) -> str:
     """Read from the shell until it has been quiet for ``quiet_ms``
     milliseconds or ``max_ms`` total elapsed."""
     deadline_total = time.monotonic() + max_ms / 1000.0
@@ -152,8 +147,7 @@ class Ppk2Capture:
     if ppk2-api isn't installed, no PPK2 is attached, or --no-ppk
     was passed."""
 
-    def __init__(self, dev: str | None, supply_mv: int = 3300,
-                 disabled: bool = False):
+    def __init__(self, dev: str | None, supply_mv: int = 3300, disabled: bool = False):
         self.is_active = False
         self.samples: list[float] = []
         self.digital: list[int] = []
@@ -180,7 +174,10 @@ class Ppk2Capture:
 
         try:
             ppk2 = PPK2_MP(
-                dev, timeout=1, write_timeout=1, exclusive=True,
+                dev,
+                timeout=1,
+                write_timeout=1,
+                exclusive=True,
                 buffer_max_size_seconds=300.0,
             )
         except Exception as e:
@@ -198,8 +195,9 @@ class Ppk2Capture:
             print(f"# [ppk2] setup failed: {e} -- skipping capture")
             return
 
-        print(f"# [ppk2] opened {dev}, ampere-meter mode, "
-              f"digital-ref {supply_mv} mV")
+        print(
+            f"# [ppk2] opened {dev}, ampere-meter mode, " f"digital-ref {supply_mv} mV"
+        )
         self._ppk2 = ppk2
         self.is_active = True
 
@@ -287,7 +285,7 @@ def _install_safe_metadata(ppk2) -> None:
 class Segment:
     high: bool
     start_idx: int
-    end_idx: int          # exclusive
+    end_idx: int  # exclusive
     mean_ua: float
 
     @property
@@ -317,10 +315,14 @@ def segment_by_gpio(samples: list[float], digital: list[int]) -> list[Segment]:
         level = d7(i)
         if level != current_level:
             length = i - seg_start
-            segments.append(Segment(
-                high=bool(current_level), start_idx=seg_start, end_idx=i,
-                mean_ua=running_sum / length if length else 0.0,
-            ))
+            segments.append(
+                Segment(
+                    high=bool(current_level),
+                    start_idx=seg_start,
+                    end_idx=i,
+                    mean_ua=running_sum / length if length else 0.0,
+                )
+            )
             seg_start = i
             current_level = level
             running_sum = 0.0
@@ -328,10 +330,14 @@ def segment_by_gpio(samples: list[float], digital: list[int]) -> list[Segment]:
 
     length = n - seg_start
     if length > 0:
-        segments.append(Segment(
-            high=bool(current_level), start_idx=seg_start, end_idx=n,
-            mean_ua=running_sum / length,
-        ))
+        segments.append(
+            Segment(
+                high=bool(current_level),
+                start_idx=seg_start,
+                end_idx=n,
+                mean_ua=running_sum / length,
+            )
+        )
     return segments
 
 
@@ -366,28 +372,40 @@ def default_output_name(strategy: str) -> str:
 
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--dev", default=None,
-                   help="KitProg CDC device (default: autodetect)")
-    p.add_argument("--ppk-dev", default=None,
-                   help="PPK2 CDC device (default: autodetect)")
-    p.add_argument("--loops", type=int, default=3,
-                   help="how many times to cycle the 6-command sequence")
-    p.add_argument("--period", type=float, default=5.0,
-                   help="seconds between commands")
-    p.add_argument("--no-ppk", action="store_true",
-                   help="skip PPK2 capture even if attached")
-    p.add_argument("--supply-mv", type=int, default=3300,
-                   help="PPK2 supply / digital-ref voltage in mV")
-    p.add_argument("--output", default=None,
-                   help="output JSON path (default: <strategy>_<ts>.json)")
+    p.add_argument(
+        "--dev", default=None, help="KitProg CDC device (default: autodetect)"
+    )
+    p.add_argument(
+        "--ppk-dev", default=None, help="PPK2 CDC device (default: autodetect)"
+    )
+    p.add_argument(
+        "--loops",
+        type=int,
+        default=3,
+        help="how many times to cycle the 6-command sequence",
+    )
+    p.add_argument("--period", type=float, default=5.0, help="seconds between commands")
+    p.add_argument(
+        "--no-ppk", action="store_true", help="skip PPK2 capture even if attached"
+    )
+    p.add_argument(
+        "--supply-mv",
+        type=int,
+        default=3300,
+        help="PPK2 supply / digital-ref voltage in mV",
+    )
+    p.add_argument(
+        "--output",
+        default=None,
+        help="output JSON path (default: <strategy>_<ts>.json)",
+    )
     args = p.parse_args()
 
     dev = find_kitprog(args.dev)
     print(f"# opening shell {dev} @ {SHELL_BAUD} 8N1")
     ser = serial.Serial(dev, SHELL_BAUD, timeout=0.1)
 
-    ppk = Ppk2Capture(dev=args.ppk_dev, supply_mv=args.supply_mv,
-                      disabled=args.no_ppk)
+    ppk = Ppk2Capture(dev=args.ppk_dev, supply_mv=args.supply_mv, disabled=args.no_ppk)
 
     banner = drain_shell(ser, quiet_ms=500, max_ms=2000)
     if banner:
@@ -408,10 +426,15 @@ def main() -> int:
             sys.stdout.write(text)
             sys.stdout.flush()
 
-            txns.append(TxnRecord(
-                seq=i + 1, cmd=cmd, sent_at_s=sent_at,
-                console=text, parsed=parse_console_output(text),
-            ))
+            txns.append(
+                TxnRecord(
+                    seq=i + 1,
+                    cmd=cmd,
+                    sent_at_s=sent_at,
+                    console=text,
+                    parsed=parse_console_output(text),
+                )
+            )
 
             remaining = args.period - (time.monotonic() - t0 - sent_at)
             if remaining > 0:
@@ -454,13 +477,13 @@ def main() -> int:
 
     if ppk.is_active:
         segs = segment_by_gpio(ppk.samples, ppk.digital)
-        pulses = [s for s in segs
-                  if s.high and s.duration_s * 1e6 >= PPK2_MIN_PULSE_US]
+        pulses = [s for s in segs if s.high and s.duration_s * 1e6 >= PPK2_MIN_PULSE_US]
         idles = [s for s in segs if not s.high]
         overall_n = sum(s.end_idx - s.start_idx for s in segs)
         overall_mean = (
-            sum(s.mean_ua * (s.end_idx - s.start_idx) for s in segs)
-            / overall_n if overall_n else 0.0
+            sum(s.mean_ua * (s.end_idx - s.start_idx) for s in segs) / overall_n
+            if overall_n
+            else 0.0
         )
 
         # Segments interleave idle,pulse,idle,pulse,...; the mode
@@ -482,28 +505,31 @@ def main() -> int:
                 t = txns[pulses_seen - 1]
                 if t.parsed:
                     mode = t.parsed["target"]
-            idle_records.append({
-                "start_s": round(seg.start_s, 6),
-                "duration_s": round(seg.duration_s, 6),
-                "mean_ua": round(seg.mean_ua, 3),
-                "settled_mean_ua": round(
-                    idle_mean_settled(ppk.samples, seg), 3),
-                "mode": mode,
-                "pulses_before": pulses_seen,
-            })
+            idle_records.append(
+                {
+                    "start_s": round(seg.start_s, 6),
+                    "duration_s": round(seg.duration_s, 6),
+                    "mean_ua": round(seg.mean_ua, 3),
+                    "settled_mean_ua": round(idle_mean_settled(ppk.samples, seg), 3),
+                    "mode": mode,
+                    "pulses_before": pulses_seen,
+                }
+            )
 
         pulse_records = []
         for i, seg in enumerate(pulses, start=1):
             txn = txns[i - 1] if i - 1 < len(txns) else None
-            pulse_records.append({
-                "seq": i,
-                "start_s": round(seg.start_s, 6),
-                "duration_s": round(seg.duration_s, 6),
-                "mean_ua": round(seg.mean_ua, 3),
-                "cmd": txn.cmd if txn else None,
-                "source": txn.parsed["source"] if txn and txn.parsed else None,
-                "target": txn.parsed["target"] if txn and txn.parsed else None,
-            })
+            pulse_records.append(
+                {
+                    "seq": i,
+                    "start_s": round(seg.start_s, 6),
+                    "duration_s": round(seg.duration_s, 6),
+                    "mean_ua": round(seg.mean_ua, 3),
+                    "cmd": txn.cmd if txn else None,
+                    "source": txn.parsed["source"] if txn and txn.parsed else None,
+                    "target": txn.parsed["target"] if txn and txn.parsed else None,
+                }
+            )
 
         doc["ppk2"] = {
             "available": True,

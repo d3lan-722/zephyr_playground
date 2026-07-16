@@ -266,10 +266,10 @@ int pm_strategy_transition(pm_mode_t source, pm_mode_t target)
 	 * pm_mode_t enum ordering (ULP=0, LP=1, HP=2). Diagonal entries
 	 * are unused because pm_switch_to filters no-op transitions. */
 	static const char *const labels[3][3] = {
-		/*             target=ULP    target=LP    target=HP  */
-		/* source=ULP */ {"ulp2ulp", "ulp2lp",   "ulp2hp"},
-		/* source=LP  */ {"lp2ulp",  "lp2lp",    "lp2hp"},
-		/* source=HP  */ {"hp2ulp",  "hp2lp",    "hp2hp"},
+	    /*             target=ULP    target=LP    target=HP  */
+	    /* source=ULP */ {"ulp2ulp", "ulp2lp", "ulp2hp"},
+	    /* source=LP  */ {"lp2ulp", "lp2lp", "lp2hp"},
+	    /* source=HP  */ {"hp2ulp", "hp2lp", "hp2hp"},
 	};
 	uint32_t t_enter_start, t_enter_end;
 	cy_en_syspm_status_t st;
@@ -297,9 +297,9 @@ int pm_strategy_transition(pm_mode_t source, pm_mode_t target)
 		s_after_start_cyc = t_enter_end;
 	}
 
-	pm_phase_log_record("pll_pre",  s_before_end_cyc  - t_enter_start);
-	pm_phase_log_record("volt",     s_after_start_cyc - s_before_end_cyc);
-	pm_phase_log_record("pll_post", t_enter_end       - s_after_start_cyc);
+	pm_phase_log_record("pll_pre", s_before_end_cyc - t_enter_start);
+	pm_phase_log_record("volt", s_after_start_cyc - s_before_end_cyc);
+	pm_phase_log_record("pll_post", t_enter_end - s_after_start_cyc);
 	return 0;
 }
 
