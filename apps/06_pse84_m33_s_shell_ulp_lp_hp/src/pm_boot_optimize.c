@@ -19,40 +19,36 @@
  * (@c SYS_INIT priority 0), before @c main(), and gates every
  * subsystem the demo does not touch:
  *
- *   1. SOCMEM controller off       (Cy_SysEnableSOCMEM(false))
- *   2. Both SMIF cores off         (SMIF_CORE_CTL.ENABLED cleared)
- *   3. HF3..HF9 + HF11..HF13 gated (Cy_SysClk_ClkHfDisable)
- *   4. GPIO ports we don't drive   (Cy_GPIO_Port_Deinit)
+ *   1. SOCMEM controller off             (Cy_SysEnableSOCMEM)
+ *   2. Both SMIF cores off               (CTL.ENABLED cleared)
+ *   3. APP power domain (PD1) collapsed  (PPUs -> OFF)
+ *   4. HF1..HF9 + HF11..HF13 gated       (Cy_SysClk_ClkHfDisable)
+ *   5. DPLL_LP1 + DPLL_HP disabled       (Cy_SysClk_Dpll*Disable)
+ *   6. GPIO ports we don't drive         (Cy_GPIO_Port_Deinit)
  *
  * Everything the demo NEEDS is deliberately left alone:
- *   - HF0  -- CM33 core clock
- *   - HF10 -- SCB2 UART peripheral clock
- *   - HF1  -- APPCPUSS. Kept because gating it before the APP
- *             domain PPU handshake completes is known to hang
- *             deep-sleep (comment in tmp/app_pm_boot.c). We are
- *             not doing deep sleep so it just sits idle.
- *   - HF2  -- SOCMEM PPU / DPLL_HP. Kept for the same reason.
- *   - DPLL_LP0  -- HF0/HF10 source. Retuned by PLL_RETUNE.
- *   - DPLL_LP1, DPLL_HP -- currently kept enabled (feeding HF7
- *             / HF2 respectively). Could be disabled once we
- *             confirm no downstream depends on them, deferred.
- *   - GPIO port 3  -- P3.1 pm_busy scope trigger.
- *   - GPIO port 16 -- RGB LEDs.
+ *   - HF0        -- CM33 core clock
+ *   - HF10       -- SCB2 UART peripheral clock
+ *   - DPLL_LP0   -- HF0/HF10 source (retuned by PLL_RETUNE)
+ *   - GPIO P3    -- pm_busy scope trigger
+ *   - GPIO P16   -- RGB LEDs
  *
  * What we deliberately do NOT do (would break the demo):
  *   - Disable DPLL_LP0                (needed by PLL_RETUNE)
- *   - Enter SystemUlp profile at boot (breaks HP/LP/ULP switching)
- *   - Disable the debug session       (blocks re-flash without XRES)
- *   - Force PD1 domain OFF via PPUs   (deferred -- requires
- *                                      Cy_SysCM55SetDbgPort +
- *                                      cy_pd_pdcm_clear_dependency,
- *                                      more state to reason about;
- *                                      see OPEN_pd1_collapse.md
- *                                      when we get to it)
+ *   - Enter SystemUlp profile at boot (caps HF0 <= 50 MHz, breaks
+ *                                      HP mode)
+ *   - Disable the debug session       (blocks re-flash without XRES,
+ *                                      kills the KitProg CDC UART)
+ *   - Gate peri-group slave clocks    (would need per-group audit of
+ *                                      which SCB / GPIO / HSIOM slice
+ *                                      we still depend on -- HF1..HF9
+ *                                      gating already kills their
+ *                                      clock source anyway)
  *
  * Inspired by tmp/app_pm_boot.c from the deep-sleep reference
- * project. Kept intentionally SMALLER than that reference to keep
- * the DVFS demo functional -- see the "not done" list above.
+ * project. This is the runtime-active analogue: same set of
+ * subsystems shut down, but WITHOUT the ULP-profile / debug
+ * disable / DS-RAM PPU targets that would make the demo unusable.
  */
 
 #include <zephyr/init.h>
@@ -63,6 +59,9 @@
 #include "cy_pdl.h"
 #include "cy_sysclk.h"
 #include "cy_syspm.h"
+#include "cy_syspm_pdcm.h"
+#include "cy_syspm_ppu.h"
+#include "system_edge.h"
 
 #include <zephyr/sys/printk.h>
 
@@ -122,6 +121,85 @@ static void trim_smif(void)
 {
 	SMIF0_CORE->CTL &= ~SMIF_CORE_CTL_ENABLED_Msk;
 	SMIF1_CORE->CTL &= ~SMIF_CORE_CTL_ENABLED_Msk;
+}
+
+/**
+ * @brief Collapse the APP power domain (PD1) via its PPUs.
+ *
+ * PSE84 splits the SoC into two hard power domains:
+ *   PD0 (SYS): SYSCPU (CM33), SYS_MMIO*, RRAM, SRSS, BACKUP.
+ *   PD1 (APP): APPCPU (CM55), APPCPUSS, U55 (NPU), SOCMEM, plus
+ *              their MMIO bridges (APP_MMIO0..4).
+ *
+ * This build uses ONLY the CM33 in PD0. Everything in PD1 is
+ * dead code -- CM55 is never booted, U55 is never used, SOCMEM
+ * was already gated via @c trim_socmem above. But RRAMboot
+ * leaves every PD1 PPU in the ON state (so a debugger could
+ * poke around before CM55 boots), which keeps the whole APP
+ * rail powered.
+ *
+ * Requesting @c PPU_V1_MODE_OFF on the four APP PPUs plus PD1
+ * itself tells the arm-controller Q-channel to collapse each
+ * block as soon as its dependents are quiescent. Two things
+ * have to happen first for the collapse to actually complete:
+ *
+ *   (a) Clear the boot-ROM-installed PDCM edge that lists
+ *       APPCPUSS as a hard dependent of SYSCPU. Without this
+ *       our CM33 (SYSCPU=ON) forever pins APPCPUSS=ON.
+ *
+ *   (b) Detach the CM55 debug AP via @c Cy_SysCM55SetDbgPort.
+ *       RRAMboot leaves @c APPCPUSS->AP_CTL asserting the CM55
+ *       DAP enables; an enabled DAP is a hardware requestor on
+ *       APPCPU's domain even without a debugger physically
+ *       attached, which pins APPCPU=ON. Clearing AP_CTL is the
+ *       moral equivalent of the SDK's DS-RAM path (which
+ *       actually boots CM55, tells it to WFI, and lets the
+ *       Q-channel see it drop). We take the cheaper route --
+ *       just yank the DAP.
+ *
+ * We do NOT touch the SYSCPU PPU (PD0). CM33 is running out of
+ * that domain; putting it OFF would be self-destructive.
+ *
+ * Must run BEFORE @c trim_unused_hf_clocks. The Q-channel
+ * handshake between the PPU and its slave interfaces uses HF1
+ * (APPCPUSS clock) and HF2 (SOCMEM PPU clock). If we gate those
+ * first, the handshake stalls and the PPU is stuck in a chimera
+ * state (PWPR=OFF requested, PWSR still ON). Reference firmware
+ * enforces the same ordering.
+ */
+static void trim_app_domain(void)
+{
+	struct ppu_v1_reg *ppu_pd1 =
+	    (struct ppu_v1_reg *)CY_PPU_PD1_BASE;
+	struct ppu_v1_reg *ppu_socmem =
+	    (struct ppu_v1_reg *)CY_PPU_SOCMEM_BASE;
+	struct ppu_v1_reg *ppu_appcpuss =
+	    (struct ppu_v1_reg *)CY_PPU_APPCPUSS_BASE;
+	struct ppu_v1_reg *ppu_appcpu =
+	    (struct ppu_v1_reg *)CY_PPU_APPCPU_BASE;
+	struct ppu_v1_reg *ppu_u55 =
+	    (struct ppu_v1_reg *)CY_PPU_U55_BASE;
+
+	/* (a) Break the boot-ROM PDCM edge SYSCPU->APPCPUSS. */
+	(void)cy_pd_pdcm_clear_dependency(CY_PD_PDCM_APPCPUSS,
+					  CY_PD_PDCM_SYSCPU);
+
+	/* (b) Drop the CM55 debug AP so APPCPU can quiesce. */
+	Cy_SysCM55SetDbgPort(APPCPUSS_DBG_DISABLE);
+
+	/* Request OFF on parent first, then children. Actual
+	 * sequencing is enforced by the Q-channel handshake, not
+	 * by these register writes. */
+	(void)cy_pd_ppu_set_power_mode(ppu_pd1,
+				       (uint32_t)PPU_V1_MODE_OFF);
+	(void)cy_pd_ppu_set_power_mode(ppu_socmem,
+				       (uint32_t)PPU_V1_MODE_OFF);
+	(void)cy_pd_ppu_set_power_mode(ppu_appcpuss,
+				       (uint32_t)PPU_V1_MODE_OFF);
+	(void)cy_pd_ppu_set_power_mode(ppu_appcpu,
+				       (uint32_t)PPU_V1_MODE_OFF);
+	(void)cy_pd_ppu_set_power_mode(ppu_u55,
+				       (uint32_t)PPU_V1_MODE_OFF);
 }
 
 /**
@@ -190,25 +268,31 @@ static void trim_unused_plls(void)
 /**
  * @brief Boot hook -- runs once at APPLICATION init, before main().
  *
- * Order matters between two adjacent pairs:
- *   - trim_socmem must precede trim_unused_hf_clocks (HF2 fed the
- *     SOCMEM PPU; safer to power the block down before gating its
- *     clock)
+ * Order matters between three adjacent pairs:
+ *   - trim_socmem must precede trim_app_domain (the SOCMEM
+ *     controller and its PPU are two independent power controls;
+ *     stopping the controller first quiesces its Q-channel so the
+ *     PPU collapse doesn't stall)
+ *   - trim_app_domain must precede trim_unused_hf_clocks (PPU
+ *     Q-channel handshake needs HF1 (APPCPUSS) and HF2 (SOCMEM
+ *     PPU) alive; gating them first stalls the collapse)
  *   - trim_unused_hf_clocks must precede trim_unused_plls (PLLs
  *     only safely disable after their last downstream HFCLK is
  *     gated)
- * The other helpers are independent -- ordering here just follows
- * "coarse to fine" for readability.
+ * The remaining helpers are independent -- ordering here just
+ * follows "coarse to fine" for readability.
  */
 static int pm_boot_optimize(void)
 {
 	trim_socmem();
 	trim_smif();
+	trim_app_domain();
 	trim_unused_hf_clocks();
 	trim_unused_plls();
 	trim_unused_gpio_ports();
-	printk("[pm-boot] trimmed SOCMEM, SMIF0/1, HF{1..9,11..13}, "
-	       "DPLL_LP1, DPLL_HP, GPIO ports (kept 3, 16)\n");
+	printk("[pm-boot] trimmed SOCMEM, SMIF0/1, PD1 (APP domain), "
+	       "HF{1..9,11..13}, DPLL_LP1, DPLL_HP, "
+	       "GPIO ports (kept 3, 16)\n");
 	return 0;
 }
 
