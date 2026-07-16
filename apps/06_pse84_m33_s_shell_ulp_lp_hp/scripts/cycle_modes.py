@@ -504,7 +504,25 @@ def main() -> int:
 
     ppk = Ppk2Capture(dev=args.ppk_dev, supply_mv=args.supply_mv, disabled=args.no_ppk)
 
-    banner = drain_shell(ser, quiet_ms=500, max_ms=2000)
+    # Flush any stale bytes queued in the tty (e.g. from a previous
+    # aborted cycle_modes run or a stray console session) so the
+    # first command is sent to a clean shell.
+    try:
+        ser.reset_input_buffer()
+        ser.reset_output_buffer()
+    except Exception:
+        pass
+    # Nudge the shell to re-emit the prompt, then drain everything.
+    try:
+        ser.write(b"\n")
+    except Exception:
+        pass
+    try:
+        banner = drain_shell(ser, quiet_ms=500, max_ms=2000)
+    except ShellDisconnected as e:
+        print(f"# [shell] disconnected during initial drain ({e})",
+              file=sys.stderr)
+        banner = ""
     if banner:
         sys.stdout.write(banner)
         sys.stdout.flush()
