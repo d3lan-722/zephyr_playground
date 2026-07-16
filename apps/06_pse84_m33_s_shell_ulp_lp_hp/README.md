@@ -298,11 +298,26 @@ Example report from a 3-loop PLL_RETUNE capture at 3.3 V supply:
   ULP->HP     3       8663019     213.077 ms   40.66 MHz     5.306 mA   1130 uC   3.731 mJ
   ULP->LP     3       6878093     177.457 ms   38.76 MHz     4.222 mA    749 uC   2.473 mJ
 
+== energy savings rate (supply 3300 mV) ==
+  pair           low_freq          ΔI     savings/s    savings/cyc
+  LP vs HP       80.00 MHz    5.290 mA     17.456 mW     218.20 pJ
+  ULP vs HP      50.00 MHz    7.368 mA     24.316 mW     486.31 pJ
+  ULP vs LP      50.00 MHz    2.079 mA      6.859 mW     137.19 pJ
+
 == break-even residence for HP -> X -> HP round-trips (supply 3300 mV) ==
-  target       HP_ua        X_ua     q_trans     e_trans    breakeven
-  LP     10.500 mA    5.210 mA    2534 uC    8.363 mJ    479.084 ms
-  ULP    10.500 mA    3.131 mA    2210 uC    7.292 mJ    299.884 ms
+  target       HP_ua        X_ua     q_trans     e_trans    breakeven     be_cycles
+  LP     10.500 mA    5.210 mA    2534 uC    8.363 mJ    479.084 ms     38.33 Mc
+  ULP    10.500 mA    3.131 mA    2210 uC    7.292 mJ    299.884 ms     14.99 Mc
 ```
+
+`savings/cyc` is per one CPU cycle at the low mode's clock rate,
+so it's the incremental energy you save each time the low-mode
+CPU ticks vs. a HP-clocked CPU tick.
+
+`be_cycles` is `breakeven * low_mode_freq` — the number of CPU
+cycles the low mode has to execute (at its own clock rate) before
+the round-trip is amortised. Useful when reasoning about "N loop
+iterations of low-mode work" vs. "stay in HP".
 
 Energy is computed as `charge × V_supply` using the `supply_mv`
 value stored in the JSON's `meta` section (3.3 V on the

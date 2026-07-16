@@ -128,9 +128,12 @@ def summarize_transitions(
 
 
 def break_even_seconds(
-    src_ua: float, tgt_ua: float,
-    pulse_dur_s_down: float, pulse_ua_down: float,
-    pulse_dur_s_up: float, pulse_ua_up: float,
+    src_ua: float,
+    tgt_ua: float,
+    pulse_dur_s_down: float,
+    pulse_ua_down: float,
+    pulse_dur_s_up: float,
+    pulse_ua_up: float,
 ) -> tuple[float, float]:
     """For a round-trip src -> tgt -> src, return
     (transition_charge_uC, breakeven_s_at_target).
@@ -152,8 +155,7 @@ def break_even_seconds(
     Q_trans is always positive (raw charge, no baseline subtraction).
     breakeven_s is always positive too. If tgt >= src (no possible
     savings), breakeven_s is +infinity."""
-    q_trans_uC = (pulse_ua_down * pulse_dur_s_down +
-                  pulse_ua_up * pulse_dur_s_up)
+    q_trans_uC = pulse_ua_down * pulse_dur_s_down + pulse_ua_up * pulse_dur_s_up
     saving_ua = src_ua - tgt_ua
     if saving_ua <= 0:
         return q_trans_uC, float("inf")
@@ -166,13 +168,17 @@ def print_report(doc: dict[str, Any]) -> None:
     print(f"# capture: {meta['captured_at']}")
     print(f"# board:    {meta['board']}")
     print(f"# strategy: {meta['strategy']}")
-    print(f"# supply:   {meta['supply_mv']} mV, "
-          f"{meta['loops']} loops @ {meta['period_s']} s period")
+    print(
+        f"# supply:   {meta['supply_mv']} mV, "
+        f"{meta['loops']} loops @ {meta['period_s']} s period"
+    )
     print(f"# transitions recorded: {len(doc['transitions'])}")
     if ppk.get("available"):
-        print(f"# ppk2:     {ppk['n_samples']} samples "
-              f"({ppk['duration_s']:.1f} s @ {ppk['sample_hz']} Hz), "
-              f"overall mean = {fmt_current(ppk['overall_mean_ua'])}")
+        print(
+            f"# ppk2:     {ppk['n_samples']} samples "
+            f"({ppk['duration_s']:.1f} s @ {ppk['sample_hz']} Hz), "
+            f"overall mean = {fmt_current(ppk['overall_mean_ua'])}"
+        )
     else:
         print("# ppk2:     not captured")
     print()
@@ -181,34 +187,37 @@ def print_report(doc: dict[str, Any]) -> None:
     modes = summarize_modes(doc)
     if modes:
         print("== steady-state current per mode (post-200ms settling) ==")
-        print(f"  {'mode':<4}  {'n':>3}  "
-              f"{'mean':>10}  {'std':>10}  {'min':>10}  {'max':>10}")
+        print(
+            f"  {'mode':<4}  {'n':>3}  "
+            f"{'mean':>10}  {'std':>10}  {'min':>10}  {'max':>10}"
+        )
         for m in ["HP", "LP", "ULP"]:
             if m not in modes:
                 continue
             s = modes[m]
-            print(f"  {m:<4}  {s['n']:>3}  "
-                  f"{fmt_current(s['mean_ua']):>10}  "
-                  f"{fmt_current(s['stdev_ua']):>10}  "
-                  f"{fmt_current(s['min_ua']):>10}  "
-                  f"{fmt_current(s['max_ua']):>10}")
+            print(
+                f"  {m:<4}  {s['n']:>3}  "
+                f"{fmt_current(s['mean_ua']):>10}  "
+                f"{fmt_current(s['stdev_ua']):>10}  "
+                f"{fmt_current(s['min_ua']):>10}  "
+                f"{fmt_current(s['max_ua']):>10}"
+            )
         print()
 
     # --- per-direction transition ---
     txns = summarize_transitions(doc)
     supply_mv = doc["meta"].get("supply_mv", 3300)
     if txns:
-        print(f"== per-direction transition stats "
-              f"(supply {supply_mv} mV) ==")
-        print(f"  {'direction':<12}  {'n':>3}  "
-              f"{'cycles_mean':>12}  "
-              f"{'ppk_dur_mean':>13}  "
-              f"{'avg_freq':>10}  "
-              f"{'ppk_mean_ua':>13}  "
-              f"{'charge':>12}  {'energy':>12}")
-        for key in ["HP->LP", "HP->ULP",
-                    "LP->HP", "LP->ULP",
-                    "ULP->HP", "ULP->LP"]:
+        print(f"== per-direction transition stats " f"(supply {supply_mv} mV) ==")
+        print(
+            f"  {'direction':<12}  {'n':>3}  "
+            f"{'cycles_mean':>12}  "
+            f"{'ppk_dur_mean':>13}  "
+            f"{'avg_freq':>10}  "
+            f"{'ppk_mean_ua':>13}  "
+            f"{'charge':>12}  {'energy':>12}"
+        )
+        for key in ["HP->LP", "HP->ULP", "LP->HP", "LP->ULP", "ULP->HP", "ULP->LP"]:
             if key not in txns:
                 continue
             s = txns[key]
@@ -221,21 +230,89 @@ def print_report(doc: dict[str, Any]) -> None:
             # is sourced from CLK_HF0, so cycles/wall_time gives the
             # arithmetic mean CPU frequency across the window.
             avg_hz = cyc / dur if dur > 0 else 0.0
-            print(f"  {key:<12}  {s['n']:>3}  "
-                  f"{cyc:>12.0f}  "
-                  f"{fmt_duration(dur):>13}  "
-                  f"{avg_hz/1e6:>7.2f} MHz  "
-                  f"{fmt_current(ua):>13}  "
-                  f"{charge_uC:>9.1f} uC  "
-                  f"{fmt_energy(energy_uJ):>12}")
+            print(
+                f"  {key:<12}  {s['n']:>3}  "
+                f"{cyc:>12.0f}  "
+                f"{fmt_duration(dur):>13}  "
+                f"{avg_hz/1e6:>7.2f} MHz  "
+                f"{fmt_current(ua):>13}  "
+                f"{charge_uC:>9.1f} uC  "
+                f"{fmt_energy(energy_uJ):>12}"
+            )
         print()
+
+    # --- energy savings rate per mode (vs. a hotter mode) ---
+    if modes and txns:
+        # Extract each mode's CPU frequency from any transition
+        # record whose source or target matches. Every transition
+        # record already stores source_hz and target_hz in the JSON.
+        mode_hz: dict[str, int] = {}
+        for t in doc["transitions"]:
+            for side in ("source", "target"):
+                m = t.get(side)
+                hz = t.get(f"{side}_hz")
+                if m and hz and m not in mode_hz:
+                    mode_hz[m] = int(hz)
+
+        pairs = [("LP", "HP"), ("ULP", "HP"), ("ULP", "LP")]
+        rows = []
+        for low, high in pairs:
+            if low not in modes or high not in modes:
+                continue
+            i_low = modes[low]["mean_ua"]
+            i_high = modes[high]["mean_ua"]
+            delta_ua = i_high - i_low
+            if delta_ua <= 0:
+                continue
+            # Power savings in µW = ΔI(µA) × V(V) = ΔI(µA) × V_mV / 1000
+            savings_uw = delta_ua * supply_mv / 1000.0
+            savings_uw_per_s = savings_uw          # µW = µJ/s
+            f_hz = mode_hz.get(low, 0)
+            # Energy per one CPU cycle at the low-mode's freq, in pJ.
+            savings_pj_per_cycle = ((savings_uw / 1e6) / f_hz * 1e12
+                                    if f_hz else 0.0)
+            rows.append((low, high, f_hz, savings_uw_per_s,
+                         savings_pj_per_cycle))
+        if rows:
+            print(f"== energy savings rate (supply {supply_mv} mV) ==")
+            print(f"  {'pair':<11}  {'low_freq':>10}  "
+                  f"{'ΔI':>10}  {'savings/s':>12}  "
+                  f"{'savings/cyc':>13}")
+            for low, high, f_hz, s_per_s, s_per_c in rows:
+                pair = f"{low} vs {high}"
+                delta_ua = (modes[high]['mean_ua'] - modes[low]['mean_ua'])
+                # s_per_s is in µW; print as mW for readability if large.
+                if s_per_s >= 1000.0:
+                    sps = f"{s_per_s/1000.0:8.3f} mW"
+                else:
+                    sps = f"{s_per_s:8.1f} uW"
+                print(f"  {pair:<11}  "
+                      f"{f_hz/1e6:>7.2f} MHz  "
+                      f"{fmt_current(delta_ua):>10}  "
+                      f"{sps:>12}  "
+                      f"{s_per_c:>9.2f} pJ")
+            print()
 
     # --- break-even for round-trips ---
     if modes and txns:
-        print(f"== break-even residence for HP -> X -> HP "
-              f"round-trips (supply {supply_mv} mV) ==")
-        print(f"  {'target':<4}  {'HP_ua':>10}  {'X_ua':>10}  "
-              f"{'q_trans':>10}  {'e_trans':>12}  {'breakeven':>12}")
+        # Reuse the mode->freq map for the cycles column.
+        mode_hz = {}
+        for t in doc["transitions"]:
+            for side in ("source", "target"):
+                m = t.get(side)
+                hz = t.get(f"{side}_hz")
+                if m and hz and m not in mode_hz:
+                    mode_hz[m] = int(hz)
+
+        print(
+            f"== break-even residence for HP -> X -> HP "
+            f"round-trips (supply {supply_mv} mV) =="
+        )
+        print(
+            f"  {'target':<4}  {'HP_ua':>10}  {'X_ua':>10}  "
+            f"{'q_trans':>10}  {'e_trans':>12}  "
+            f"{'breakeven':>12}  {'be_cycles':>12}"
+        )
         hp_ua = modes.get("HP", {}).get("mean_ua")
         if hp_ua is None:
             print("  (need HP baseline in the data)")
@@ -258,11 +335,25 @@ def print_report(doc: dict[str, Any]) -> None:
                     pulse_ua_up=u.get("mean_ua_mean", 0),
                 )
                 e = energy_uj(q, supply_mv)
-                be_str = ("--" if be == float("inf")
-                          else fmt_duration(be))
-                print(f"  {tgt:<4}  {fmt_current(hp_ua):>10}  "
-                      f"{fmt_current(modes[tgt]['mean_ua']):>10}  "
-                      f"{q:>7.1f} uC  {fmt_energy(e):>12}  {be_str:>12}")
+                be_str = "--" if be == float("inf") else fmt_duration(be)
+                # Break-even in target-mode CPU cycles.
+                f_tgt = mode_hz.get(tgt, 0)
+                if be == float("inf") or f_tgt == 0:
+                    bec_str = "--"
+                else:
+                    bec = be * f_tgt
+                    if bec >= 1e6:
+                        bec_str = f"{bec/1e6:8.2f} Mc"
+                    elif bec >= 1e3:
+                        bec_str = f"{bec/1e3:8.2f} kc"
+                    else:
+                        bec_str = f"{bec:8.0f}  c"
+                print(
+                    f"  {tgt:<4}  {fmt_current(hp_ua):>10}  "
+                    f"{fmt_current(modes[tgt]['mean_ua']):>10}  "
+                    f"{q:>7.1f} uC  {fmt_energy(e):>12}  "
+                    f"{be_str:>12}  {bec_str:>12}"
+                )
         print()
 
 
@@ -292,11 +383,9 @@ def make_plots(doc: dict[str, Any], save_dir: Path | None) -> None:
         keys = [m for m in ["HP", "LP", "ULP"] if m in modes]
         means = [modes[m]["mean_ua"] / 1000.0 for m in keys]
         stds = [modes[m]["stdev_ua"] / 1000.0 for m in keys]
-        ax.bar(keys, means, yerr=stds, capsize=6,
-               color=["#c33", "#c93", "#3c9"])
+        ax.bar(keys, means, yerr=stds, capsize=6, color=["#c33", "#c93", "#3c9"])
         ax.set_ylabel("mean current (mA)")
-        ax.set_title(f"Steady-state current per mode -- "
-                     f"{doc['meta']['strategy']}")
+        ax.set_title(f"Steady-state current per mode -- " f"{doc['meta']['strategy']}")
         ax.grid(axis="y", alpha=0.3)
         for i, (m, s) in enumerate(zip(means, stds)):
             ax.text(i, m + s, f"{m:.2f} mA", ha="center", va="bottom")
@@ -307,9 +396,11 @@ def make_plots(doc: dict[str, Any], save_dir: Path | None) -> None:
     supply_mv = doc["meta"].get("supply_mv", 3300)
     if txns and ppk.get("available"):
         fig, ax = plt.subplots(figsize=(8, 4))
-        keys = [k for k in ["HP->LP", "HP->ULP",
-                            "LP->HP", "LP->ULP",
-                            "ULP->HP", "ULP->LP"] if k in txns]
+        keys = [
+            k
+            for k in ["HP->LP", "HP->ULP", "LP->HP", "LP->ULP", "ULP->HP", "ULP->LP"]
+            if k in txns
+        ]
         durs_ms = [txns[k].get("duration_s_mean", 0) * 1000 for k in keys]
         mean_ua = [txns[k].get("mean_ua_mean", 0) / 1000.0 for k in keys]
         x = range(len(keys))
@@ -317,21 +408,26 @@ def make_plots(doc: dict[str, Any], save_dir: Path | None) -> None:
         ax.set_xticks(list(x))
         ax.set_xticklabels(keys, rotation=45, ha="right")
         ax.set_ylabel("mean transition duration (ms)")
-        ax.set_title(f"Transition wall time (PPK2 pm-busy pulse) -- "
-                     f"{doc['meta']['strategy']}")
+        ax.set_title(
+            f"Transition wall time (PPK2 pm-busy pulse) -- "
+            f"{doc['meta']['strategy']}"
+        )
         ax.grid(axis="y", alpha=0.3)
         for i, (d, ua) in enumerate(zip(durs_ms, mean_ua)):
-            ax.text(i, d, f"{d:.0f} ms\n{ua:.2f} mA",
-                    ha="center", va="bottom", fontsize=8)
+            ax.text(
+                i, d, f"{d:.0f} ms\n{ua:.2f} mA", ha="center", va="bottom", fontsize=8
+            )
         fig.tight_layout()
         figs.append(("transition_duration", fig))
 
     # Plot 2b: energy per transition (mJ, computed via V_supply).
     if txns and ppk.get("available"):
         fig, ax = plt.subplots(figsize=(8, 4))
-        keys = [k for k in ["HP->LP", "HP->ULP",
-                            "LP->HP", "LP->ULP",
-                            "ULP->HP", "ULP->LP"] if k in txns]
+        keys = [
+            k
+            for k in ["HP->LP", "HP->ULP", "LP->HP", "LP->ULP", "ULP->HP", "ULP->LP"]
+            if k in txns
+        ]
         energies_mj = []
         for k in keys:
             dur_s = txns[k].get("duration_s_mean", 0)
@@ -343,12 +439,12 @@ def make_plots(doc: dict[str, Any], save_dir: Path | None) -> None:
         ax.set_xticks(list(x))
         ax.set_xticklabels(keys, rotation=45, ha="right")
         ax.set_ylabel("mean energy per transition (mJ)")
-        ax.set_title(f"Transition energy at {supply_mv} mV -- "
-                     f"{doc['meta']['strategy']}")
+        ax.set_title(
+            f"Transition energy at {supply_mv} mV -- " f"{doc['meta']['strategy']}"
+        )
         ax.grid(axis="y", alpha=0.3)
         for i, e in enumerate(energies_mj):
-            ax.text(i, e, f"{e:.2f} mJ",
-                    ha="center", va="bottom", fontsize=8)
+            ax.text(i, e, f"{e:.2f} mJ", ha="center", va="bottom", fontsize=8)
         fig.tight_layout()
         figs.append(("energy_per_transition", fig))
 
@@ -365,7 +461,8 @@ def make_plots(doc: dict[str, Any], save_dir: Path | None) -> None:
             if kd not in txns or ku not in txns:
                 continue
             _, be = break_even_seconds(
-                src_ua=hp_ua, tgt_ua=modes[tgt]["mean_ua"],
+                src_ua=hp_ua,
+                tgt_ua=modes[tgt]["mean_ua"],
                 pulse_dur_s_down=txns[kd].get("duration_s_mean", 0),
                 pulse_ua_down=txns[kd].get("mean_ua_mean", 0),
                 pulse_dur_s_up=txns[ku].get("duration_s_mean", 0),
@@ -373,15 +470,12 @@ def make_plots(doc: dict[str, Any], save_dir: Path | None) -> None:
             )
             rows.append((tgt, be * 1000))  # ms
         if rows:
-            ax.bar([r[0] for r in rows], [r[1] for r in rows],
-                   color=["#c93", "#3c9"])
+            ax.bar([r[0] for r in rows], [r[1] for r in rows], color=["#c93", "#3c9"])
             ax.set_ylabel("break-even residence (ms)")
-            ax.set_title(f"HP -> X -> HP break-even -- "
-                         f"{doc['meta']['strategy']}")
+            ax.set_title(f"HP -> X -> HP break-even -- " f"{doc['meta']['strategy']}")
             ax.grid(axis="y", alpha=0.3)
             for i, r in enumerate(rows):
-                ax.text(i, r[1], f"{r[1]:.1f} ms",
-                        ha="center", va="bottom")
+                ax.text(i, r[1], f"{r[1]:.1f} ms", ha="center", va="bottom")
             fig.tight_layout()
             figs.append(("break_even", fig))
 
@@ -400,16 +494,23 @@ def make_plots(doc: dict[str, Any], save_dir: Path | None) -> None:
 # ------------------------------------------------------------------
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("json", type=Path,
-                    help="capture JSON produced by cycle_modes.py")
-    ap.add_argument("--show", action="store_true",
-                    help="also open the matplotlib windows interactively "
-                    "instead of only saving them to disk")
-    ap.add_argument("--no-plots", action="store_true",
-                    help="don't generate plots (report only)")
-    ap.add_argument("--save-plots", type=Path, default=None,
-                    metavar="DIR",
-                    help="write PNGs to DIR (default: alongside the JSON)")
+    ap.add_argument("json", type=Path, help="capture JSON produced by cycle_modes.py")
+    ap.add_argument(
+        "--show",
+        action="store_true",
+        help="also open the matplotlib windows interactively "
+        "instead of only saving them to disk",
+    )
+    ap.add_argument(
+        "--no-plots", action="store_true", help="don't generate plots (report only)"
+    )
+    ap.add_argument(
+        "--save-plots",
+        type=Path,
+        default=None,
+        metavar="DIR",
+        help="write PNGs to DIR (default: alongside the JSON)",
+    )
     args = ap.parse_args()
 
     if not args.json.exists():

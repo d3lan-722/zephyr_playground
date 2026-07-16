@@ -59,8 +59,8 @@ extern "C" {
  *                               per transition.
  * ------------------------------------------------------------------ */
 
-#define PM_STRATEGY_PLL_RETUNE 1
-// #define PM_STRATEGY_HF0_DIVIDER 1
+// #define PM_STRATEGY_PLL_RETUNE 1
+#define PM_STRATEGY_HF0_DIVIDER 1
 
 #if defined(PM_STRATEGY_PLL_RETUNE) == defined(PM_STRATEGY_HF0_DIVIDER)
 #error                                                                         \
