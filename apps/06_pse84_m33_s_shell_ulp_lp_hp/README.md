@@ -290,13 +290,13 @@ Example report from a 3-loop PLL_RETUNE capture at 3.3 V supply:
   ULP     6    3.131 mA      6.1 uA
 
 == per-direction transition stats (supply 3300 mV) ==
-  direction   n   cycles_mean   ppk_dur_mean   ppk_mean_ua   charge     energy
-  HP->LP      3       7115968     209.090 ms      5.940 mA   1242 uC   4.099 mJ
-  HP->ULP     3       6658979     199.557 ms      5.408 mA   1079 uC   3.561 mJ
-  LP->HP      3       9174055     220.803 ms      5.852 mA   1292 uC   4.264 mJ
-  LP->ULP     3       6951911     176.363 ms      4.267 mA    752 uC   2.484 mJ
-  ULP->HP     3       8663019     213.077 ms      5.306 mA   1130 uC   3.731 mJ
-  ULP->LP     3       6878093     177.457 ms      4.222 mA    749 uC   2.473 mJ
+  direction   n   cycles_mean   ppk_dur_mean   avg_freq    ppk_mean_ua   charge     energy
+  HP->LP      3       7115968     209.090 ms   34.03 MHz     5.940 mA   1242 uC   4.099 mJ
+  HP->ULP     3       6658979     199.557 ms   33.37 MHz     5.408 mA   1079 uC   3.561 mJ
+  LP->HP      3       9174055     220.803 ms   41.55 MHz     5.852 mA   1292 uC   4.264 mJ
+  LP->ULP     3       6951911     176.363 ms   39.42 MHz     4.267 mA    752 uC   2.484 mJ
+  ULP->HP     3       8663019     213.077 ms   40.66 MHz     5.306 mA   1130 uC   3.731 mJ
+  ULP->LP     3       6878093     177.457 ms   38.76 MHz     4.222 mA    749 uC   2.473 mJ
 
 == break-even residence for HP -> X -> HP round-trips (supply 3300 mV) ==
   target       HP_ua        X_ua     q_trans     e_trans    breakeven

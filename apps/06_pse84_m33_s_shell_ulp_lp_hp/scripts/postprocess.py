@@ -202,7 +202,9 @@ def print_report(doc: dict[str, Any]) -> None:
               f"(supply {supply_mv} mV) ==")
         print(f"  {'direction':<12}  {'n':>3}  "
               f"{'cycles_mean':>12}  "
-              f"{'ppk_dur_mean':>13}  {'ppk_mean_ua':>13}  "
+              f"{'ppk_dur_mean':>13}  "
+              f"{'avg_freq':>10}  "
+              f"{'ppk_mean_ua':>13}  "
               f"{'charge':>12}  {'energy':>12}")
         for key in ["HP->LP", "HP->ULP",
                     "LP->HP", "LP->ULP",
@@ -215,9 +217,14 @@ def print_report(doc: dict[str, Any]) -> None:
             ua = s.get("mean_ua_mean", 0.0)
             charge_uC = ua * dur
             energy_uJ = energy_uj(charge_uC, supply_mv)
+            # Average CLK_HF0 rate during the transition. SysTick
+            # is sourced from CLK_HF0, so cycles/wall_time gives the
+            # arithmetic mean CPU frequency across the window.
+            avg_hz = cyc / dur if dur > 0 else 0.0
             print(f"  {key:<12}  {s['n']:>3}  "
                   f"{cyc:>12.0f}  "
                   f"{fmt_duration(dur):>13}  "
+                  f"{avg_hz/1e6:>7.2f} MHz  "
                   f"{fmt_current(ua):>13}  "
                   f"{charge_uC:>9.1f} uC  "
                   f"{fmt_energy(energy_uJ):>12}")
