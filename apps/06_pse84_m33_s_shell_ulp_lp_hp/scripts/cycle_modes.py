@@ -123,21 +123,46 @@ def find_kitprog(cli_dev: str | None) -> str:
     )
 
 
+class ShellDisconnected(Exception):
+    """The KitProg CDC vanished mid-read -- typically because the
+    DUT reset (which the KitProg mirrors to its CDC endpoint) or
+    because a current transient during a mode-switch caused a brief
+    USB brown-out. Raised by drain_shell for the caller to decide
+    whether to reconnect or bail out."""
+
+
 def drain_shell(ser: serial.Serial, quiet_ms: int = 500, max_ms: int = 3000) -> str:
     """Read from the shell until it has been quiet for ``quiet_ms``
-    milliseconds or ``max_ms`` total elapsed."""
+    milliseconds or ``max_ms`` total elapsed.
+
+    If the underlying tty is torn down mid-read (pyserial raises
+    ``serial.SerialException`` -- device disconnected or multiple
+    access on port), whatever bytes have already been buffered are
+    returned and the exception is re-raised as ``ShellDisconnected``
+    so the caller can decide whether to reopen the port and retry."""
     deadline_total = time.monotonic() + max_ms / 1000.0
     deadline_quiet = time.monotonic() + quiet_ms / 1000.0
     buf = b""
     while time.monotonic() < deadline_total:
-        n = ser.in_waiting
-        if n:
-            buf += ser.read(n)
-            deadline_quiet = time.monotonic() + quiet_ms / 1000.0
-        else:
-            if time.monotonic() >= deadline_quiet:
-                break
-            time.sleep(0.02)
+        try:
+            n = ser.in_waiting
+            if n:
+                chunk = ser.read(n)
+                if chunk:
+                    buf += chunk
+                    deadline_quiet = time.monotonic() + quiet_ms / 1000.0
+                else:
+                    # in_waiting > 0 but read returned nothing -- kernel
+                    # says data is there but the CDC is being torn down.
+                    raise serial.SerialException(
+                        "read returned 0 bytes despite in_waiting > 0"
+                    )
+            else:
+                if time.monotonic() >= deadline_quiet:
+                    break
+                time.sleep(0.02)
+        except (serial.SerialException, OSError) as e:
+            raise ShellDisconnected(str(e)) from e
     return buf.decode("utf-8", errors="replace")
 
 
@@ -493,8 +518,34 @@ def main() -> int:
         for i in range(total_cmds):
             cmd = COMMANDS[i % len(COMMANDS)]
             sent_at = time.monotonic() - t0
-            ser.write((cmd + "\n").encode())
-            text = drain_shell(ser, quiet_ms=500, max_ms=3000)
+            try:
+                ser.write((cmd + "\n").encode())
+                text = drain_shell(ser, quiet_ms=500, max_ms=3000)
+            except ShellDisconnected as e:
+                # KitProg CDC vanished mid-read (typically a DUT
+                # reset or a brief USB brown-out from a mode-switch
+                # current spike). Try to reopen once; if it works,
+                # note the disruption in the record and keep going.
+                # If it doesn't, save what we have and stop.
+                print(f"\n# [shell] disconnected ({e}); trying to "
+                      "reconnect...", flush=True)
+                try:
+                    ser.close()
+                except Exception:
+                    pass
+                time.sleep(1.0)
+                try:
+                    ser = serial.Serial(dev, SHELL_BAUD, timeout=0.1)
+                    text = f"<shell disconnected: {e}>"
+                except Exception as reopen_err:
+                    print(f"# [shell] reconnect failed: {reopen_err}; "
+                          "stopping capture", flush=True)
+                    txns.append(TxnRecord(
+                        seq=i + 1, cmd=cmd, sent_at_s=sent_at,
+                        console=f"<disconnected before send: {e}>",
+                        parsed=None,
+                    ))
+                    break
             sys.stdout.write(text)
             sys.stdout.flush()
 
@@ -515,7 +566,10 @@ def main() -> int:
         print("\n# interrupted", flush=True)
     finally:
         ppk.stop()
-        ser.close()
+        try:
+            ser.close()
+        except Exception:
+            pass
 
     strategy = detect_strategy("\n".join(t.console for t in txns))
     output = args.output or default_output_name(strategy)
