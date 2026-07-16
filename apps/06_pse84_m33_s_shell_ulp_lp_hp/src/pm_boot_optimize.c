@@ -71,25 +71,30 @@
 
 /** GPIO ports the demo keeps live -- everything else gets
  *  Cy_GPIO_Port_Deinit. */
-#define KEEP_PORT_PM_BUSY 3u  /* P3.1 -- pm-busy scope trigger. */
-#define KEEP_PORT_LEDS    16u /* P16.5/6/7 -- RGB LEDs. */
+#define KEEP_PORT_PM_BUSY 3u /* P3.1 -- pm-busy scope trigger. */
+#define KEEP_PORT_LEDS 16u   /* P16.5/6/7 -- RGB LEDs. */
 
-/** HFCLK indices this build never uses. HF0, HF10, HF1, HF2 are
+/** HFCLK indices this build never uses. HF0 and HF10 are
  *  deliberately absent: HF0 is the CM33 core clock, HF10 is the
- *  SCB2 UART clock, HF1/HF2 gate the APPCPUSS/SOCMEM PPU chain
- *  and disabling them before a PPU collapse would hang the
- *  Q-channel handshake (see tmp/app_pm_boot.c note). */
+ *  SCB2 UART clock. HF1 (APPCPUSS) and HF2 (SOCMEM PPU / DPLL_HP)
+ *  are included -- the "must complete PPU Q-channel handshake
+ *  first" caveat from tmp/app_pm_boot.c only matters for deep-sleep
+ *  entry; in active runtime, gating them idles the block with no
+ *  side-effect because CM55 is never booted and SOCMEM was already
+ *  disabled above. */
 static const uint8_t s_unused_hf_clocks[] = {
-	3,	/* HF3  -- SMIF0                                  */
-	4,	/* HF4  -- SMIF1                                  */
-	5,	/* HF5  -- SDHC0, PERI_0 group 3, PERI_1 group 2  */
-	6,	/* HF6  -- SDHC1, PERI_0 group 4, PERI_1 group 3  */
-	7,	/* HF7  -- PDM, PERI_1 group 1 (fed by DPLL_LP1)  */
-	8,	/* HF8  -- USB                                    */
-	9,	/* HF9  -- SYS_MMIO[5], Autonomous Analog         */
-	11,	/* HF11 -- SYS_MMIO[3], SCB[1], PERI_0 group 8    */
-	12,	/* HF12 -- MIPI-DSI D-PHY PLL reference           */
-	13,	/* HF13 -- I3C, PERI_0 group 6/9                  */
+    1,	/* HF1  -- APPCPUSS, APP_MMIO[0..4], PERI_1 group 0  */
+    2,	/* HF2  -- SOCMEM, PERI_1 group 5                    */
+    3,	/* HF3  -- SMIF0                                     */
+    4,	/* HF4  -- SMIF1                                     */
+    5,	/* HF5  -- SDHC0, PERI_0 group 3, PERI_1 group 2     */
+    6,	/* HF6  -- SDHC1, PERI_0 group 4, PERI_1 group 3  */
+    7,	/* HF7  -- PDM, PERI_1 group 1 (fed by DPLL_LP1)  */
+    8,	/* HF8  -- USB                                    */
+    9,	/* HF9  -- SYS_MMIO[5], Autonomous Analog         */
+    11, /* HF11 -- SYS_MMIO[3], SCB[1], PERI_0 group 8    */
+    12, /* HF12 -- MIPI-DSI D-PHY PLL reference           */
+    13, /* HF13 -- I3C, PERI_0 group 6/9                  */
 };
 
 /**
@@ -100,10 +105,7 @@ static const uint8_t s_unused_hf_clocks[] = {
  * block powered so the CM55 can boot into it; we don't need
  * that.
  */
-static void trim_socmem(void)
-{
-	Cy_SysEnableSOCMEM(false);
-}
+static void trim_socmem(void) { Cy_SysEnableSOCMEM(false); }
 
 /**
  * @brief Disable both Serial Memory Interface controllers.
@@ -157,27 +159,56 @@ static void trim_unused_gpio_ports(void)
 			continue;
 		}
 		GPIO_PRT_Type *prt =
-			(GPIO_PRT_Type *)(CY_GPIO_BASE +
-					  (port * GPIO_PRT_SECTION_SIZE));
+		    (GPIO_PRT_Type *)(CY_GPIO_BASE +
+				      (port * GPIO_PRT_SECTION_SIZE));
 		Cy_GPIO_Port_Deinit(prt);
 	}
 }
 
 /**
+ * @brief Disable DPLL_LP1 and DPLL_HP.
+ *
+ * After @c trim_unused_hf_clocks gates HF1..HF9 and HF11..HF13:
+ *   - DPLL_LP1 has no downstream (HF7 was its only consumer)
+ *   - DPLL_HP  has no downstream (HF2 was its only consumer)
+ *
+ * A powered-on PLL block that no HFCLK routes through still draws
+ * bias current -- disabling the block itself saves that. Must run
+ * AFTER @c trim_unused_hf_clocks so the ordering guarantees no
+ * downstream HFCLK loses its source mid-use.
+ *
+ * DPLL_LP0 is deliberately left alone -- HF0 (CM33 core) and HF10
+ * (SCB2 UART) both feed from it, and PM_STRATEGY_PLL_RETUNE
+ * reprograms it around every DVFS transition.
+ */
+static void trim_unused_plls(void)
+{
+	(void)Cy_SysClk_DpllLpDisable(1);
+	(void)Cy_SysClk_DpllHpDisable(0);
+}
+
+/**
  * @brief Boot hook -- runs once at APPLICATION init, before main().
  *
- * Ordering doesn't strictly matter for the four helpers here (none
- * depends on another's side effect), but we go in a top-down
- * "coarse to fine" order for readability.
+ * Order matters between two adjacent pairs:
+ *   - trim_socmem must precede trim_unused_hf_clocks (HF2 fed the
+ *     SOCMEM PPU; safer to power the block down before gating its
+ *     clock)
+ *   - trim_unused_hf_clocks must precede trim_unused_plls (PLLs
+ *     only safely disable after their last downstream HFCLK is
+ *     gated)
+ * The other helpers are independent -- ordering here just follows
+ * "coarse to fine" for readability.
  */
 static int pm_boot_optimize(void)
 {
 	trim_socmem();
 	trim_smif();
 	trim_unused_hf_clocks();
+	trim_unused_plls();
 	trim_unused_gpio_ports();
-	printk("[pm-boot] trimmed SOCMEM, SMIF0/1, HF{3..9,11..13}, "
-	       "GPIO ports (kept 3, 16)\n");
+	printk("[pm-boot] trimmed SOCMEM, SMIF0/1, HF{1..9,11..13}, "
+	       "DPLL_LP1, DPLL_HP, GPIO ports (kept 3, 16)\n");
 	return 0;
 }
 
