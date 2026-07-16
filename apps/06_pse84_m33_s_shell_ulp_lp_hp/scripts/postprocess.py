@@ -266,31 +266,33 @@ def print_report(doc: dict[str, Any]) -> None:
                 continue
             # Power savings in µW = ΔI(µA) × V(V) = ΔI(µA) × V_mV / 1000
             savings_uw = delta_ua * supply_mv / 1000.0
-            savings_uw_per_s = savings_uw          # µW = µJ/s
+            savings_uw_per_s = savings_uw  # µW = µJ/s
             f_hz = mode_hz.get(low, 0)
             # Energy per one CPU cycle at the low-mode's freq, in pJ.
-            savings_pj_per_cycle = ((savings_uw / 1e6) / f_hz * 1e12
-                                    if f_hz else 0.0)
-            rows.append((low, high, f_hz, savings_uw_per_s,
-                         savings_pj_per_cycle))
+            savings_pj_per_cycle = (savings_uw / 1e6) / f_hz * 1e12 if f_hz else 0.0
+            rows.append((low, high, f_hz, savings_uw_per_s, savings_pj_per_cycle))
         if rows:
             print(f"== energy savings rate (supply {supply_mv} mV) ==")
-            print(f"  {'pair':<11}  {'low_freq':>10}  "
-                  f"{'ΔI':>10}  {'savings/s':>12}  "
-                  f"{'savings/cyc':>13}")
+            print(
+                f"  {'pair':<11}  {'low_freq':>10}  "
+                f"{'ΔI':>10}  {'savings/s':>12}  "
+                f"{'savings/cyc':>13}"
+            )
             for low, high, f_hz, s_per_s, s_per_c in rows:
                 pair = f"{low} vs {high}"
-                delta_ua = (modes[high]['mean_ua'] - modes[low]['mean_ua'])
+                delta_ua = modes[high]["mean_ua"] - modes[low]["mean_ua"]
                 # s_per_s is in µW; print as mW for readability if large.
                 if s_per_s >= 1000.0:
                     sps = f"{s_per_s/1000.0:8.3f} mW"
                 else:
                     sps = f"{s_per_s:8.1f} uW"
-                print(f"  {pair:<11}  "
-                      f"{f_hz/1e6:>7.2f} MHz  "
-                      f"{fmt_current(delta_ua):>10}  "
-                      f"{sps:>12}  "
-                      f"{s_per_c:>9.2f} pJ")
+                print(
+                    f"  {pair:<11}  "
+                    f"{f_hz/1e6:>7.2f} MHz  "
+                    f"{fmt_current(delta_ua):>10}  "
+                    f"{sps:>12}  "
+                    f"{s_per_c:>9.2f} pJ"
+                )
             print()
 
     # --- break-even for round-trips ---
@@ -305,18 +307,24 @@ def print_report(doc: dict[str, Any]) -> None:
                     mode_hz[m] = int(hz)
 
         print(
-            f"== break-even for HP -> X -> HP round-trip "
-            f"(supply {supply_mv} mV) =="
+            f"== break-even for HP -> X -> HP round-trip " f"(supply {supply_mv} mV) =="
         )
-        print("  cost      = energy the two transitions burn "
-              "(both wasted -- no useful work)")
-        print("  savings/s = HP steady-state power - X steady-state "
-              "power (from the table above)")
-        print("  break_even = cost / (savings/s), i.e. time in X "
-              "needed to recover 'cost'")
+        print(
+            "  cost      = energy the two transitions burn "
+            "(both wasted -- no useful work)"
+        )
+        print(
+            "  savings/s = HP steady-state power - X steady-state "
+            "power (from the table above)"
+        )
+        print(
+            "  break_even = cost / (savings/s), i.e. time in X "
+            "needed to recover 'cost'"
+        )
         print()
-        print(f"  {'target':<4}  {'cost':>10}  {'savings/s':>12}  "
-              f"{'break_even':>25}")
+        print(
+            f"  {'target':<4}  {'cost':>10}  {'savings/s':>12}  " f"{'break_even':>25}"
+        )
         hp_ua = modes.get("HP", {}).get("mean_ua")
         if hp_ua is None:
             print("  (need HP baseline in the data)")
@@ -360,10 +368,13 @@ def print_report(doc: dict[str, Any]) -> None:
                         bec_str = f"{bec/1e3:6.2f} kc"
                     else:
                         bec_str = f"{bec:6.0f}  c"
-                    be_combo = (f"{fmt_duration(be):>10}  = "
-                                f"{bec_str} @ {f_tgt/1e6:.0f}MHz")
-                print(f"  {tgt:<4}  {fmt_energy(cost_uj):>10}  "
-                      f"{sps:>12}  {be_combo:>25}")
+                    be_combo = (
+                        f"{fmt_duration(be):>10}  = " f"{bec_str} @ {f_tgt/1e6:.0f}MHz"
+                    )
+                print(
+                    f"  {tgt:<4}  {fmt_energy(cost_uj):>10}  "
+                    f"{sps:>12}  {be_combo:>25}"
+                )
         print()
 
 
@@ -458,11 +469,21 @@ def make_plots(doc: dict[str, Any], save_dir: Path | None) -> None:
         fig.tight_layout()
         figs.append(("energy_per_transition", fig))
 
-    # Plot 3: break-even chart.
+    # Plot 3: break-even recovery curve.
+    #
+    # For each target mode X, plot the NET energy delta of a HP -> X
+    # -> HP round-trip vs. staying in HP, as a function of residence
+    # time in X. At t=0 the SoC has just paid the transition 'cost'
+    # (positive penalty on the y-axis). Every second of residence
+    # in X saves 'savings/s' energy vs. HP, driving the line down.
+    # The zero-crossing IS the break-even -- the residence time
+    # where the round-trip has recovered its overhead.
     if modes and txns and "HP" in modes:
-        fig, ax = plt.subplots(figsize=(6, 4))
-        rows = []
+        fig, ax = plt.subplots(figsize=(8, 4.5))
         hp_ua = modes["HP"]["mean_ua"]
+        colors = {"LP": "#c93", "ULP": "#3c9"}
+
+        rows = []
         for tgt in ["LP", "ULP"]:
             if tgt not in modes:
                 continue
@@ -470,7 +491,7 @@ def make_plots(doc: dict[str, Any], save_dir: Path | None) -> None:
             ku = f"{tgt}->HP"
             if kd not in txns or ku not in txns:
                 continue
-            _, be = break_even_seconds(
+            q, be = break_even_seconds(
                 src_ua=hp_ua,
                 tgt_ua=modes[tgt]["mean_ua"],
                 pulse_dur_s_down=txns[kd].get("duration_s_mean", 0),
@@ -478,14 +499,39 @@ def make_plots(doc: dict[str, Any], save_dir: Path | None) -> None:
                 pulse_dur_s_up=txns[ku].get("duration_s_mean", 0),
                 pulse_ua_up=txns[ku].get("mean_ua_mean", 0),
             )
-            rows.append((tgt, be * 1000))  # ms
+            cost_mj = energy_uj(q, supply_mv) / 1000.0
+            savings_mw = ((hp_ua - modes[tgt]["mean_ua"]) * supply_mv
+                          / 1000.0 / 1000.0)  # µA*mV / 1e6 = mW
+            rows.append((tgt, cost_mj, savings_mw, be * 1000.0))  # be in ms
+
         if rows:
-            ax.bar([r[0] for r in rows], [r[1] for r in rows], color=["#c93", "#3c9"])
-            ax.set_ylabel("break-even residence (ms)")
-            ax.set_title(f"HP -> X -> HP break-even -- " f"{doc['meta']['strategy']}")
-            ax.grid(axis="y", alpha=0.3)
-            for i, r in enumerate(rows):
-                ax.text(i, r[1], f"{r[1]:.1f} ms", ha="center", va="bottom")
+            # Common x range: 0 to 1.5x the largest break-even.
+            t_max_ms = max(r[3] for r in rows) * 1.5
+            t = [i * t_max_ms / 200.0 for i in range(201)]
+            for tgt, cost_mj, savings_mw, be_ms in rows:
+                # net(t_ms) [mJ] = cost - savings/s * t_s
+                #                = cost_mj - savings_mw * t_ms / 1000
+                y = [cost_mj - savings_mw * tt / 1000.0 for tt in t]
+                ax.plot(t, y, color=colors.get(tgt, "#333"),
+                        linewidth=2, label=f"HP → {tgt} → HP")
+                # Mark break-even with dashed vertical + annotation.
+                ax.axvline(be_ms, linestyle="--", linewidth=1,
+                           color=colors.get(tgt, "#333"), alpha=0.5)
+                ax.annotate(
+                    f"{tgt}: {be_ms:.0f} ms",
+                    xy=(be_ms, 0), xytext=(be_ms, -cost_mj * 0.3),
+                    ha="center", fontsize=9,
+                    color=colors.get(tgt, "#333"),
+                )
+            ax.axhline(0, color="#000", linewidth=0.8)
+            ax.set_xlabel("residence time in low mode (ms)")
+            ax.set_ylabel("net energy delta vs. staying in HP (mJ)\n"
+                          "(positive = extra energy spent, "
+                          "negative = net savings)")
+            ax.set_title(f"HP → X → HP break-even recovery -- "
+                         f"{doc['meta']['strategy']}")
+            ax.grid(alpha=0.3)
+            ax.legend(loc="upper right")
             fig.tight_layout()
             figs.append(("break_even", fig))
 
