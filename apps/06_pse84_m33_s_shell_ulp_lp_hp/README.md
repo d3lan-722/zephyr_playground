@@ -299,19 +299,42 @@ Example report from a 3-loop PLL_RETUNE capture at 3.3 V supply:
   ULP->LP     3       6878093     177.457 ms      4.222 mA    749 uC   2.473 mJ
 
 == break-even residence for HP -> X -> HP round-trips (supply 3300 mV) ==
-  target       HP_ua        X_ua     q_extra     e_extra    breakeven
-  LP     10.500 mA    5.210 mA    -812 uC   -2.678 mJ       0.0 us
-  ULP    10.500 mA    3.131 mA    -553 uC   -1.825 mJ       0.0 us
+  target       HP_ua        X_ua     q_trans     e_trans    breakeven
+  LP     10.500 mA    5.210 mA    2534 uC    8.363 mJ    479.084 ms
+  ULP    10.500 mA    3.131 mA    2210 uC    7.292 mJ    299.884 ms
 ```
 
 Energy is computed as `charge × V_supply` using the `supply_mv`
-value stored in the JSON's `meta` section (nominally 3.3 V for the
-kit_pse84_eval board). Round-trip `e_extra` is negative because the
-transition mean current is *below* HP steady-state (CPU spends
-most of the window at a lower clock rate), so `q_extra` — and thus
-`e_extra` — comes out negative and the break-even residence is
-immediate: any drop out of HP is an instant energy win with these
-two strategies.
+value stored in the JSON's `meta` section (3.3 V on the
+kit_pse84_eval board).
+
+The break-even model treats every microcoulomb drawn during a
+transition as **pure overhead** — the CPU busy-polls the PMU state
+machine, writes SRAM/RRAM trim registers, and waits for the PLL
+to relock; none of that is useful work. Break-even is the ULP (or
+LP) residence time whose steady-state savings *cover* that
+overhead:
+
+```
+q_trans     = (I_down * t_down) + (I_up * t_up)          uC       (raw transition charge)
+savings/sec = (I_HP - I_target)                          uA
+breakeven   = q_trans / (I_HP - I_target)                s
+```
+
+For the numbers above:
+
+- HP→LP→HP round-trip: 8.36 mJ of transition overhead → must
+  stay ~479 ms in LP for the (10.5 − 5.2) mA savings to pay it
+  back.
+- HP→ULP→HP round-trip: 7.29 mJ overhead → must stay ~300 ms in
+  ULP for the (10.5 − 3.1) mA savings to pay it back.
+
+So DVFS pays off when the mode drop is long enough to amortise
+the two PLL relocks and the voltage step at the ends. If your
+firmware wakes to service a 1 ms interrupt and then goes back to
+sleep, PLL retune is a net *loss*; the HF0-divider strategy
+(much cheaper transitions) or plain deep-sleep are the right
+choice for that duty cycle.
 
 ## Typical workflow
 

@@ -133,28 +133,31 @@ def break_even_seconds(
     pulse_dur_s_up: float, pulse_ua_up: float,
 ) -> tuple[float, float]:
     """For a round-trip src -> tgt -> src, return
-    (charge_extra_uC, breakeven_s_at_target).
+    (transition_charge_uC, breakeven_s_at_target).
 
-    The 'extra charge' of a round-trip vs. staying in src is:
-        Q_down = (pulse_ua_down - src_ua) * pulse_dur_s_down
-        Q_up   = (pulse_ua_up   - tgt_ua) * pulse_dur_s_up
-    (Q_down is typically negative for HP -> low modes because the
-    transition current is below HP steady-state -- effectively free.)
+    The CPU does no useful work during either transition -- it
+    busy-polls the PMU state machine, writes SRAM/RRAM trim
+    registers, and waits for the PLL to relock. All the charge
+    the SoC draws during those windows is pure overhead.
 
-    Break-even residence at tgt: cover Q_down + Q_up with the
-    savings of (src_ua - tgt_ua) per second at tgt.
-    """
-    q_down_uC = (pulse_ua_down - src_ua) * pulse_dur_s_down
-    q_up_uC = (pulse_ua_up - tgt_ua) * pulse_dur_s_up
-    q_extra_uC = q_down_uC + q_up_uC
+    To justify that overhead the SoC must reside in the low mode
+    long enough that its lower steady-state current saves at least
+    as much charge as the round-trip cost:
+
+        Q_trans = pulse_ua_down * pulse_dur_s_down +
+                  pulse_ua_up   * pulse_dur_s_up
+        savings_rate_ua = src_ua - tgt_ua           (per second in tgt)
+        breakeven_s     = Q_trans / savings_rate_ua
+
+    Q_trans is always positive (raw charge, no baseline subtraction).
+    breakeven_s is always positive too. If tgt >= src (no possible
+    savings), breakeven_s is +infinity."""
+    q_trans_uC = (pulse_ua_down * pulse_dur_s_down +
+                  pulse_ua_up * pulse_dur_s_up)
     saving_ua = src_ua - tgt_ua
     if saving_ua <= 0:
-        return q_extra_uC, float("inf")
-    breakeven_s = q_extra_uC / saving_ua
-    if breakeven_s < 0:
-        # Already ahead just by transitioning -- break-even is at 0.
-        breakeven_s = 0.0
-    return q_extra_uC, breakeven_s
+        return q_trans_uC, float("inf")
+    return q_trans_uC, q_trans_uC / saving_ua
 
 
 def print_report(doc: dict[str, Any]) -> None:
@@ -225,7 +228,7 @@ def print_report(doc: dict[str, Any]) -> None:
         print(f"== break-even residence for HP -> X -> HP "
               f"round-trips (supply {supply_mv} mV) ==")
         print(f"  {'target':<4}  {'HP_ua':>10}  {'X_ua':>10}  "
-              f"{'q_extra':>10}  {'e_extra':>12}  {'breakeven':>12}")
+              f"{'q_trans':>10}  {'e_trans':>12}  {'breakeven':>12}")
         hp_ua = modes.get("HP", {}).get("mean_ua")
         if hp_ua is None:
             print("  (need HP baseline in the data)")
