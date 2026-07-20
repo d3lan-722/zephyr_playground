@@ -40,12 +40,16 @@ off. See [Scripts](#scripts) below for details.
 
 Type at the KitProg3 UART console (115200 8N1):
 
-| Command | Effect                                                        |
-|---------|---------------------------------------------------------------|
-| `hp`    | Transition SoC to High-Performance mode (see freqs below)     |
-| `lp`    | Transition SoC to Low-Power mode                              |
-| `ulp`   | Transition SoC to Ultra-Low-Power mode                        |
-| `probe` | Measure and print live DPLL_LP0 / CLK_HF0 / CLK_HF10 freqs    |
+| Command      | Effect                                                        |
+|--------------|---------------------------------------------------------------|
+| `hp`         | Transition SoC to High-Performance mode (see freqs below)     |
+| `lp`         | Transition SoC to Low-Power mode                              |
+| `ulp`        | Transition SoC to Ultra-Low-Power mode                        |
+| `probe`      | Measure and print live DPLL_LP0 / CLK_HF0 / CLK_HF10 freqs    |
+| `noidle`     | Print current state of the idle-WFI veto                      |
+| `noidle on`  | Suppress WFI in idle thread → CPU spins → real active current |
+| `noidle off` | Restore WFI in idle (default at boot) → sleep-floor current   |
+| `sleep`      | Enter CPU sleep (WFI) until any IRQ; print wall-clock dwell   |
 
 Each mode command:
 
@@ -83,6 +87,68 @@ authority is delegated to the PPK2 pulse width on P3.1 (see
 Solid or dark blue after a mode command means the CPU has hung;
 blinking blue with a dead console means only the console path is
 broken.
+
+## Active-vs-sleep A/B measurement
+
+Zephyr's idle thread runs `arch_cpu_idle()` which does `__WFI()`
+unconditionally, so the plain shell-prompt current is already
+CPU-sleep current — not the SoC's real active load. Two shell
+commands together let you toggle between the two on demand:
+
+| PPK2 shows          | shell state                        |
+|---------------------|------------------------------------|
+| Real active current | `noidle on` → idle spins, no WFI   |
+| Sleep-floor current | `noidle off` (default) or `sleep`  |
+
+### `noidle`
+
+Backed by Zephyr's `CONFIG_ARM_ON_ENTER_CPU_IDLE_HOOK`. The hook in
+`src/cmd_noidle.c` returns `false` when a global atomic flag is
+set, causing `arch_cpu_idle()` to skip the WFI and return
+immediately. The idle thread then spin-loops through
+`arch_cpu_idle()` and the CPU never sleeps in idle.
+
+Measured deltas on kit_pse84_eval (post boot-trim, `noidle off` vs
+`noidle on`):
+
+    Mode |  sleep floor  |  active (noidle on)  |  Δ (CPU sleep saves)
+    -----|---------------|----------------------|----------------------
+    HP   |    3.34 mA    |       5.36 mA        |    2.02 mA (38%)
+    LP   |    1.73 mA    |       2.34 mA        |    0.61 mA (26%)
+    ULP  |    1.16 mA    |       1.54 mA        |    0.38 mA (25%)
+
+HP saves the most because its 200 MHz core clock gates the most
+dynamic power on WFI.
+
+### `sleep`
+
+Drives the pm-busy GPIO HIGH → LOW around a single `__WFI` with
+the reference PRIMASK-on / BASEPRI-off IRQ mask sequence (see
+`tmp/16_pse84_3img_rram_pm/m33_ns/src/power.c` `pm_irq_prologue`).
+On wake, reads `Cy_SysClk_ClkHfGetFrequency(0)` live and prints
+the wall-clock dwell in µs.
+
+    uart:~$ noidle on
+    uart:~$ ulp
+    uart:~$ sleep
+    entering CPU sleep -- press any key to wake
+    woke after 79987 us (3999374 cycles @ live HF0 = 50000000 Hz)
+
+Caveats:
+
+- The wake source is "any enabled NVIC IRQ", not specifically UART
+  RX. On this build Zephyr's SysTick tick is HF0-scaled (see
+  [OPEN_systick_hf0_scaling.md](OPEN_systick_hf0_scaling.md)), so
+  at LP/ULP the SysTick-scheduled next deadline typically fires
+  before your keypress and the `sleep` command returns after a
+  ~60 ms (LP) or ~80 ms (ULP) window rather than "whenever you
+  hit a key".
+- The dwell print itself is mode-correct — it does not use
+  `k_cyc_to_us_floor32` or `CONFIG_SYS_CLOCK_HW_CYCLES_PER_SEC`,
+  both of which are wrong at non-HP modes. It reads HF0 live.
+- With `noidle off` (default), running `sleep` gives no visible
+  current drop — the idle thread was already WFI'ing between your
+  prompt-return and your keypress anyway.
 
 ## Two DVFS strategies
 
@@ -403,7 +469,13 @@ apps/06_pse84_m33_s_shell_ulp_lp_hp/
         power_manager_pll_retune.c      -- PLL_RETUNE strategy
         power_manager_hf0_divider.c     -- HF0_DIVIDER strategy
         pm_phase_log.{h,c}              -- per-transition cycle log
-        shell_cmds.{h,c}                -- shell command handlers
+        pm_boot_optimize.c              -- one-shot boot-time SoC trim
+                                           (SOCMEM off, SMIF off, PD1
+                                            collapse, HF1..9/11..13 gate,
+                                            DPLL_LP1/HP disable, GPIO deinit)
+        shell_cmds.{h,c}                -- hp / lp / ulp / probe handlers
+        cmd_noidle.c                    -- noidle handler + idle-WFI veto hook
+        cmd_sleep.c                     -- sleep handler with cycle instrumentation
         gpio_indicators.{h,c}           -- LEDs + pm-busy GPIO
         diag.{h,c}                      -- raw SCB2 diagnostic path
     scripts/
@@ -413,6 +485,7 @@ apps/06_pse84_m33_s_shell_ulp_lp_hp/
     measurements/                       -- captures land here
     snippets/rram/                      -- RRAM-linker snippet
     boards/                             -- app-local overlay
+    Kconfig                             -- APP_ENABLE_IDLE_HOOK wrapper
     CMakeLists.txt
     prj.conf
     run.sh

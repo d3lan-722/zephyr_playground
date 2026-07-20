@@ -110,28 +110,17 @@ static int cmd_sleep(const struct shell *sh, size_t argc, char **argv)
 
 	uint32_t dwell_cyc = t_exit - t_enter;
 
-	/* IMPORTANT: k_cycle_get_32 reads Cortex-M SysTick, which is
-	 * clocked from HF0 (the CPU clock). This build reprograms HF0
-	 * per mode (HP=200 / LP=66 / ULP=50 MHz), but Zephyr's
-	 * CONFIG_SYS_CLOCK_HW_CYCLES_PER_SEC is a compile-time constant
-	 * baked at HP. Using k_cyc_to_us_floor32 here would mis-report
-	 * dwell by up to 4x. Convert against the LIVE HF0 frequency
-	 * instead, read from the PDL at print time.
-	 *
-	 * Broader impact (not fixed here): every Zephyr timer function
-	 * -- k_msleep, k_sleep, k_timer, thread timeouts -- is scaled
-	 * by the same wrong factor at LP/ULP. That is why the
-	 * "mysterious 80 ms periodic wake" observed at LP is really
-	 * Zephyr's ~26 ms housekeeping tick stretched by the HF0
-	 * ratio. Fix belongs in the system-timer selection (use
-	 * MCWDT0/LPTIMER on HF10 which is constant across modes).
-	 * Tracked separately. */
-	uint32_t hf0_hz = Cy_SysClk_ClkHfGetFrequency(0U);
-	uint32_t dwell_us =
-	    (uint32_t)(((uint64_t)dwell_cyc * 1000000U) / hf0_hz);
+	/* k_cycle_get_32 reads the Zephyr system-clock counter. Since
+	 * mcwdt0 was enabled and CONFIG_CORTEX_M_SYSTICK turned off,
+	 * that counter is now the LPTIMER (MCWDT0 on PILO at 32.768
+	 * kHz) -- constant across HP/LP/ULP modes, unlike SysTick
+	 * which was clocked from HF0. k_cyc_to_us_floor32 uses the
+	 * matching CONFIG_SYS_CLOCK_HW_CYCLES_PER_SEC (=32768) so it
+	 * is now the right conversion. */
+	uint32_t dwell_us = k_cyc_to_us_floor32(dwell_cyc);
 
-	shell_print(sh, "woke after %u us (%u cycles @ live HF0 = %u Hz)",
-		    dwell_us, dwell_cyc, hf0_hz);
+	shell_print(sh, "woke after %u us (%u LPTIMER cycles @ 32768 Hz)",
+		    dwell_us, dwell_cyc);
 
 	/* Mark: shell prompt returning (pm-busy HIGH -> LOW). */
 	gpio_indicators_transition_end();

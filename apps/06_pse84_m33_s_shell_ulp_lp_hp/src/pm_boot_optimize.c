@@ -288,3 +288,37 @@ static int pm_boot_optimize(void)
 }
 
 SYS_INIT(pm_boot_optimize, APPLICATION, 0);
+
+/**
+ * @brief Preemptively disable MCWDT0 counters so the Zephyr LPTIMER
+ *        driver's init succeeds.
+ *
+ * The Infineon LPTIMER driver (@c infineon_lp_timer_pdl.c, SYS_INIT
+ * at PRE_KERNEL_2) calls @c Cy_MCWDT_Init which returns BAD_PARAM if
+ * any counter is already enabled. SE-ROM / RRAM boot leaves MCWDT0
+ * counters running on cold boot, so without a preemptive disable the
+ * driver's @c lptimer_init returns @c -EINVAL, the system clock
+ * never starts, and @c k_msleep / @c k_busy_wait hang forever
+ * (@c sys_clock_cycle_get_32 reads a counter that never advances).
+ *
+ * SYS_INIT failures do NOT abort boot in Zephyr, so the symptom is
+ * silent: banner prints, then the first sleep-related call spins
+ * forever. Mirrors the ifx_pm_init workaround in
+ * tmp/16_pse84_3img_rram_pm/m33_ns/src/power.c.
+ *
+ * Runs at PRE_KERNEL_1 priority 0 -- earliest possible slot -- so
+ * the counters are always clean by the time the LPTIMER PDL driver
+ * runs at PRE_KERNEL_2.
+ */
+static int pm_early_mcwdt_reset(void)
+{
+	Cy_MCWDT_Unlock(MCWDT_STRUCT0);
+	Cy_MCWDT_Disable(MCWDT_STRUCT0,
+			 CY_MCWDT_CTR0 | CY_MCWDT_CTR1 | CY_MCWDT_CTR2, 100U);
+	Cy_MCWDT_ClearInterrupt(MCWDT_STRUCT0,
+				CY_MCWDT_CTR0 | CY_MCWDT_CTR1 | CY_MCWDT_CTR2);
+	Cy_MCWDT_SetInterruptMask(MCWDT_STRUCT0, 0U);
+	return 0;
+}
+
+SYS_INIT(pm_early_mcwdt_reset, PRE_KERNEL_1, 0);

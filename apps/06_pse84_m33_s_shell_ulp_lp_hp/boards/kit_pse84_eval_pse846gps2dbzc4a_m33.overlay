@@ -124,6 +124,14 @@
  * Timers, watchdogs, storage, connectivity we don't use.
  * ------------------------------------------------------------------ */
 &watchdog0 { status = "disabled"; };
-&mcwdt0    { status = "disabled"; };
+
+/* mcwdt0 is the Zephyr system-timer for this build (LPTIMER driver,
+ * infineon_lp_timer_pdl.c). Runs off PILO @ 32.768 kHz, independent
+ * of HF0, so k_msleep and k_cycle_get_32 do NOT scale with the
+ * HP/LP/ULP mode -- fixes OPEN_systick_hf0_scaling.md. Also gives
+ * `sleep` / `deep_sleep` shell commands a mode-independent wake
+ * source (MCWDT keeps counting through CPU deep sleep too, because
+ * PILO is a deep-sleep-alive clock). */
+&mcwdt0    { status = "okay"; };
 &sdhc0     { status = "disabled"; };   /* SDIO + airoc-wifi */
 &usbhs     { status = "disabled"; };

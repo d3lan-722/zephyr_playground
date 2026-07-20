@@ -69,10 +69,7 @@ static atomic_t s_prevent_idle;
  * of cycles per idle entry -- negligible next to the WFI it
  * gates.
  */
-bool z_arm_on_enter_cpu_idle(void)
-{
-	return atomic_get(&s_prevent_idle) == 0;
-}
+bool z_arm_on_enter_cpu_idle(void) { return atomic_get(&s_prevent_idle) == 0; }
 
 /**
  * @brief Shell handler for `noidle [on|off]`.
