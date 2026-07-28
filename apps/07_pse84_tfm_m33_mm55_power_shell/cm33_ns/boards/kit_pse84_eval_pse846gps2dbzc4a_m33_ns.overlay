@@ -1,0 +1,105 @@
+/*
+ * Copyright (c) 2026
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * CM33-NS overlay for apps/07_pse84_tfm_m33_mm55_power_shell.
+ *
+ * Fusion of:
+ *   - apps/02_pse84_tfm_m33_m55_pm/cm33_ns/boards/*.overlay
+ *     (MCWDT0 kernel tick).
+ *   - apps/06_pse84_m33_s_shell_ulp_lp_hp/boards/*.overlay
+ *     (pm_busy scope trigger + unused-peripheral disables).
+ *
+ * Deliberately NOT ported over from either source:
+ *   - project 02's power-states { cpu_sleep, cpu_deep_sleep,
+ *     system_deep_sleep } and cpu-power-states binding on cpu@0.
+ *     CONFIG_PM=n in this project; the shell drives every PM
+ *     transition directly, so no Zephyr residency policy runs.
+ *   - project 06's DPLL_LP0 400 -> 200 MHz retune and CLK_HF0 /2
+ *     -> /1 override. Both would end up calling Cy_SysClk_Pll*
+ *     / Cy_SysClk_ClkHfSetDivider from the NS-side Zephyr clock-
+ *     control glue at boot; PllConfigure / PllEnable are not
+ *     SRF-wrapped by the PDL and target SRSS_MAIN (PC=2 only),
+ *     which would bus-fault. The same net effect is achieved by
+ *     the boot-time z_pm op Z_PM_OP_BOOT_CLOCK_RETUNE that this
+ *     project will call from main() (Phase D).
+ *
+ * Kept enabled (from the board common.dtsi / kit_pse84_eval m33/ns
+ * DTS):
+ *   scb2 (uart2)              -> zephyr,console + zephyr,shell-uart
+ *   peri0_group1_16bit_1      -> scb2 peripheral clock divider
+ *   gpio_prt16                -> RGB LEDs (led0..led2 on P16.5-7)
+ *   flash_controller / rram0  -> code storage
+ */
+
+/ {
+	/* Disable the gpio-keys container so the user button (P8.3)
+	 * doesn't drag in gpio_prt8. The child node stays defined so
+	 * DT_ALIAS(sw0) remains resolvable (evaluates disabled). */
+	gpio_keys { status = "disabled"; };
+
+	/* PM-transition scope trigger. P3.1 is driven high by the
+	 * shell command layer (Phase C) while a mode change is in
+	 * progress and low again once the transition completes. Wire
+	 * a scope / logic-analyzer probe here to correlate current-
+	 * draw waveforms with the software transition window. */
+	pm_signals {
+		compatible = "gpio-leds";
+		pm_busy: pm_busy {
+			label = "PM_BUSY";
+			gpios = <&gpio_prt3 1 GPIO_ACTIVE_HIGH>;
+		};
+	};
+
+	aliases {
+		pm-busy = &pm_busy;
+	};
+};
+
+/* Enable gpio_prt3 -- disabled at the SoC-dtsi level, but needed to
+ * drive the pm_busy scope trigger on P3.1. */
+&gpio_prt3 { status = "okay"; };
+
+/* ------------------------------------------------------------------
+ * GPIO ports: keep only gpio_prt16 (RGB LEDs on P16.5/6/7) and
+ * gpio_prt3 (pm_busy scope trigger, enabled above). SCB2 pins
+ * (P6.5/P6.7) are routed by the pinctrl subsystem via HSIOM and do
+ * NOT require gpio_prt6 to be enabled.
+ * ------------------------------------------------------------------ */
+&gpio_prt0  { status = "disabled"; };
+&gpio_prt2  { status = "disabled"; };
+&gpio_prt6  { status = "disabled"; };
+&gpio_prt7  { status = "disabled"; };
+&gpio_prt8  { status = "disabled"; };
+&gpio_prt10 { status = "disabled"; };
+&gpio_prt11 { status = "disabled"; };
+&gpio_prt13 { status = "disabled"; };
+&gpio_prt14 { status = "disabled"; };
+&gpio_prt17 { status = "disabled"; };
+
+/* ------------------------------------------------------------------
+ * SCBs and peripheral clocks we don't use.
+ * ------------------------------------------------------------------ */
+&scb0 { status = "disabled"; };   /* i2c0 + bmi270 accelerometer   */
+&scb4 { status = "disabled"; };   /* uart4 + bt_hci_uart + cyw55513 */
+
+&peri0_group1_16bit_3   { status = "disabled"; };  /* scb0 clock */
+&peri0_group1_16_5bit_0 { status = "disabled"; };  /* scb4 clock */
+
+/* ------------------------------------------------------------------
+ * Timers, watchdogs, storage, connectivity we don't use.
+ * ------------------------------------------------------------------ */
+&watchdog0 { status = "disabled"; };
+&sdhc0     { status = "disabled"; };   /* SDIO + airoc-wifi */
+&usbhs     { status = "disabled"; };
+
+/* ------------------------------------------------------------------
+ * mcwdt0 is the Zephyr system-timer for this build (LPTIMER driver,
+ * infineon_lp_timer_pdl.c). Runs off PILO @ 32.768 kHz, independent
+ * of every HF clock, so k_msleep / k_cycle_get_32 do NOT scale with
+ * the HP/LP/ULP mode. Also gives `sleep` / `deep_sleep` shell
+ * commands a mode-independent wake source (MCWDT keeps counting
+ * through CPU deep sleep too, because PILO is a deep-sleep-alive
+ * clock).
+ * ------------------------------------------------------------------ */
+&mcwdt0 { status = "okay"; };
