@@ -1,0 +1,9 @@
+/*
+ * Board overlay for kit_pse84_ai (M33) — CYW55513 HCI bring-up.
+ *
+ * NOTE: hw-flow-control on scb4 is REQUIRED by drivers/bluetooth/hci/
+ * hci_uart_infineon.c (BUILD_ASSERT). Do not disable it here.
+ *
+ * Placeholder overlay reserved for board-scoped diagnostic tweaks.
+ */
+
