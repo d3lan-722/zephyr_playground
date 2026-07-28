@@ -36,13 +36,10 @@
 #include <zephyr/init.h>
 #include <zephyr/pm/pm.h>
 #include <zephyr/sys/printk.h>
-#include <zephyr/sys/util.h>
 
 #include <cmsis_core.h>
 
 #include "cy_mcwdt.h"
-#include "cy_sysclk.h"
-#include "cy_syslib.h"
 #include "cy_syspm.h"
 
 #include "indicator.h"
@@ -161,131 +158,6 @@ static void enter_system_deep_sleep(void)
 }
 
 /**
- * @brief Enter PM_STATE_SUSPEND_TO_RAM (Phase 8 scoped DS-RAM).
- *
- * @details
- * Phase-8 "Option 2" first cut: bring the SoC into DS-RAM. All PPU
- * pre-arm, PDCM link clear, Layer-B DS bias, warm-boot token plant,
- * and the DeepSleepSetup(DEEPSLEEP_RAM) marker are done from the S
- * side by @ref z_pm_enter_ds_ram. Then NS runs the CPU-visible
- * prep (FPU power-gate, SysTick stop, MCWDT0 CTR2 wake arm, NVIC
- * silence, DCache clean) and calls @c Cy_SysPm_CpuEnterDeepSleep,
- * which takes the NS-side SRF branch back into TF-M-S to execute
- * SLEEPDEEP+WFI at PC2.
- *
- * Wake source is MCWDT0 CTR2 (LFCLK/ILO, survives DS-RAM). GPIO is
- * unusable: IO-freeze on DS-RAM entry latches spurious edges that
- * re-pend GPIO IRQs and demote WFI to plain DEEPSLEEP. See
- * tmp/17_pse84_ds_ram_exact/README.md for the full analysis.
- *
- * On a successful DS-RAM commit this function does NOT return —
- * the chip performs a warm reset on wake and comes back through
- * boot. If DS-RAM is refused (WFI returns), we fall through and
- * pm_state_exit_post_ops restores IRQ delivery.
- *
- * SRAM macro retention (MXSRAMC PWR_MACRO_CTL) is intentionally
- * NOT programmed in this first cut — all 16 macros stay retained
- * (1024 KB) for maximum warm-boot survivability. Trimming can
- * follow once the round-trip is proven. Uses the cyan indicator
- * LED (@ref indicator_system_ds_ram_on).
- */
-static void enter_ds_ram(void)
-{
-	indicator_system_ds_ram_on();
-
-	psa_status_t st = z_pm_enter_ds_ram();
-	if (st != PSA_SUCCESS) {
-		printk("pm: z_pm_enter_ds_ram failed: %d\n", (int)st);
-		indicator_system_ds_ram_off();
-		return;
-	}
-
-	/* Power-gate FPU/MVE. Silicon requires this to fold to
-	 * DEEPSLEEP_RAM instead of plain DEEPSLEEP (see
-	 * tmp/17_pse84_ds_ram_exact README's known-gotchas section).
-	 *
-	 * Safe here under TF-M because CONFIG_FPU_SHARING=n in prj.conf
-	 * disables z_arm_save_fp_context in the Zephyr TF-M dispatch
-	 * wrapper. Without that disable, the dispatch on the final
-	 * Cy_SysPm_CpuEnterDeepSleep psa_call would execute vstmia
-	 * when FPCA=1, and with CPACR CP10/CP11 cleared the vstmia
-	 * NOCP-faults -> HardFault -> tfm_core_panic. See Phase-8
-	 * bring-up notes.
-	 *
-	 * On wake, soc_early_reset_hook() (see src/early_reset_hook.c,
-	 * gated on CONFIG_SOC_EARLY_RESET_HOOK=y) re-enables CP10/CP11
-	 * in the reset.S window before z_prep_c so picolibc's memset
-	 * over .bss does not NOCP-fault. */
-	SCS_CPPWR |= SCS_ENABLE_CPPWR_SU10_SU11;
-	SCB->CPACR &= ~SCB_ENABLE_CPACR_CP10_CP11;
-	__DSB();
-	__ISB();
-
-	/* SysTick is a Cortex-M system exception (exception 15), NOT
-	 * a NVIC line, so PRIMASK cannot mask it. Zephyr LPTIMER
-	 * drives the tick via MCWDT0 so SysTick should already be off
-	 * (CONFIG_CORTEX_M_SYSTICK=n) but we hard-zero the CTRL/LOAD/VAL
-	 * registers defensively — if a stray SysTick is armed, it would
-	 * wake WFI within milliseconds and demote DS-RAM. */
-	SysTick->CTRL = 0U;
-	SysTick->LOAD = 0U;
-	SysTick->VAL = 0U;
-
-	/* Arm MCWDT0 CTR2 as the DS-RAM wake source. CTR2 runs on
-	 * CLK_LF (ILO, 32 kHz, survives DS-RAM). WDT_BITS2=17 makes
-	 * CTR2 bit 17 toggle every 2^17 / 32768 Hz ≈ 4 s, asserting
-	 * srss_interrupt_mcwdt_0 each toggle. CTR0 / CTR1 are the
-	 * Zephyr kernel-tick counters — left alone. */
-	Cy_MCWDT_Disable(MCWDT_STRUCT0, CY_MCWDT_CTR2, 0U);
-	Cy_MCWDT_ResetCounters(MCWDT_STRUCT0, CY_MCWDT_CTR2,
-			       2U * (1000000U / 32768U) + 1U);
-	Cy_MCWDT_ClearInterrupt(MCWDT_STRUCT0, CY_MCWDT_CTR2);
-	Cy_MCWDT_SetMode(MCWDT_STRUCT0, CY_MCWDT_COUNTER2, CY_MCWDT_MODE_INT);
-	Cy_MCWDT_SetToggleBit(MCWDT_STRUCT0, 17U);
-	Cy_MCWDT_SetInterruptMask(MCWDT_STRUCT0, CY_MCWDT_CTR2);
-	Cy_MCWDT_Enable(MCWDT_STRUCT0, CY_MCWDT_CTR2, 0U);
-	NVIC_ClearPendingIRQ(srss_interrupt_mcwdt_0_IRQn);
-	NVIC_EnableIRQ(srss_interrupt_mcwdt_0_IRQn);
-
-#if defined(__DCACHE_PRESENT) && (__DCACHE_PRESENT == 1U)
-	/* Commit the warm-boot token, indicator state and any other
-	 * dirty cache lines before SRAM macros lose power. */
-	SCB_CleanDCache();
-#endif
-
-	pm_irq_prologue();
-
-	/* Silence every IRQ source that could re-pend WFI immediately.
-	 * MCWDT stays armed in ISER for the wake; only pending bits
-	 * get cleared. PendSV / SysTick are Cortex-M system exceptions
-	 * (not NVIC lines): with PRIMASK=1 they cannot fire but stay
-	 * pending and would wake WFI immediately. The Zephyr scheduler
-	 * routinely sets PENDSVSET during thread-context calls, so
-	 * clearing it here matters. */
-	for (uint32_t i = 0U; i < DIV_ROUND_UP(CONFIG_NUM_IRQS, 32); i++) {
-		NVIC->ICPR[i] = 0xFFFFFFFFU;
-	}
-	SCB->ICSR = SCB_ICSR_PENDSVCLR_Msk | SCB_ICSR_PENDSTCLR_Msk;
-	Cy_MCWDT_ClearInterrupt(MCWDT_STRUCT0, CY_MCWDT_CTR2);
-	Cy_SysLib_DelayUs(100U); /* LFCLK synchroniser wait */
-	NVIC_ClearPendingIRQ(srss_interrupt_mcwdt_0_IRQn);
-
-	/* PDL helper (not raw WFI): on MXS22SRSS v1.0 it runs
-	 * Cy_SysPm_SetRamTrimsPreDs() to program the RAMCTL trims the
-	 * SRSS sequencer needs to commit to DS-RAM. Without that call
-	 * the chip silently demotes to plain DEEPSLEEP even when every
-	 * PPU policy is correct. Under TF-M this call packs an SRF
-	 * request and psa_call()s into IFX_EXT_SP; the S handler runs
-	 * the actual SLEEPDEEP+WFI at PC2 and — on a successful DS-RAM
-	 * commit — never returns. Chip warm-resets on wake. */
-	(void)Cy_SysPm_CpuEnterDeepSleep(CY_SYSPM_WAIT_FOR_INTERRUPT);
-
-	/* Only reached if DS-RAM was refused. */
-	printk("pm: DS-RAM refused (WFI returned)\n");
-	indicator_system_ds_ram_off();
-}
-
-/**
  * @brief Zephyr PM hook: enter the requested low-power state.
  *
  * @details
@@ -298,13 +170,16 @@ static void enter_ds_ram(void)
  * State mapping (residency thresholds live in the board overlay
  * @c cm33_ns/boards/kit_*.overlay; LED colours are per @ref indicator.h):
  *
- * | State + substate         | Handler                    | LED     |
- * |--------------------------|----------------------------|---------|
- * | SUSPEND_TO_IDLE          | @ref enter_cpu_sleep       | red     |
- * | STANDBY substate 1       | @ref enter_cpu_deep_sleep  | blue    |
+ * | State + substate         | Handler                      | LED     |
+ * |--------------------------|------------------------------|---------|
+ * | SUSPEND_TO_IDLE          | @ref enter_cpu_sleep         | red     |
+ * | STANDBY substate 1       | @ref enter_cpu_deep_sleep    | blue    |
  * | STANDBY substate 2       | @ref enter_system_deep_sleep | magenta |
- * | SUSPEND_TO_RAM           | @ref enter_ds_ram          | cyan    |
- * | SOFT_OFF                 | not implemented — prints   | white   |
+ *
+ * SUSPEND_TO_RAM / SOFT_OFF are TODO for future implementation and are
+ * NOT declared in the board overlay, so Zephyr will never dispatch them
+ * here. See DS_RAM_RETROSPECTIVE.md for the Phase-8 scoped attempt at
+ * DS-RAM and what would be required to finish it.
  *
  * @param state       The Zephyr PM state the residency policy picked.
  * @param substate_id Vendor-defined substate index (only meaningful
@@ -334,12 +209,6 @@ void pm_state_set(enum pm_state state, uint8_t substate_id)
 			       substate_id);
 			break;
 		}
-		break;
-	case PM_STATE_SUSPEND_TO_RAM:
-		enter_ds_ram();
-		break;
-	case PM_STATE_SOFT_OFF:
-		printk("pm: SOFT_OFF not implemented yet\n");
 		break;
 	default:
 		break;

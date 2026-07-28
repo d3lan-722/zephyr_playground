@@ -25,22 +25,22 @@ Part 7 — every claim below assumes you have read at least §27, §29 and
 | 5.75  | z_pm slimmed to PING-only; NS calls PDL directly for the three SRF-covered ops | done       |
 | 5.9   | ~~Option D: flip `CYCFG_PPC_SECURED_*` header bits to make SRSS/PWRMODE/PPU regions NS-writable~~ | rejected round 8 — see below |
 | 6     | Layer-B static bias (via z_pm at boot) — Option A minimal        | done (IHO/IMO only; aggressive knobs deferred to Phase 7) |
-| 7     | Per-transition PPU config for `system_deep_sleep` (via z_pm) + folded-in Layer-B knobs | done (code-complete; current-flat, likely eval-board floor — see Phase 7 empirical section) |
-| 8     | DS-RAM (SUSPEND_TO_RAM) — Option 2 scoped                                | done (one-shot DS-RAM commit + warm-boot survives; continuous cycling blocked at CM55↔SRF path, needs rendezvous protocol — see Phase 8 empirical section) |
-| **9** | **DS-OFF (SOFT_OFF)**                                                    | **planned**     |
+| 7     | Per-transition PPU config for `system_deep_sleep` (via z_pm) + folded-in Layer-B knobs | done                                        |
+| 8     | DS-RAM (SUSPEND_TO_RAM) — Option 2 scoped                                | **reverted** — see [`DS_RAM_RETROSPECTIVE.md`](DS_RAM_RETROSPECTIVE.md) |
+| 9     | DS-OFF (SOFT_OFF)                                                        | deferred — see [`DS_RAM_RETROSPECTIVE.md`](DS_RAM_RETROSPECTIVE.md) §5 |
 
-**Phase 8 (Option 2 scoped) landed.**
+**Current known-good state (bench-verified, `kit_pse84_eval`):**
 
-Measurements after Phase 5.75 (idle-stack fix + direct-PDL NS dispatch):
+| State                    | Sleep current | Notes                            |
+| ------------------------ | ------------- | -------------------------------- |
+| `SUSPEND_TO_IDLE`        | ~12 mA        | red LED between blinks           |
+| `STANDBY` substate 1     | ~60 µA        | blue LED between blinks (direct PDL)  |
+| `STANDBY` substate 2     | ~60 µA        | magenta; `z_pm_set_deep_sleep_mode(DEEPSLEEP)` + PDL |
 
-| State                    | Active current | Sleep current | Notes                            |
-| ------------------------ | -------------- | ------------- | -------------------------------- |
-| `SUSPEND_TO_IDLE`        | 14 mA          | 12 mA         | red LED between blinks           |
-| `STANDBY` substate 1     | 14 mA          | 62 µA         | blue LED between blinks          |
-| `STANDBY` substate 2     | 14 mA          | ~62 µA        | magenta; same as substate 1 today (no PPU tuning) |
-
-Phases 6 + 7 are what makes substate 2 actually different from substate 1
-in current draw.
+`SUSPEND_TO_RAM` and `SOFT_OFF` are commented out in the board overlay
+and are **not** wired into `pm_state_set` — the Phase-8 scoped DS-RAM
+attempt is fully written up in
+[`DS_RAM_RETROSPECTIVE.md`](DS_RAM_RETROSPECTIVE.md).
 
 ---
 
@@ -412,193 +412,25 @@ than the ~6 µA of floor drift we are seeing here.
 
 ---
 
-## Phase 8 — DS-RAM (SUSPEND_TO_RAM)
+## Phase 8 — DS-RAM (SUSPEND_TO_RAM) — reverted
 
-Reference: [`tmp/17_pse84_ds_ram_exact`](../../tmp/17_pse84_ds_ram_exact)
-(non-TF-M three-image sysbuild that bench-measured ~30 µA in DS-RAM).
+Implemented as an "Option 2 scoped" first cut and reverted after
+verifying it broke the working Phase 5.75 / Phase 7 sleep numbers
+on the lighter states. The scoped implementation *did* achieve one
+clean DS-RAM cycle + warm reset per POR under TF-M, but could not
+be cycled continuously and the mechanism used to arm App-domain
+PPUs statically from CM55 (`SetDeepSleepMode(DEEPSLEEP_RAM)` at
+CM55 boot) also degraded `cpu_deep_sleep` / `system_deep_sleep`.
 
-### Phase 8 (Option 2 scoped) — code-complete, one-shot proven
+Full write-up of what was attempted, what did / did not work, and
+what would be required to finish it lives in
+[`DS_RAM_RETROSPECTIVE.md`](DS_RAM_RETROSPECTIVE.md).
 
-Implemented as a minimum-viable pass to validate the DS-RAM entry
-architecture under TF-M, WITHOUT touching the TF-M platform port
-(a non-goal per §Non-goals). No SRAM/SOCMEM retention trimming yet
-— all 16 SRAM macros stay retained by default.
+## Phase 9 — DS-OFF (SOFT_OFF) — deferred
 
-**Split of work under TF-M:**
-
-| Layer               | Location                                           |
-| ------------------- | -------------------------------------------------- |
-| PPU pre-arm         | S — `z_pm_op_enter_ds_ram` (Sys PPUs) + CM55 main (App PPUs via PDL SRF) |
-| PDCM link clear     | S — `z_pm_op_enter_ds_ram`                         |
-| Layer-B DS bias     | S — `z_pm_op_enter_ds_ram` (BGREF LP + CoreBuck DS) |
-| Warm-boot token     | (deferred — bisected out; see below)               |
-| `DeepSleepSetup`    | S — `z_pm_op_enter_ds_ram`                         |
-| FPU / MVE power-gate | NS — `enter_ds_ram`                               |
-| SysTick zero, MCWDT0 CTR2 wake arm, NVIC/ICSR silence, DCache clean | NS — `enter_ds_ram` |
-| Final WFI           | NS — via SRF-integrated `Cy_SysPm_CpuEnterDeepSleep` |
-| CP10/CP11 re-enable on warm-boot | NS — `soc_early_reset_hook` (reset.S window) |
-
-**What's wired:**
-
-- New `Z_PM_OP_ENTER_DS_RAM` = 4 in `tfm_partitions/z_pm/z_pm_partition.c`:
-  clear APPCPUSS←SYSCPU PDCM, direct-PWPR MAIN/SRAM0/SRAM1/SYSCPU to
-  DS-RAM policies (MAIN=MEM_RET, SR0/1=MEM_RET, SYSCPU=OFF), Layer-B
-  DS bias, `Cy_SysPm_DeepSleepSetup(DEEPSLEEP_RAM)`.
-- NS wrapper `z_pm_enter_ds_ram()` in `cm33_ns/src/z_pm_client.{h,c}`.
-- `cm33_ns/src/power.c :: enter_ds_ram()` wired to
-  `PM_STATE_SUSPEND_TO_RAM`. FPU power-gate (`CPACR CP10/CP11`,
-  `CPPWR SU10/SU11`), MCWDT0 CTR2 4-second wake arm, ICSR/NVIC
-  silence, `Cy_SysPm_CpuEnterDeepSleep` for the final WFI.
-- `cm33_ns/src/early_reset_hook.c :: soc_early_reset_hook`
-  re-enables CP10/CP11 in the reset.S window (gated on
-  `CONFIG_SOC_EARLY_RESET_HOOK=y`).
-- `cm33_ns/src/warm_boot.h`: `WARM_BOOT_BREG_INDEX=1`,
-  `WARM_BOOT_TOKEN_DS_RAM=0x16D5DA01`.
-- `cm33_ns/src/main.c`: reads and clears `RTC->BREG_SET1[1]` at
-  boot and prints the token (for warm-boot proof-of-life). Test
-  knob at `SLEEP_BETWEEN_BLINKS_MS = 2500` (DS-RAM row).
-- `cm55/src/main.c`: `Cy_SysPm_SetDeepSleepMode(DEEPSLEEP_RAM)`
-  (changed from `DEEPSLEEP`) to program App-domain PPUs via the
-  PDL SRF path. Direct PWPR writes from CM55 NS are NOT possible
-  (PWRMODE PPC region is PC=2-only; CM55 NS at PC=6 bus-faults).
-- `cm33_ns/prj.conf`: `CONFIG_FPU=n` (removes
-  `z_arm_save_fp_context` VSTMIA from TF-M NS dispatch — a NOCP
-  fault we hit with FPU on and CPACR power-gated) +
-  `CONFIG_SOC_EARLY_RESET_HOOK=y`.
-
-**Empirical outcome — one-shot DS-RAM commit + warm boot survives:**
-
-Boot 1 (POR) full console trace:
-
-```
-z_pm layer-B init ok
-*** Booting Zephyr OS build dfec365841c2 ***
-CM33-NS indicator blinky on kit_pse84_eval
-boot: BREG_SET1[1]=0x00000000 (cold / POR)
-z_pm ping ok: cookie=0xabcd1234
-*** Booting Zephyr OS build dfec365841c2 ***     <-- warm-reset from DS-RAM commit
-pm: DS-RAM refused (WFI returned)
-pm: DS-RAM refused (WFI returned)
-pm: DS-RAM refused (WFI returned)
-...
-```
-
-- ONE DS-RAM cycle commits after POR; chip warm-resets → second
-  Zephyr boot banner. **Warm-boot survives under TF-M** — TF-M-S's
-  Infineon platform port handles the DS-RAM wake reset correctly,
-  `soc_early_reset_hook` re-enables the FPU banks in time for the
-  C-runtime, and NS main runs.
-- Subsequent cycles print `pm: DS-RAM refused (WFI returned)`
-  every ~2.7 s. Chip stays in plain DEEPSLEEP on those attempts —
-  PWRMODE state machine will not re-collapse to system DS-RAM
-  after the first cycle. The blocking factor traces to CM55: on
-  DS-RAM warm-boot the App-domain PPU register file retains its
-  DS-RAM policy, but CM55's cold-boot re-invocation of
-  `Cy_SysPm_SetDeepSleepMode(DEEPSLEEP_RAM)` re-enters the SRF
-  path whose S-side implementation
-  (`cy_pdl_syspm_srf_setpwrmode_impl_s`) still calls
-  `cy_pd_ppu_set_power_mode -> ppu_v1_dynamic_enable`, which
-  either spins on `PWSR.PWR_DYN_STATUS` when the write is a
-  no-op OR the transient policy re-write invalidates CM55's DS
-  vote for the subsequent CM33 DS-RAM entry.
-- Console-post-warm-boot oddity: `printf` output from main() is
-  silent on the second boot (no `boot: BREG_SET1[1]=0x16d5da01
-  (DS-RAM warm boot)` line, no `z_pm ping ok`) even though
-  `printk` still works (banners and `pm:` messages print). Some
-  Zephyr subsystem post-warm-boot state that we haven't chased.
-  Doesn't block Phase 8; a separate diagnostic task.
-
-**Bisection notes (chronological — kept as documentation of what
-each step ruled in/out):**
-
-1. **Bisection A** — first bring-up: dropped
-   `cy_pd_pdcm_clear_dependency`, direct PWPR write to
-   `CY_PPU_PD1_BASE`, and `BACKUP_BREG_SET1[1]` plant because a
-   CPUSS peripheral fault fired on the very first attempt
-   (`ifx_fault_irq_handler → tfm_core_panic`,
-   `BFAR=0x54660008` from a subsequent SOCMEM PPU access). One of
-   those three was the trigger. Later fault-source proved to be
-   the FPU / VSTMIA path instead, so PDCM clear was safely
-   re-added (Bisection C); PD1 direct-write and BREG plant remain
-   bisected out to keep the S handler small and focused.
-2. **Bisection B** — HardFault: enabling the NS-side FPU
-   power-gate before `Cy_SysPm_CpuEnterDeepSleep` triggered a
-   NOCP HardFault in Zephyr's TF-M NS dispatch. Root cause:
-   `zephyr/modules/trusted-firmware-m/interface/interface.c`
-   calls `z_arm_save_fp_context()` before every S veneer, which
-   executes `vstmia s0-s15/s16-s31` on the FPU when
-   `CONTROL.FPCA=1`. With `CPACR CP10/CP11` cleared, the VSTMIA
-   NOCP-faults → tfm_core_panic. `CONFIG_FPU_SHARING` is
-   force-selected by `FP_HARDABI`/`FP_SOFTABI` whenever
-   `CONFIG_FPU=y`, so we drop FPU support entirely
-   (`CONFIG_FPU=n` in prj.conf) to remove the VSTMIA path. Nothing
-   in the app uses hardware FP; soft-float via libgcc suffices.
-3. **Bisection C** — subsequent-cycle refuses: added PDCM clear
-   back (must run on every entry because HW re-asserts the
-   APPCPUSS←SYSCPU dependency on every boot). Did not fix
-   continuous cycling; the CM55-warm-boot SRF issue above is the
-   remaining bottleneck.
-4. **CM55 direct-write attempt** — replaced CM55's
-   `Cy_SysPm_SetDeepSleepMode` with tmp/17-style direct PWPR
-   writes to sidestep the PDL spin. Immediate BusFault at
-   `0x42413000` (`CY_PPU_PD1_BASE`) from CM55 NS. PWRMODE PPC
-   region is PC=2-only; CM55 NS cannot reach it. Reverted to the
-   PDL wrapper (which internally takes the SRF path).
-
-**Follow-up work (out of scope for Phase 8 Option 2):**
-
-- **Continuous DS-RAM cycling under TF-M** requires a CM33-NS ↔ CM55
-  rendezvous protocol (tmp/17 pattern with `CM55_GO_FLAG_ADDR` +
-  `CM55_ALIVE_FLAG_ADDR` in retained SRAM). CM33-NS detects warm
-  boot via the RTC BREG token and tells CM55 either "cold — run
-  `Cy_SysPm_SetDeepSleepMode` as normal" or "warm — skip and go
-  straight to `Cy_SysPm_CpuEnterDeepSleep`". Non-trivial: requires
-  a new shared-SRAM region + timing sequencing so CM55 can wait
-  for CM33-NS before its first PPU write on warm boot.
-- **Warm-boot token plant** (`RTC->BREG_SET1[1]` write from
-  `Z_PM_OP_ENTER_DS_RAM`) was bisected out and would need
-  re-adding + verifying the PPC region is PC=2-writable. Not
-  strictly required for DS-RAM to work; only needed for warm-boot
-  round-trip diagnostics.
-- **PD1 PPU direct-write from S** was bisected out. Not strictly
-  required either — the App-domain PPUs are CM55's job (via SRF)
-  and the PWRMODE state machine folds correctly with just Sys PPUs
-  programmed from CM33-S plus App PPUs already at DS-RAM values
-  from the previous cycle.
-- **Current measurement** — one-shot DS-RAM entry works but we
-  can't isolate DS-RAM current from board floor without a
-  direct-MCU-VCC measurement (Phase 7 was current-flat at 68 µA
-  on this eval board). The Phase-8 sleep window is too short
-  (~2.5 s DS-RAM state before warm-reset per cycle) for a bench
-  meter to average; a longer window or a scope-triggered
-  measurement would be needed.
-
-**Non-goals still in force:**
-
-- No TF-M-S platform-port modification (no adding a
-  `Cy_SysPm_DeepSleepIoUnfreeze` hook, no boot-mode detection in
-  `ifx_init_spm_peripherals`).
-- No SRAM/SOCMEM retention mask tuning — that's incremental once
-  the cycling issue above is resolved.
-
----
-
-## Phase 9 — DS-OFF (SOFT_OFF)
-
-Even bigger. Reference: [`tmp/16 enter_system_deep_sleep_off`](../../tmp/16_pse84_3img_rram_pm/m33_ns/src/power.c).
-On top of Phase 8's z_pm ops:
-
-- CM55 destructive-teardown protocol via GO/ALIVE flags in shared memory.
-  Requires substantial CM55-side code and new secure/NS shared regions.
-- HF1/HF2 gating (`Cy_SysClk_ClkHfDisable(1)` + `(2)`) — un-SRF-wrapped
-  SRSS_MAIN writes; via z_pm.
-- MCWDT0 stop (no wake from SOFT_OFF) — NS-doable.
-- CM55 tears down PERI 1.1 + HF3-13 + PD1/SOCMEM/APPCPUSS/APPCPU PPUs.
-- Does not return; wakes via reset.
-
-Depends on Phase 8 and requires product-level justification (DS-OFF is
-destructive on the current-consumption path — no wake source configured
-short of reset).
+Depends on Phase 8 landing cleanly. See
+[`DS_RAM_RETROSPECTIVE.md`](DS_RAM_RETROSPECTIVE.md) §5 for the
+requirements list.
 
 ---
 

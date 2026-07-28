@@ -38,7 +38,6 @@ extern "C" {
 #define Z_PM_OP_PING 1
 #define Z_PM_OP_LAYER_B_INIT 2
 #define Z_PM_OP_SET_DEEP_SLEEP_MODE 3
-#define Z_PM_OP_ENTER_DS_RAM 4
 
 #define Z_PM_PING_COOKIE 0xABCD1234u
 
@@ -112,37 +111,6 @@ psa_status_t z_pm_layer_b_init(void);
  * @retval PSA_ERROR_*                From psa_call.
  */
 psa_status_t z_pm_set_deep_sleep_mode(uint32_t mode);
-
-/**
- * @brief Phase 8 (scoped): pre-arm DS-RAM state on the S side.
- *
- * Invoked from cm33_ns/src/power.c :: enter_ds_ram just before the
- * NS CPU-state prep + Cy_SysPm_CpuEnterDeepSleep. Runs the PC2-only
- * bits of the DS-RAM entry: drop APPCPUSS<-SYSCPU PDCM link, direct
- * PWPR writes for the AN237976 Table-2 DS-RAM PPU policies on
- * MAIN / SRAM0 / SRAM1 / SYSCPU / PD1, apply the Layer-B DS bias
- * (BGREF LP + CoreBuck 0.70 V / LP / override), plant
- * WARM_BOOT_TOKEN_DS_RAM in @c RTC->BREG_SET1[1] for warm-boot
- * proof-of-life, and call @c Cy_SysPm_DeepSleepSetup(DEEPSLEEP_RAM)
- * so the S-side @c Cy_SysPm_CpuEnterDeepSleep picks the DS-RAM
- * RAMCTL trims. See tfm_partitions/z_pm/z_pm_partition.c ::
- * z_pm_op_enter_ds_ram for the full sequence.
- *
- * Does NOT touch SRAM macro retention (MXSRAMC PWR_MACRO_CTL) in
- * this Option-2 scoped first cut -- all SRAM stays retained
- * (default), maximising warm-boot survivability so we can prove
- * the round-trip works before shaving retention.
- *
- * App-domain PPUs (APPCPU / APPCPUSS) are CM55's job: cm55/src/main.c
- * calls @c Cy_SysPm_SetDeepSleepMode(DEEPSLEEP_RAM) at boot which on
- * CM55 routes to @c SetAppDeepSleepMode and programs those PPUs to
- * OFF / OFF for the DS-RAM row.
- *
- * @retval PSA_SUCCESS  Pre-arm complete; caller may now issue the
- *                       final @c Cy_SysPm_CpuEnterDeepSleep.
- * @retval PSA_ERROR_*   From psa_call.
- */
-psa_status_t z_pm_enter_ds_ram(void);
 
 #ifdef __cplusplus
 }

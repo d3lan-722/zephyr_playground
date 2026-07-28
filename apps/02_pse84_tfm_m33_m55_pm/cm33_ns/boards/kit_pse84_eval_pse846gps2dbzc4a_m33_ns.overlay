@@ -45,28 +45,38 @@
 			exit-latency-us = <50>;
 		};
 
-		system_deep_sleep_ram: system-deep-sleep-ram {
-			compatible = "zephyr,power-state";
-			power-state-name = "suspend-to-ram";
-			min-residency-us = <2000000>;
-			exit-latency-us = <500>;
-		};
-
-		system_deep_sleep_off: system-deep-sleep-off {
-			compatible = "zephyr,power-state";
-			power-state-name = "soft-off";
-			min-residency-us = <4000000>;
-			exit-latency-us = <100000>;
-		};
+		/*
+		 * DS-RAM (SUSPEND_TO_RAM) and DS-OFF (SOFT_OFF) are
+		 * TODO for future implementation and currently NOT
+		 * hooked into cpu-power-states below. The Phase-8
+		 * scoped attempt at DS-RAM proved a one-shot
+		 * warm-boot round-trip under TF-M but could not be
+		 * cycled continuously without breaking the lighter
+		 * DS states -- see DS_RAM_RETROSPECTIVE.md for the
+		 * full write-up of what was tried and what would be
+		 * required to finish it.
+		 *
+		 * system_deep_sleep_ram: system-deep-sleep-ram {
+		 *         compatible = "zephyr,power-state";
+		 *         power-state-name = "suspend-to-ram";
+		 *         min-residency-us = <2000000>;
+		 *         exit-latency-us = <500>;
+		 * };
+		 *
+		 * system_deep_sleep_off: system-deep-sleep-off {
+		 *         compatible = "zephyr,power-state";
+		 *         power-state-name = "soft-off";
+		 *         min-residency-us = <4000000>;
+		 *         exit-latency-us = <100000>;
+		 * };
+		 */
 	};
 
 	cpus {
 		cpu@0 {
 			cpu-power-states = <&cpu_sleep
 					    &cpu_deep_sleep
-					    &system_deep_sleep
-					    &system_deep_sleep_ram
-					    &system_deep_sleep_off>;
+					    &system_deep_sleep>;
 		};
 	};
 };
