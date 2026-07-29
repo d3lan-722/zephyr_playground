@@ -97,4 +97,3 @@ psa_status_t z_pm_boot_clock_retune(void)
 	return psa_call(Z_PM_SERVICE_HANDLE, Z_PM_OP_BOOT_CLOCK_RETUNE, NULL, 0,
 			NULL, 0);
 }
-

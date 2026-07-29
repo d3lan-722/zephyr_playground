@@ -188,16 +188,16 @@ static int step_transition(pm_mode_t source, pm_mode_t target,
 
 static int step_hp_to_lp(void)
 {
-	return step_transition(PM_MODE_HP, PM_MODE_LP,
-			       trim_hp_to_lp_pre, ARRAY_SIZE(trim_hp_to_lp_pre),
+	return step_transition(PM_MODE_HP, PM_MODE_LP, trim_hp_to_lp_pre,
+			       ARRAY_SIZE(trim_hp_to_lp_pre),
 			       trim_hp_to_lp_post,
 			       ARRAY_SIZE(trim_hp_to_lp_post));
 }
 
 static int step_lp_to_hp(void)
 {
-	return step_transition(PM_MODE_LP, PM_MODE_HP,
-			       trim_lp_to_hp_pre, ARRAY_SIZE(trim_lp_to_hp_pre),
+	return step_transition(PM_MODE_LP, PM_MODE_HP, trim_lp_to_hp_pre,
+			       ARRAY_SIZE(trim_lp_to_hp_pre),
 			       trim_lp_to_hp_post,
 			       ARRAY_SIZE(trim_lp_to_hp_post));
 }
