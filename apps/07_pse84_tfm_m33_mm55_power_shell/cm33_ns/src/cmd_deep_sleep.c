@@ -38,20 +38,20 @@
  * project 06, where CM55 never boots and the SoC bottoms out at
  * CPU-DEEPSLEEP (no PPU retention fold, ~62 uA floor).
  *
- * Layer of prep NOT done here yet (Phase D):
+ * Layer of prep NOT done here:
  *
- *   Project 06 has a PRE_KERNEL_2 SYS_INIT hook
- *   (pm_deep_sleep_init) that programs SRSS_PWR_CTL2 BGREF_LPMODE,
- *   CoreBuck DS voltage/mode/override, IHO/IMO DS-off, and
+ *   Project 06 has a PRE_KERNEL_2 SYS_INIT hook (pm_deep_sleep_init)
+ *   that programs SRSS_PWR_CTL2 BGREF_LPMODE, CoreBuck DS
+ *   voltage/mode/override, IHO/IMO DS-off, and
  *   Cy_SysPm_SetDeepSleepMode(DEEPSLEEP). Every register touched by
  *   that hook is in the PWRMODE_PWRMODE / SRSS_MAIN PPC regions
- *   which are PC=2 only on this build, so the sequence must go
- *   through the z_pm partition (Z_PM_OP_DEEP_SLEEP_BIAS, plan
- *   sec. 5.3). Phase D adds the op + the client stub + the boot-
- *   time call from main(). Until then, deep_sleep still WORKS --
- *   it correctly enters CPU-DS and wakes on LPTIMER -- but the
- *   sleep-floor current is higher than optimal because the DS
- *   bias registers stay at their TF-M cycfg defaults.
+ *   which are PC=2 only on this build, so the sequence has to go
+ *   through the z_pm partition. In this project the whole block is
+ *   done ONCE at boot via z_pm_deep_sleep_bias() (called from
+ *   src/main.c), so the shell handler here just enters WFI. The
+ *   configuration is "sticky" -- the PMU state machine automatically
+ *   re-applies the DS bias registers on every subsequent SLEEPDEEP
+ *   entry.
  *
  * Wake source: MCWDT0/LPTIMER on PILO, alive across Deep Sleep by
  * design (PILO is a deep-sleep-alive clock). k_msleep(20) at the top

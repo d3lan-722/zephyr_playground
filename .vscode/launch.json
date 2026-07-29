@@ -181,6 +181,474 @@
 				"hidden": false,
 				"group": "02_pse84_tfm_m33_m55_pm"
 			}
+		},
+		{
+			// Flash both slots (CM55 hex then CM33 merged TF-M+NS hex),
+			// halt CM33 at reset, run to main. Use after a fresh build.
+			// Project 05 mirror of "02-pse84 CM33 (flash + debug)".
+			"name": "05-pse84 CM33 (flash + debug)",
+			"type": "cortex-debug",
+			"request": "launch",
+			"cwd": "${workspaceFolder}",
+			"executable": "${workspaceFolder}/apps/05_pse84_tfm_m33_m55_shell_ulp_lp_hp/cm33_ns/build/zephyr/zephyr.elf",
+			"armToolchainPath": "/usr/local/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin",
+			"gdbPath": "/usr/local/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
+			"objdumpPath": "/usr/local/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin/arm-zephyr-eabi-objdump",
+			"servertype": "openocd",
+			"serverpath": "/usr/local/openocd/bin/openocd",
+			"searchDir": [
+				"${workspaceFolder}",
+				"/usr/local/openocd/scripts"
+			],
+			"configFiles": [
+				"${workspaceFolder}/util/openocd/pse84/openocd.tcl"
+			],
+			"preLaunchCommands": [
+				"add-symbol-file ${workspaceFolder}/apps/05_pse84_tfm_m33_m55_shell_ulp_lp_hp/cm33_ns/build/tfm/bin/tfm_s.elf",
+				"add-symbol-file ${workspaceFolder}/apps/05_pse84_tfm_m33_m55_shell_ulp_lp_hp/cm55/build/zephyr/zephyr.elf"
+			],
+			"overrideLaunchCommands": [
+				"set mem inaccessible-by-default off",
+				"-enable-pretty-printing",
+				"set remotetimeout 90",
+				// Program CM55 first, then the merged TF-M-S + CM33-NS
+				// image — matches run.sh flash order.
+				"monitor flash write_image erase {${workspaceFolder}/apps/05_pse84_tfm_m33_m55_shell_ulp_lp_hp/cm55/build/zephyr/zephyr.hex}",
+				"monitor flash write_image erase {${workspaceFolder}/apps/05_pse84_tfm_m33_m55_shell_ulp_lp_hp/cm33_ns/build/zephyr/tfm_merged.hex}",
+				"monitor reset init",
+				"monitor reset_halt cm33"
+			],
+			"overrideRestartCommands": [
+				"monitor reset_halt cm33"
+			],
+			"postRestartSessionCommands": [],
+			"numberOfProcessors": 2,
+			"targetProcessor": 0,
+			"svdFile": "${workspaceFolder}/util/openocd/pse84/pse84.svd",
+			"breakAfterReset": true,
+			"runToEntryPoint": "main",
+			"showDevDebugOutput": "none",
+			"presentation": {
+				"hidden": false,
+				"group": "05_pse84_tfm_m33_m55_shell_ulp_lp_hp"
+			}
+		},
+		{
+			// Attach to a running or already-halted CM33 without
+			// touching flash. Use this when a `ulp`/`lp` shell command
+			// hangs the target so you can see where the S side
+			// (Cy_SysPm_SystemEnter{Hp,Lp,Ulp} via the SRF path into
+			// ifx_ext_sp -> our user_srf_stub :: ifx_user_srf_module.c)
+			// stopped. CONFIG_TFM_HALT_ON_CORE_PANIC=ON (see
+			// cm33_ns/CMakeLists.txt) makes the SPE spin in
+			// tfm_core_panic() rather than reset, so a fault-driven
+			// hang lands you inside the fault handler with the
+			// exception frame still captured in `exception_info`.
+			"name": "05-pse84 CM33 (attach)",
+			"type": "cortex-debug",
+			"request": "attach",
+			"cwd": "${workspaceFolder}",
+			"executable": "${workspaceFolder}/apps/05_pse84_tfm_m33_m55_shell_ulp_lp_hp/cm33_ns/build/zephyr/zephyr.elf",
+			"armToolchainPath": "/usr/local/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin",
+			"gdbPath": "/usr/local/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
+			"objdumpPath": "/usr/local/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin/arm-zephyr-eabi-objdump",
+			"servertype": "openocd",
+			"serverpath": "/usr/local/openocd/bin/openocd",
+			"searchDir": [
+				"${workspaceFolder}",
+				"/usr/local/openocd/scripts"
+			],
+			"configFiles": [
+				"${workspaceFolder}/util/openocd/pse84/openocd.tcl"
+			],
+			"openOCDPreConfigLaunchCommands": [
+				// Non-invasive attach: don't reset, don't reload flash.
+				"set ENABLE_ACQUIRE 0"
+			],
+			"overrideAttachCommands": [
+				"set mem inaccessible-by-default off",
+				"-enable-pretty-printing",
+				"set remotetimeout 90",
+				"monitor halt",
+				"add-symbol-file ${workspaceFolder}/apps/05_pse84_tfm_m33_m55_shell_ulp_lp_hp/cm33_ns/build/tfm/bin/tfm_s.elf",
+				"add-symbol-file ${workspaceFolder}/apps/05_pse84_tfm_m33_m55_shell_ulp_lp_hp/cm55/build/zephyr/zephyr.elf"
+			],
+			"postAttachCommands": [
+				// TF-M's fault handlers capture CFSR/HFSR/BFAR/SFSR
+				// into the static struct exception_info and then
+				// clear the write-1-to-clear bits. So the LIVE regs
+				// read as zero after a fault. Look at the struct
+				// instead — that's the real forensics.
+				//
+				// See platform/ext/common/exception_info.c and
+				// its dump_exception_info() for the field meanings.
+				"echo === Captured fault info (struct exception_info in tfm_s) ===\\n",
+				"print /x exception_info",
+				"echo === Where is the CPU now? PC / xPSR / MSP / PSP / LR ===\\n",
+				"monitor reg pc",
+				"monitor reg xpsr",
+				"monitor reg msp",
+				"monitor reg psp",
+				"monitor reg lr",
+				"echo === GDB backtrace (S side) ===\\n",
+				"backtrace 15",
+				"echo === Exception frame words at MSP (raw) ===\\n",
+				"x/16wx $msp",
+				"echo === Live HW fault regs (usually zero — TF-M cleared them; kept as sanity) ===\\n",
+				"echo === Secure bank: CFSR HFSR DFSR MMFAR BFAR ===\\n",
+				"monitor mdw 0xE000ED28 5",
+				"echo === Non-Secure alias: CFSR HFSR DFSR MMFAR BFAR ===\\n",
+				"monitor mdw 0xE002ED28 5",
+				"echo === Secure SFSR SFAR ===\\n",
+				"monitor mdw 0xE000EDE4 2",
+				"echo === Disassemble around PC (16 instructions) ===\\n",
+				"x/16i $pc - 16"
+			],
+			"numberOfProcessors": 2,
+			"targetProcessor": 0,
+			"svdFile": "${workspaceFolder}/util/openocd/pse84/pse84.svd",
+			"showDevDebugOutput": "none",
+			"presentation": {
+				"hidden": false,
+				"group": "05_pse84_tfm_m33_m55_shell_ulp_lp_hp"
+			}
+		},
+		{
+			// Debug the CM55 non-secure image for project 05. Only
+			// useful once CM33-NS has released CM55.
+			"name": "05-pse84 CM55 (attach)",
+			"type": "cortex-debug",
+			"request": "attach",
+			"cwd": "${workspaceFolder}",
+			"executable": "${workspaceFolder}/apps/05_pse84_tfm_m33_m55_shell_ulp_lp_hp/cm55/build/zephyr/zephyr.elf",
+			"armToolchainPath": "/usr/local/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin",
+			"gdbPath": "/usr/local/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
+			"objdumpPath": "/usr/local/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin/arm-zephyr-eabi-objdump",
+			"servertype": "openocd",
+			"serverpath": "/usr/local/openocd/bin/openocd",
+			"searchDir": [
+				"${workspaceFolder}",
+				"/usr/local/openocd/scripts"
+			],
+			"configFiles": [
+				"${workspaceFolder}/util/openocd/pse84/openocd.tcl"
+			],
+			"openOCDPreConfigLaunchCommands": [
+				"set ENABLE_ACQUIRE 0"
+			],
+			"overrideAttachCommands": [
+				"set mem inaccessible-by-default off",
+				"-enable-pretty-printing",
+				"set remotetimeout 90",
+				"monitor halt"
+			],
+			"numberOfProcessors": 2,
+			"targetProcessor": 1,
+			"svdFile": "${workspaceFolder}/util/openocd/pse84/pse84.svd",
+			"showDevDebugOutput": "none",
+			"presentation": {
+				"hidden": false,
+				"group": "05_pse84_tfm_m33_m55_shell_ulp_lp_hp"
+			}
+		},
+		{
+			// Fallback for when "05-pse84 CM33 (attach)" fails with
+			// `stalled AP operation, issuing ABORT` /
+			// `[cat1d.cm33] Examination failed`. That happens when the
+			// target CPU is in a state where the debug AP is
+			// unreachable — e.g. ULP mode dropped the debug clock
+			// below what SWD can talk to, or the transition hung with
+			// the CPU in some sleep-adjacent state.
+			//
+			// This variant flips ENABLE_ACQUIRE=1 so the openocd.tcl
+			// runs `init` + `reset init` + `adapter speed 12000` at
+			// attach, which resets the target hard. That is DESTRUCTIVE
+			// to the hung state — you lose whatever PC/registers the
+			// hang left behind. Use it only to regain shell access
+			// after a hang, then reproduce with a breakpoint set on
+			// the entry path (e.g. `b ifx_user_srf_op_enter_ulp_impl_s`
+			// or `b Cy_SysPm_SystemEnterUlp`) via the "flash + debug"
+			// config to catch WHERE it hangs before the CPU becomes
+			// undebuggable.
+			"name": "05-pse84 CM33 (attach with reset — destructive)",
+			"type": "cortex-debug",
+			"request": "attach",
+			"cwd": "${workspaceFolder}",
+			"executable": "${workspaceFolder}/apps/05_pse84_tfm_m33_m55_shell_ulp_lp_hp/cm33_ns/build/zephyr/zephyr.elf",
+			"armToolchainPath": "/usr/local/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin",
+			"gdbPath": "/usr/local/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
+			"objdumpPath": "/usr/local/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin/arm-zephyr-eabi-objdump",
+			"servertype": "openocd",
+			"serverpath": "/usr/local/openocd/bin/openocd",
+			"searchDir": [
+				"${workspaceFolder}",
+				"/usr/local/openocd/scripts"
+			],
+			"configFiles": [
+				"${workspaceFolder}/util/openocd/pse84/openocd.tcl"
+			],
+			"openOCDPreConfigLaunchCommands": [
+				// ENABLE_ACQUIRE=1 -> openocd.tcl runs init +
+				// reset init + adapter speed 12000. This resets
+				// the chip, so any hang state is LOST. See
+				// util/openocd/pse84/openocd.tcl for the exact
+				// sequence.
+				"set ENABLE_ACQUIRE 1"
+			],
+			"overrideAttachCommands": [
+				"set mem inaccessible-by-default off",
+				"-enable-pretty-printing",
+				"set remotetimeout 90",
+				"monitor halt",
+				"add-symbol-file ${workspaceFolder}/apps/05_pse84_tfm_m33_m55_shell_ulp_lp_hp/cm33_ns/build/tfm/bin/tfm_s.elf",
+				"add-symbol-file ${workspaceFolder}/apps/05_pse84_tfm_m33_m55_shell_ulp_lp_hp/cm55/build/zephyr/zephyr.elf"
+			],
+			"numberOfProcessors": 2,
+			"targetProcessor": 0,
+			"svdFile": "${workspaceFolder}/util/openocd/pse84/pse84.svd",
+			"showDevDebugOutput": "none",
+			"presentation": {
+				"hidden": false,
+				"group": "05_pse84_tfm_m33_m55_shell_ulp_lp_hp"
+			}
+		},
+		{
+			// Flash both slots (CM55 hex then CM33 merged TF-M+NS hex),
+			// halt CM33 at reset, run to main. Use after a fresh build.
+			// Project 07 mirror of "05-pse84 CM33 (flash + debug)".
+			"name": "07-pse84 CM33 (flash + debug)",
+			"type": "cortex-debug",
+			"request": "launch",
+			"cwd": "${workspaceFolder}",
+			"executable": "${workspaceFolder}/apps/07_pse84_tfm_m33_mm55_power_shell/cm33_ns/build/zephyr/zephyr.elf",
+			"armToolchainPath": "/usr/local/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin",
+			"gdbPath": "/usr/local/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
+			"objdumpPath": "/usr/local/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin/arm-zephyr-eabi-objdump",
+			"servertype": "openocd",
+			"serverpath": "/usr/local/openocd/bin/openocd",
+			"searchDir": [
+				"${workspaceFolder}",
+				"/usr/local/openocd/scripts"
+			],
+			"configFiles": [
+				"${workspaceFolder}/util/openocd/pse84/openocd.tcl"
+			],
+			"preLaunchCommands": [
+				"add-symbol-file ${workspaceFolder}/apps/07_pse84_tfm_m33_mm55_power_shell/cm33_ns/build/tfm/bin/tfm_s.elf",
+				"add-symbol-file ${workspaceFolder}/apps/07_pse84_tfm_m33_mm55_power_shell/cm55/build/zephyr/zephyr.elf"
+			],
+			"overrideLaunchCommands": [
+				"set mem inaccessible-by-default off",
+				"-enable-pretty-printing",
+				"set remotetimeout 90",
+				// Program CM55 first, then the merged TF-M-S + CM33-NS
+				// image — matches run.sh flash order.
+				"monitor flash write_image erase {${workspaceFolder}/apps/07_pse84_tfm_m33_mm55_power_shell/cm55/build/zephyr/zephyr.hex}",
+				"monitor flash write_image erase {${workspaceFolder}/apps/07_pse84_tfm_m33_mm55_power_shell/cm33_ns/build/zephyr/tfm_merged.hex}",
+				"monitor reset init",
+				"monitor reset_halt cm33"
+			],
+			"overrideRestartCommands": [
+				"monitor reset_halt cm33"
+			],
+			"postRestartSessionCommands": [],
+			"numberOfProcessors": 2,
+			"targetProcessor": 0,
+			"svdFile": "${workspaceFolder}/util/openocd/pse84/pse84.svd",
+			"breakAfterReset": true,
+			"runToEntryPoint": "main",
+			"showDevDebugOutput": "none",
+			"presentation": {
+				"hidden": false,
+				"group": "07_pse84_tfm_m33_mm55_power_shell"
+			}
+		},
+		{
+			// Attach to a running or already-halted CM33 without
+			// touching flash. Use this when a `ulp`/`lp` shell command
+			// hangs the target so you can see where the S side
+			// (Cy_SysPm_SystemEnter{Hp,Lp,Ulp} inside the z_pm secure
+			// partition) stopped. CONFIG_TFM_HALT_ON_CORE_PANIC=ON
+			// (see cm33_ns/CMakeLists.txt) makes the SPE spin in
+			// tfm_core_panic() rather than reset, so a fault-driven
+			// hang lands you inside the fault handler with the
+			// exception frame still captured in `exception_info`.
+			//
+			// Useful breakpoints for debugging the pm transition:
+			//   b z_pm_op_switch_active_mode
+			//   b trans_down
+			//   b trans_up
+			//   b core_buck_only_enter
+			//   b Cy_SysPm_SystemEnterLp
+			//   b Cy_SysPm_SystemEnterUlp
+			//   b Cy_SysPm_SetTrimRamCtl
+			//   b step_transition   (NS side)
+			"name": "07-pse84 CM33 (attach)",
+			"type": "cortex-debug",
+			"request": "attach",
+			"cwd": "${workspaceFolder}",
+			"executable": "${workspaceFolder}/apps/07_pse84_tfm_m33_mm55_power_shell/cm33_ns/build/zephyr/zephyr.elf",
+			"armToolchainPath": "/usr/local/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin",
+			"gdbPath": "/usr/local/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
+			"objdumpPath": "/usr/local/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin/arm-zephyr-eabi-objdump",
+			"servertype": "openocd",
+			"serverpath": "/usr/local/openocd/bin/openocd",
+			"searchDir": [
+				"${workspaceFolder}",
+				"/usr/local/openocd/scripts"
+			],
+			"configFiles": [
+				"${workspaceFolder}/util/openocd/pse84/openocd.tcl"
+			],
+			"openOCDPreConfigLaunchCommands": [
+				// Non-invasive attach: don't reset, don't reload flash.
+				"set ENABLE_ACQUIRE 0"
+			],
+			"overrideAttachCommands": [
+				"set mem inaccessible-by-default off",
+				"-enable-pretty-printing",
+				"set remotetimeout 90",
+				"monitor halt",
+				"add-symbol-file ${workspaceFolder}/apps/07_pse84_tfm_m33_mm55_power_shell/cm33_ns/build/tfm/bin/tfm_s.elf",
+				"add-symbol-file ${workspaceFolder}/apps/07_pse84_tfm_m33_mm55_power_shell/cm55/build/zephyr/zephyr.elf"
+			],
+			"postAttachCommands": [
+				// TF-M's fault handlers capture CFSR/HFSR/BFAR/SFSR
+				// into the static struct exception_info and then
+				// clear the write-1-to-clear bits. So the LIVE regs
+				// read as zero after a fault. Look at the struct
+				// instead — that's the real forensics.
+				"echo === Captured fault info (struct exception_info in tfm_s) ===\\n",
+				"print /x exception_info",
+				"echo === Where is the CPU now? PC / xPSR / MSP / PSP / LR ===\\n",
+				"monitor reg pc",
+				"monitor reg xpsr",
+				"monitor reg msp",
+				"monitor reg psp",
+				"monitor reg lr",
+				"echo === GDB backtrace (S side) ===\\n",
+				"backtrace 15",
+				"echo === Exception frame words at MSP (raw) ===\\n",
+				"x/16wx $msp",
+				"echo === Live HW fault regs (usually zero — TF-M cleared them; kept as sanity) ===\\n",
+				"echo === Secure bank: CFSR HFSR DFSR MMFAR BFAR ===\\n",
+				"monitor mdw 0xE000ED28 5",
+				"echo === Non-Secure alias: CFSR HFSR DFSR MMFAR BFAR ===\\n",
+				"monitor mdw 0xE002ED28 5",
+				"echo === Secure SFSR SFAR ===\\n",
+				"monitor mdw 0xE000EDE4 2",
+				"echo === Disassemble around PC (16 instructions) ===\\n",
+				"x/16i $pc - 16"
+			],
+			"numberOfProcessors": 2,
+			"targetProcessor": 0,
+			"svdFile": "${workspaceFolder}/util/openocd/pse84/pse84.svd",
+			"showDevDebugOutput": "none",
+			"presentation": {
+				"hidden": false,
+				"group": "07_pse84_tfm_m33_mm55_power_shell"
+			}
+		},
+		{
+			// Debug the CM55 non-secure image for project 07. Only
+			// useful once CM33-NS has released CM55 (through the
+			// deep_sleep_bias op which enables CM55 as a DEEPSLEEP
+			// requestor).
+			"name": "07-pse84 CM55 (attach)",
+			"type": "cortex-debug",
+			"request": "attach",
+			"cwd": "${workspaceFolder}",
+			"executable": "${workspaceFolder}/apps/07_pse84_tfm_m33_mm55_power_shell/cm55/build/zephyr/zephyr.elf",
+			"armToolchainPath": "/usr/local/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin",
+			"gdbPath": "/usr/local/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
+			"objdumpPath": "/usr/local/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin/arm-zephyr-eabi-objdump",
+			"servertype": "openocd",
+			"serverpath": "/usr/local/openocd/bin/openocd",
+			"searchDir": [
+				"${workspaceFolder}",
+				"/usr/local/openocd/scripts"
+			],
+			"configFiles": [
+				"${workspaceFolder}/util/openocd/pse84/openocd.tcl"
+			],
+			"openOCDPreConfigLaunchCommands": [
+				"set ENABLE_ACQUIRE 0"
+			],
+			"overrideAttachCommands": [
+				"set mem inaccessible-by-default off",
+				"-enable-pretty-printing",
+				"set remotetimeout 90",
+				"monitor halt"
+			],
+			"numberOfProcessors": 2,
+			"targetProcessor": 1,
+			"svdFile": "${workspaceFolder}/util/openocd/pse84/pse84.svd",
+			"showDevDebugOutput": "none",
+			"presentation": {
+				"hidden": false,
+				"group": "07_pse84_tfm_m33_mm55_power_shell"
+			}
+		},
+		{
+			// Fallback for when "07-pse84 CM33 (attach)" fails with
+			// `stalled AP operation, issuing ABORT` /
+			// `[cat1d.cm33] Examination failed`. That happens when the
+			// target CPU is in a state where the debug AP is
+			// unreachable — e.g. ULP mode dropped the debug clock
+			// below what SWD can talk to, or the transition hung with
+			// the CPU in some sleep-adjacent state.
+			//
+			// This variant flips ENABLE_ACQUIRE=1 so the openocd.tcl
+			// runs `init` + `reset init` + `adapter speed 12000` at
+			// attach, which resets the target hard. That is DESTRUCTIVE
+			// to the hung state — you lose whatever PC/registers the
+			// hang left behind. Use it only to regain shell access
+			// after a hang, then reproduce with a breakpoint set on
+			// the entry path (e.g. `b Cy_SysPm_SystemEnterLp`,
+			// `b Cy_SysPm_SetTrimRamCtl`, `b trans_down`) via the
+			// "flash + debug" config to catch WHERE it hangs before
+			// the CPU becomes undebuggable.
+			"name": "07-pse84 CM33 (attach with reset — destructive)",
+			"type": "cortex-debug",
+			"request": "attach",
+			"cwd": "${workspaceFolder}",
+			"executable": "${workspaceFolder}/apps/07_pse84_tfm_m33_mm55_power_shell/cm33_ns/build/zephyr/zephyr.elf",
+			"armToolchainPath": "/usr/local/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin",
+			"gdbPath": "/usr/local/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
+			"objdumpPath": "/usr/local/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin/arm-zephyr-eabi-objdump",
+			"servertype": "openocd",
+			"serverpath": "/usr/local/openocd/bin/openocd",
+			"searchDir": [
+				"${workspaceFolder}",
+				"/usr/local/openocd/scripts"
+			],
+			"configFiles": [
+				"${workspaceFolder}/util/openocd/pse84/openocd.tcl"
+			],
+			"openOCDPreConfigLaunchCommands": [
+				// ENABLE_ACQUIRE=1 -> openocd.tcl runs init +
+				// reset init + adapter speed 12000. This resets
+				// the chip, so any hang state is LOST. See
+				// util/openocd/pse84/openocd.tcl for the exact
+				// sequence.
+				"set ENABLE_ACQUIRE 1"
+			],
+			"overrideAttachCommands": [
+				"set mem inaccessible-by-default off",
+				"-enable-pretty-printing",
+				"set remotetimeout 90",
+				"monitor halt",
+				"add-symbol-file ${workspaceFolder}/apps/07_pse84_tfm_m33_mm55_power_shell/cm33_ns/build/tfm/bin/tfm_s.elf",
+				"add-symbol-file ${workspaceFolder}/apps/07_pse84_tfm_m33_mm55_power_shell/cm55/build/zephyr/zephyr.elf"
+			],
+			"numberOfProcessors": 2,
+			"targetProcessor": 0,
+			"svdFile": "${workspaceFolder}/util/openocd/pse84/pse84.svd",
+			"showDevDebugOutput": "none",
+			"presentation": {
+				"hidden": false,
+				"group": "07_pse84_tfm_m33_mm55_power_shell"
+			}
 		}
 	]
 }

@@ -1,5 +1,15 @@
 # 07_pse84_tfm_m33_mm55_power_shell — Implementation Plan
 
+> **Status (2026-07-29): HP↔LP DVFS + system DEEPSLEEP with CM55 requestor — WORKING.**
+>
+> **ULP is intentionally not supported** on this build. `pm_switch_to(ULP)`
+> returns `-ENOTSUP` from the NS side with a log message pointing at
+> [`INVESTIGATION_pse84_ulp.md`](INVESTIGATION_pse84_ulp.md), which contains
+> the full multi-day analysis of why the LP → ULP transition cannot cross
+> the TF-M SPM / SRAM-trim / PPC boundary on this platform.
+> The primary project goal (unlocking system DEEPSLEEP that project 06
+> could not reach) is fully achieved.
+
 Draft for review — no code written yet.
 
 ---

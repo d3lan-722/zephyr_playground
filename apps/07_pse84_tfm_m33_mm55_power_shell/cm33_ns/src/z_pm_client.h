@@ -4,23 +4,25 @@
  *
  * Non-secure client API for the z_pm out-of-tree TF-M partition.
  *
- * The partition lives in apps/02_pse84_tfm_m33_m55_pm/tfm_partitions/z_pm/
- * and is injected into the TF-M build via TFM_EXTRA_MANIFEST_LIST_FILES /
+ * The partition (see tfm_partitions/z_pm/z_pm_partition.c) is injected
+ * into the TF-M build via TFM_EXTRA_MANIFEST_LIST_FILES /
  * TFM_EXTRA_PARTITION_PATHS from cm33_ns/CMakeLists.txt.
  *
- * Scope: only the ops that are NOT already reachable via the PDL's
- * built-in SRF integration. Today that is:
- *   - Z_PM_OP_PING         — round-trip proof-of-life.
- *   - Z_PM_OP_LAYER_B_INIT — once-at-boot static bias (SRSS_MAIN /
- *     PWRMODE writes: Cy_SysPm_Init, ClkBakSetSource(PILO), BGREF LP,
- *     CoreBuck DS knobs, IHO/IMO DS-off).
+ * Op-ID summary. Ops 1..3 are inherited from project 02 and are kept
+ * defined but not called by this project (this project's boot uses
+ * DEEP_SLEEP_BIAS instead of LAYER_B_INIT / SET_DEEP_SLEEP_MODE). Ops
+ * 4..7 are new in this project.
  *
- * The three SRF-covered sleep entry points (Cy_SysPm_CpuEnter{,Deep}Sleep,
- * CM33-side Cy_SysPm_SystemEnterHibernate) are called directly by
- * cm33_ns/src/power.c — see z_pm_partition.c header for the rationale.
+ *   1  PING                 -- round-trip proof-of-life.
+ *   2  LAYER_B_INIT         -- inherited; not called here.
+ *   3  SET_DEEP_SLEEP_MODE  -- inherited; not called here.
+ *   4  SWITCH_ACTIVE_MODE   -- HP/LP/ULP transition (HF0 divider).
+ *   5  CLOCK_PROBE          -- measure DPLL_LP0/CLK_HF0/CLK_HF10.
+ *   6  DEEP_SLEEP_BIAS      -- one-shot boot-time DS bias registers.
+ *   7  BOOT_CLOCK_RETUNE    -- one-shot boot-time DPLL retune.
  *
- * Op IDs are passed as the `type` argument of psa_call. Keep this enum in
- * sync with tfm_partitions/z_pm/z_pm_partition.c.
+ * Op IDs are passed as the `type` argument of psa_call. Keep in sync
+ * with tfm_partitions/z_pm/z_pm_partition.c.
  */
 
 #ifndef Z_PM_CLIENT_H_
@@ -38,79 +40,100 @@ extern "C" {
 #define Z_PM_OP_PING 1
 #define Z_PM_OP_LAYER_B_INIT 2
 #define Z_PM_OP_SET_DEEP_SLEEP_MODE 3
+#define Z_PM_OP_SWITCH_ACTIVE_MODE 4
+#define Z_PM_OP_CLOCK_PROBE 5
+#define Z_PM_OP_DEEP_SLEEP_BIAS 6
+#define Z_PM_OP_BOOT_CLOCK_RETUNE 7
 
 #define Z_PM_PING_COOKIE 0xABCD1234u
+
+/* Wire-format structs. Kept binary-identical to the S-side structs
+ * in tfm_partitions/z_pm/z_pm_partition.c. */
+
+struct z_pm_switch_in {
+	uint32_t source; /* Encoded pm_mode_t (0=ULP, 1=LP, 2=HP) */
+	uint32_t target; /* Encoded pm_mode_t (0=ULP, 1=LP, 2=HP) */
+};
+
+struct z_pm_switch_out {
+	int32_t status; /* 0 on success, negative errno-like on failure. */
+};
+
+/**
+ * @brief Clock-frequency snapshot returned by @ref z_pm_clock_probe.
+ *
+ * All values in Hz. `meas_*` come from the SoC's clock-measurement
+ * counters (IHO reference clock); `comp_*` come from the PDL's
+ * `Cy_SysClk_ClkPathGetFrequency` / `ClkHfGetFrequency` register
+ * readback. Side-by-side lets a stuck counter or a driver-cache
+ * mismatch be spotted immediately.
+ */
+struct z_pm_clock_probe {
+	uint32_t meas_path0;
+	uint32_t meas_hf0;
+	uint32_t meas_hf10;
+	uint32_t comp_path0;
+	uint32_t comp_hf0;
+	uint32_t comp_hf10;
+};
 
 /**
  * @brief Round-trip ping the z_pm secure partition.
  *
- * On success, writes Z_PM_PING_COOKIE to *out_cookie.
- *
- * @retval PSA_SUCCESS On success; @p out_cookie contains the cookie.
- * @retval PSA_ERROR_* From psa_call.
+ * On success, writes @c Z_PM_PING_COOKIE to @c *out_cookie.
  */
 psa_status_t z_pm_ping(uint32_t *out_cookie);
 
-/**
- * @brief Run the Layer-B static-bias setup on the S side.
- *
- * Executes once at NS boot (from a SYS_INIT in power.c). Reaches the
- * PSA-ROT-only SRSS / PWRMODE / core-buck registers that NS cannot
- * touch directly.
- *
- * Phase 6 empirical bisection on this SoC showed that the "aggressive"
- * Layer-B knobs (Cy_SysPm_Init recall, ClkBakSetSource(PILO), BGREF LP,
- * CoreBuck DS voltage / mode / override) only pay off once the SoC
- * actually enters a full system deep sleep. That requires Phase 7's
- * per-transition Table-2 PPU programming. On the current CPU-only-DS
- * path those knobs either add small constant leak or override
- * TF-M-S's cycfg defaults. They are deferred to Phase 7 and folded
- * into Z_PM_OP_SET_DEEP_SLEEP_MODE at that time.
- *
- * The minimal handler kept in Phase 6 only clears the IHO / IMO
- * deep-sleep keep-alive bits (harmless on this build — they are 0
- * by default, so this is defensive for future SoC / cycfg drift).
- * PILO is intentionally left running so MCWDT0 (kernel tick) keeps
- * counting.
- *
- * @retval PSA_SUCCESS       On success.
- * @retval PSA_ERROR_*       From psa_call.
- */
+/** @brief Inherited from project 02; not called in this project. */
 psa_status_t z_pm_layer_b_init(void);
 
-/**
- * @brief Program the SoC-global deep-sleep mode + Phase-7 Layer-B knobs.
- *
- * Wraps @c Cy_SysPm_SetDeepSleepMode(mode) on the S side. That call
- * programs the AN237976 Table-2 row of PPU retention settings that will
- * apply once every CPU has voted deep sleep (MAIN / SRAM0 / SRAM1 /
- * SYSCPU / PD1 / APPCPUSS / APPCPU / SOCMEM / U55). All those PPU
- * registers live in the PSA-ROT PC2 PPC group and are unreachable from
- * NS — which is why this has to go through z_pm.
- *
- * The S handler also applies the BGREF LP + CoreBuck DS knobs that
- * Phase 6 measured as adding leak on the CPU-only-DS path. They are
- * safe here because reaching this op means the caller is committing
- * to a system-DS transition.
- *
- * Called by cm33_ns/src/power.c :: enter_system_deep_sleep just before
- * @c Cy_SysPm_CpuEnterDeepSleep. Not called on the plain
- * @c cpu_deep_sleep path (that state is CPU-local).
- *
- * @param mode  One of @c CY_SYSPM_MODE_DEEPSLEEP,
- *              @c CY_SYSPM_MODE_DEEPSLEEP_RAM,
- *              @c CY_SYSPM_MODE_DEEPSLEEP_OFF (cast to uint32_t — the
- *              wrapper avoids pulling cy_syspm.h into this header to
- *              keep the PDL out of NS translation units that don't need
- *              it).
- *
- * @retval PSA_SUCCESS               Mode programmed successfully.
- * @retval PSA_ERROR_INVALID_ARGUMENT @p mode out of range.
- * @retval PSA_ERROR_GENERIC_ERROR    Cy_SysPm_SetDeepSleepMode failed on
- *                                    the S side.
- * @retval PSA_ERROR_*                From psa_call.
- */
+/** @brief Inherited from project 02; not called in this project. */
 psa_status_t z_pm_set_deep_sleep_mode(uint32_t mode);
+
+/**
+ * @brief Transition the SoC from @p source to @p target using the
+ *        HF0-divider strategy. Runs entirely on the S side.
+ *
+ * @param source   Encoded pm_mode_t: 0=ULP, 1=LP, 2=HP.
+ * @param target   Encoded pm_mode_t: 0=ULP, 1=LP, 2=HP.
+ * @param out_rc   Non-NULL. Populated with the S-side status: 0 on
+ *                 success, negative errno-like on failure. Only
+ *                 meaningful if the return value is PSA_SUCCESS.
+ * @retval PSA_SUCCESS on success (S handler ran; @c *out_rc holds
+ *                     the strategy result).
+ * @retval PSA_ERROR_* From psa_call machinery (protocol failure).
+ */
+psa_status_t z_pm_switch_active_mode(uint32_t source, uint32_t target,
+				     int32_t *out_rc);
+
+/**
+ * @brief Fill @p report with the current DPLL_LP0 / CLK_HF0 /
+ *        CLK_HF10 frequencies (both measured and computed).
+ */
+psa_status_t z_pm_clock_probe(struct z_pm_clock_probe *report);
+
+/**
+ * @brief One-shot boot-time programming of the sticky Deep Sleep
+ *        bias registers.
+ *
+ * Body: Cy_SysPm_Init, SRSS_PWR_CTL2.BGREF_LPMODE, CoreBuck DS
+ * voltage/mode/override, IHO/IMO DS-off, ClkBak <- PILO,
+ * Cy_SysPm_SetDeepSleepMode(DEEPSLEEP).
+ *
+ * Call once at boot before the first `deep_sleep` command. All
+ * effects are sticky -- programmed once, then automatically re-
+ * applied by the PMU state machine on every future SLEEPDEEP entry.
+ */
+psa_status_t z_pm_deep_sleep_bias(void);
+
+/**
+ * @brief One-shot boot-time DPLL_LP0 retune to 200 MHz + CLK_HF0
+ *        divider /1.
+ *
+ * See tfm_partitions/z_pm/z_pm_partition.c for the caveat around
+ * SCB2 baud invalidation if HF10 changes as a side effect.
+ */
+psa_status_t z_pm_boot_clock_retune(void);
 
 #ifdef __cplusplus
 }

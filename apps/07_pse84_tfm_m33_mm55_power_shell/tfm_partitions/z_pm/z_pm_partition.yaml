@@ -18,7 +18,7 @@
   "priority": "NORMAL",
   "model": "SFN",
   "entry_init": "z_pm_partition_init",
-  "stack_size": "0x0800",
+  "stack_size": "0x2000",
 
   "services": [
     {
