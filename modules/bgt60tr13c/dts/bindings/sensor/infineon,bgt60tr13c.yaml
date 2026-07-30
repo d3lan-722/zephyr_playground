@@ -1,0 +1,48 @@
+# Description of the device
+description: Infineon BGT60TR13C 60GHz RADAR Sensor for Zephyr RTOS
+
+# Device compatibility
+compatible: "infineon,bgt60tr13c"
+
+# Define required node properties
+properties:
+  spi-max-frequency:
+    type: int
+    required: true
+    description: Maximum SPI clock frequency in Hz
+    
+  duplex:
+    type: int
+    required: false
+    description: SPI duplex mode (0 for full duplex, 1 for half duplex)
+    default: 0
+    
+  frame-format:
+    type: int
+    required: false
+    description: SPI frame format (0 for Motorola, 1 for TI)
+    default: 0
+    
+  spi-interframe-delay-ns:
+    type: int
+    required: false
+    description: Delay between SPI frames in nanoseconds
+    default: 200
+    
+  reset-gpios:
+    type: phandle-array
+    required: true
+    description: GPIO for sensor reset control
+    
+  irq-gpios:
+    type: phandle-array
+    required: false
+    description: GPIO for interrupt from sensor
+    
+  reg:
+    type: int
+    required: true
+    description: SPI chip select identifier
+
+# This device sits on SPI bus
+on-bus: spi

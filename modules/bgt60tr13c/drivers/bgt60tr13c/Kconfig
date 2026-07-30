@@ -1,0 +1,9 @@
+# Create a new option in menuconfig for enabling the BGT60TR13C RADAR driver
+config BGT60TR13C
+    bool "Enable Infineon BGT60TR13C RADAR Sensor Driver"
+    default n # Disable by default
+    depends on SPI && GPIO # Ensure SPI and GPIO support are available
+    help
+      Enable this option to include the Infineon BGT60TR13C 60GHz RADAR sensor driver in the build.
+      This driver provides support for the BGT60TR13C RADAR sensor which can detect motion,
+      presence, and range measurements.

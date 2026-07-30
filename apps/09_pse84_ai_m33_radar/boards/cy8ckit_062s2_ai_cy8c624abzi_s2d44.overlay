@@ -1,0 +1,32 @@
+
+
+/{
+        aliases {
+                radar-sensor = &bgt60tr13c_radar;
+        };
+};
+
+&scb6 {
+        compatible = "infineon,spi";
+        status = "okay";
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        clocks = <&peri0_group1_16bit_1>;
+
+        pinctrl-0 = <&p21_6_scb3_spi_m_clk &p21_4_scb3_spi_m_miso &p21_5_scb3_spi_m_mosi &p21_7_scb3_spi_m_select1>;
+
+
+        pinctrl-names = "default";
+
+        bgt60tr13c_radar: bgt60tr13c@0 {
+                compatible = "infineon,bgt60tr13c";
+                reg = <0>;
+                spi-max-frequency = <25000000>; /* 25 MHz max SPI frequency */
+                duplex = <0>; /* SPI_FULL_DUPLEX */
+                frame-format = <0>; /* SPI_FRAME_FORMAT_MOTOROLA */
+                spi-interframe-delay-ns = <200>; /* 200ns delay between frames */
+                reset-gpios = <&gpio_prt20 7 GPIO_ACTIVE_LOW>;
+                irq-gpios = <&gpio_prt20 3 GPIO_ACTIVE_HIGH>;
+        };
+};

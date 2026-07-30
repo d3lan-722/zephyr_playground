@@ -1,0 +1,74 @@
+// Base directory of the kit_pse84_ai board: https: //github.com/zephyrproject-rtos/zephyr/tree/main/boards/infineon/kit_pse84_ai
+// Base directory for the pse84 soc: https: //github.com/zephyrproject-rtos/zephyr/tree/main/soc/infineon/edge/pse84
+// pse83 dtsi: https: //github.com/zephyrproject-rtos/zephyr/tree/main/dts/arm/infineon/edge/pse84
+// pse84.dtsi: https: //github.com/zephyrproject-rtos/zephyr/blob/main/dts/arm/infineon/edge/pse84/pse84.dtsi
+// scb binding documentation: https: //docs.zephyrproject.org/latest/build/dts/api/bindings/arm/infineon%2Cscb.html#dtbinding-infineon-scb
+// scb binding: https: //github.com/zephyrproject-rtos/zephyr/blob/main/dts/bindings/arm/infineon%2Cscb.yaml
+// infineon,system interrupts: https: //github.com/zephyrproject-rtos/zephyr/blob/main/dts/bindings/misc/infineon%2Csystem-interrupts.yaml
+// Enable nodes defined in pse84.dtsi: https: //github.com/zephyrproject-rtos/zephyr/blob/main/dts/arm/infineon/edge/pse84/pse84.dtsi
+
+
+/{
+        aliases {
+                radar-sensor = &bgt60tr13c_radar;
+        };
+};
+
+
+spi3: &scb3 {
+        compatible = "infineon,spi";
+        status = "okay";
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        clocks = <&peri0_group1_16bit_2>;
+
+        pinctrl-0 = <&p21_6_scb3_spi_m_clk &p21_4_scb3_spi_m_miso &p21_5_scb3_spi_m_mosi>;
+        pinctrl-names = "default";
+        cs-gpios = <&gpio_prt21 7 GPIO_ACTIVE_LOW>;
+
+        bgt60tr13c_radar: bgt60tr13c@0 {
+                compatible = "infineon,bgt60tr13c";
+                reg = <0>;
+                spi-max-frequency = <25000000>; /* 25 MHz max SPI frequency */
+                duplex = <0>; /* SPI_FULL_DUPLEX */
+                frame-format = <0>; /* SPI_FRAME_FORMAT_MOTOROLA */
+                spi-interframe-delay-ns = <200>; /* 200ns delay between frames */
+                reset-gpios = <&gpio_prt20 7 GPIO_ACTIVE_LOW>;
+                irq-gpios = <&gpio_prt20 3 GPIO_ACTIVE_HIGH>;
+        };
+};
+
+&peri0_group1_16bit_2 {
+        status = "okay";
+        clock-div = <1>;
+};
+
+&p21_6_scb3_spi_m_clk {
+        drive-strength = "full";
+        drive-push-pull;
+};
+
+&p21_4_scb3_spi_m_miso {
+        drive-strength = "full";
+        input-enable;
+};
+
+&p21_5_scb3_spi_m_mosi {
+        drive-strength = "full";
+        drive-push-pull;
+};
+
+&p21_7_scb3_spi_m_select1 {
+        drive-push-pull;
+};
+
+
+&gpio_prt20 {
+        status = "okay";
+};
+
+&gpio_prt21 {
+        status = "okay";
+};
+
