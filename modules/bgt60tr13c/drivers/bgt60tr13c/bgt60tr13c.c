@@ -132,6 +132,10 @@ static int bgt60tr13c_hard_reset(const struct device *dev)
  * Initialization
  * ───────────────────────────────────────────────────────────────── */
 
+static void bgt60tr13c_fifo_isr(const struct device *port,
+				struct gpio_callback *cb,
+				gpio_port_pins_t pins);
+
 static int bgt60tr13c_init(const struct device *dev)
 {
 	const struct bgt60tr13c_config *cfg = dev->config;
@@ -189,8 +193,75 @@ static int bgt60tr13c_init(const struct device *dev)
 	}
 
 	LOG_INF("BGT60TR13C detected – SPI communication OK");
+
+	/* Optional FIFO-ready IRQ line. Only configure it if the DT node
+	 * declares irq-gpios; polling still works otherwise.
+	 */
+	if (cfg->irq_gpio.port != NULL) {
+		if (!gpio_is_ready_dt(&cfg->irq_gpio)) {
+			LOG_ERR("IRQ GPIO not ready");
+			return -ENODEV;
+		}
+
+		k_sem_init(&data->fifo_ready, 0, 1);
+
+		ret = gpio_pin_configure_dt(&cfg->irq_gpio, GPIO_INPUT);
+		if (ret < 0) {
+			LOG_ERR("Failed to configure IRQ GPIO: %d", ret);
+			return ret;
+		}
+
+		ret = gpio_pin_interrupt_configure_dt(&cfg->irq_gpio,
+						      GPIO_INT_EDGE_TO_ACTIVE);
+		if (ret < 0) {
+			LOG_ERR("Failed to enable IRQ: %d", ret);
+			return ret;
+		}
+
+		gpio_init_callback(&data->irq_cb, bgt60tr13c_fifo_isr,
+				   BIT(cfg->irq_gpio.pin));
+
+		ret = gpio_add_callback(cfg->irq_gpio.port, &data->irq_cb);
+		if (ret < 0) {
+			LOG_ERR("Failed to add IRQ callback: %d", ret);
+			return ret;
+		}
+
+		LOG_INF("FIFO-ready IRQ wired on pin %u",
+			cfg->irq_gpio.pin);
+	}
+
 	data->initialized = true;
 	return 0;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+ * FIFO-ready IRQ callback – runs in ISR context
+ * ────────────────────────────────────────────────────────────── */
+
+static void bgt60tr13c_fifo_isr(const struct device *port,
+				struct gpio_callback *cb,
+				gpio_port_pins_t pins)
+{
+	ARG_UNUSED(port);
+	ARG_UNUSED(pins);
+
+	struct bgt60tr13c_runtime_data *data =
+		CONTAINER_OF(cb, struct bgt60tr13c_runtime_data, irq_cb);
+
+	k_sem_give(&data->fifo_ready);
+}
+
+/* ───────────────────────────────────────────────────────────────
+ * Wait for FIFO threshold IRQ
+ * ────────────────────────────────────────────────────────────── */
+
+static int bgt60tr13c_wait_fifo_ready(const struct device *dev,
+				      k_timeout_t timeout)
+{
+	struct bgt60tr13c_runtime_data *data = dev->data;
+
+	return k_sem_take(&data->fifo_ready, timeout);
 }
 
 /* ─────────────────────────────────────────────────────────────────
@@ -507,6 +578,12 @@ static int bgt60tr13c_api_enable_test_mode(const struct device *dev,
 	return bgt60tr13c_enable_test_mode(dev, enable);
 }
 
+static int bgt60tr13c_api_wait_fifo_ready(const struct device *dev,
+					  k_timeout_t timeout)
+{
+	return bgt60tr13c_wait_fifo_ready(dev, timeout);
+}
+
 /* ─────────────────────────────────────────────────────────────────
  * Devicetree instantiation
  * ───────────────────────────────────────────────────────────────── */
@@ -521,6 +598,7 @@ static const struct bgt60tr13c_api bgt60tr13c_api_funcs = {
     .get_fifo_status = bgt60tr13c_api_get_fifo_status,
     .get_fifo_data = bgt60tr13c_api_get_fifo_data,
     .enable_test_mode = bgt60tr13c_api_enable_test_mode,
+    .wait_fifo_ready = bgt60tr13c_api_wait_fifo_ready,
 };
 
 #define BGT60TR13C_DEFINE(inst)                                                \
@@ -529,6 +607,8 @@ static const struct bgt60tr13c_api bgt60tr13c_api_funcs = {
 	    .spi = SPI_DT_SPEC_INST_GET(inst,                                  \
 					SPI_WORD_SET(8) | SPI_TRANSFER_MSB),   \
 	    .reset_gpio = GPIO_DT_SPEC_INST_GET(inst, reset_gpios),            \
+	    .irq_gpio =                                                        \
+		GPIO_DT_SPEC_INST_GET_OR(inst, irq_gpios, {0}),                \
 	};                                                                     \
 	DEVICE_DT_INST_DEFINE(                                                 \
 	    inst, bgt60tr13c_init, NULL, &bgt60tr13c_data_##inst,              \

@@ -94,17 +94,21 @@ struct bgt60tr13c_api {
 	int (*get_fifo_data)(const struct device *dev, uint16_t *data,
 			     uint32_t num_samples);
 	int (*enable_test_mode)(const struct device *dev, bool enable);
+	int (*wait_fifo_ready)(const struct device *dev, k_timeout_t timeout);
 };
 
 /* ── Device configuration (from devicetree) ───────────────────── */
 struct bgt60tr13c_config {
 	struct spi_dt_spec spi;
 	struct gpio_dt_spec reset_gpio;
+	struct gpio_dt_spec irq_gpio;
 };
 
 /* ── Device runtime data ──────────────────────────────────────── */
 struct bgt60tr13c_runtime_data {
 	bool initialized;
+	struct gpio_callback irq_cb;
+	struct k_sem fifo_ready;
 };
 
 /**

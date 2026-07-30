@@ -15,43 +15,11 @@ static const struct device *radar_sensor =
 #define NUM_FRAMES 10
 #define FRAME_PERIOD_MS 5 /* matches config frame_repetition_time_s = 5e-3 */
 
+/* IRQ wait budget: chirp cadence is 5 ms; 50 ms tolerates ~10x slack. */
+#define FIFO_IRQ_TIMEOUT K_MSEC(50)
+
 /* Buffer for one frame of FIFO data */
 static uint16_t samples[NUM_SAMPLES];
-
-/**
- * Wait for FIFO to reach the required fill level.
- * Returns 0 on success, negative on error/timeout.
- */
-static int wait_for_fifo(const struct bgt60tr13c_api *api,
-			 uint32_t needed_words, uint32_t *out_fstat)
-{
-	uint32_t fstat;
-	int ret;
-
-	for (int i = 0; i < 5000; i++) {
-		ret = api->get_fifo_status(radar_sensor, &fstat);
-		if (ret < 0) {
-			return ret;
-		}
-
-		uint32_t fill = fstat & BGT60TR13C_FSTAT_FILL_STATUS_MSK;
-		if (fill >= needed_words) {
-			*out_fstat = fstat;
-			return 0;
-		}
-
-		if (fstat & BGT60TR13C_FSTAT_FOF_ERR_MSK) {
-			printk("  FIFO overflow detected\n");
-			*out_fstat = fstat;
-			return -EOVERFLOW;
-		}
-
-		k_usleep(50);
-	}
-
-	*out_fstat = fstat;
-	return -ETIMEDOUT;
-}
 
 /**
  * Print frame statistics: min, max, mean of 12-bit ADC samples.
@@ -130,15 +98,14 @@ int main(void)
 		return ret;
 	}
 
-	/* Step 4: Acquire frames */
-	uint32_t needed_words = NUM_SAMPLES / 2;
-
+	/* Step 4: Acquire frames (IRQ-driven, no polling) */
 	for (uint32_t frame = 0; frame < NUM_FRAMES; frame++) {
-		uint32_t fstat = 0;
-
-		ret = wait_for_fifo(api, needed_words, &fstat);
+		ret = api->wait_fifo_ready(radar_sensor, FIFO_IRQ_TIMEOUT);
 		if (ret < 0) {
-			printk("Frame %u: FIFO error (ret=%d, fstat=0x%06X)\n",
+			uint32_t fstat = 0;
+			(void)api->get_fifo_status(radar_sensor, &fstat);
+			printk("Frame %u: IRQ wait failed (ret=%d, "
+			       "fstat=0x%06X)\n",
 			       (unsigned int)frame, ret, (unsigned int)fstat);
 			break;
 		}
