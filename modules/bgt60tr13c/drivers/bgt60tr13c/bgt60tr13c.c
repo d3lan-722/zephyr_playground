@@ -483,6 +483,28 @@ static int bgt60tr13c_get_fifo_data(const struct device *dev, uint16_t *data,
 		return ret;
 	}
 
+	/* First MISO byte during the 4-byte header is GSR0 (datasheet §5.6,
+	 * §5.8). Bits are sticky until SW/HW reset - non-zero means a prior
+	 * or current SPI/FIFO error corrupted the burst.
+	 */
+	uint8_t gsr0 = rx_hdr[0];
+	uint8_t gsr0_err_mask = BGT60TR13C_GSR0_FOU_ERR_MSK |
+				BGT60TR13C_GSR0_SPI_BURST_ERR_MSK |
+				BGT60TR13C_GSR0_CLK_NUM_ERR_MSK;
+
+	if (gsr0 & gsr0_err_mask) {
+		LOG_ERR(
+		    "FIFO burst aborted: GSR0=0x%02X (%s%s%s)- SW reset needed",
+		    gsr0,
+		    (gsr0 & BGT60TR13C_GSR0_FOU_ERR_MSK) ? "FOU_ERR " : "",
+		    (gsr0 & BGT60TR13C_GSR0_SPI_BURST_ERR_MSK)
+			? "SPI_BURST_ERR "
+			: "",
+		    (gsr0 & BGT60TR13C_GSR0_CLK_NUM_ERR_MSK) ? "CLK_NUM_ERR "
+							     : "");
+		return -EIO;
+	}
+
 	/* Unpack: 3 bytes → 2 × 12-bit samples */
 	for (uint32_t i = 0; i < fifo_words; i++) {
 		uint8_t b0 = raw[i * 3 + 0];

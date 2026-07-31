@@ -176,6 +176,27 @@ Every frame shows `max = 4094` (the top rail of the 12-bit ADC). Likely causes:
 
 Action: regenerate `bgt60tr13c_default_config.h` with `bgt60-configurator-cli` at `if_gain_dB = 40`, re-flash, compare. Purely a signal-processing question, not a driver bug.
 
+**Reference capture — board pointing at the ceiling (open space)** — kept as a known-good baseline for regression comparison after gain adjustment:
+
+```
+[00:00:00.016,000] <inf> main: Frame  0: min=2130 max=3864 mean=3280 | 0852 0898 0902 0974 0A16 0AEC 0BD4 0C7B ...
+[00:00:00.021,000] <inf> main: Frame  1: min=2092 max=3773 mean=3297 | 082C 0898 0908 0954 09D8 0A8C 0B42 0C0F ...
+[00:00:00.026,000] <inf> main: Frame  2: min=2162 max=3988 mean=3406 | 0872 08EC 0962 09AD 0A0C 0A9F 0B45 0BEA ...
+[00:00:00.031,000] <inf> main: Frame  3: min=2200 max=3985 mean=3306 | 0898 0906 0970 09A6 09F0 0A76 0ADE 0B29 ...
+[00:00:00.036,000] <inf> main: Frame  4: min=2246 max=4014 mean=3283 | 08C6 097C 0A1C 0A64 0A94 0B14 0BB8 0C0E ...
+[00:00:00.041,000] <inf> main: Frame  5: min=2296 max=4032 mean=3387 | 08F8 09AA 0A6E 0AF6 0B38 0B72 0BCE 0C5E ...
+[00:00:00.046,000] <inf> main: Frame  6: min=2226 max=3980 mean=3338 | 08B2 0960 0A23 0A88 0A9F 0ADA 0B4C 0BA4 ...
+[00:00:00.051,000] <inf> main: Frame  7: min=2216 max=4080 mean=3328 | 08A8 0928 09C8 0A4A 0A96 0AA0 0AA2 0ACA ...
+[00:00:00.056,000] <inf> main: Frame  8: min=2214 max=4052 mean=3301 | 08A6 091E 09A4 09C8 09CC 09EA 09F8 0A16 ...
+[00:00:00.061,000] <inf> main: Frame  9: min=2102 max=3944 mean=3287 | 0836 089E 0944 09AC 09BC 09C0 09E2 0A06 ...
+```
+
+Interpretation:
+- `max` dropped from a hard 4094 to 3773–4080 (no strong close reflector) but roughly half the frames still touch the rail — the IF gain is still too high for open space.
+- DC offset ≈ 3300 (¾ of range) is the chip's intentional common-mode bias, not a bug. Application-side DC removal is expected.
+- First-8-sample ramp (`0850 → 0C7B`) is genuine FMCW beat-signal envelope; frame-to-frame variation in the first sample reflects real phase changes.
+- (max − min) / 2 ≈ 850 LSB peak AC swing (~40% of range). Comfortable low-end headroom; top-end still occasionally clips. Confirms `if_gain_dB` should drop to ~40.
+
 ### 4. Migrate to `sensor_driver_api` + RTIO streaming (large)
 
 The current custom `struct bgt60tr13c_api` is documented as a bring-up shim in
@@ -190,11 +211,16 @@ Reference implementation to mirror: [drivers/sensor/bosch/bmi08x/bmi08x_accel_st
 
 Est. size: ~400 lines of new code + one binding extension for the RTIO iodev. Prerequisite before proposing the driver upstream.
 
-### 5. GSR0 status checking (small–medium)
+### 5. GSR0 status checking (small–medium) — done
 
-Every 32-bit SPI response from the sensor carries a 4-bit GSR0 field in bits [27:24] (`FOU_ERR`, `SPI_BURST_ERR`, `CLK_NUM_ERR`). The masks are already defined in [bgt60tr13c.h](../../modules/bgt60tr13c/drivers/bgt60tr13c/bgt60tr13c.h) but `read_reg()` masks them off and drops them; the FIFO burst read does not check them at all. Suggested change:
+Every 32-bit SPI response from the sensor carries a 4-bit GSR0 field in bits [27:24] (`FOU_ERR`, `SPI_BURST_ERR`, `CLK_NUM_ERR`).
 
-- Have `read_reg()` return `-EIO` on non-zero GSR0 and log which flag fired.
-- Check the burst-header GSR0 in `get_fifo_data()` before trusting the payload.
+Datasheet §5.6 confirms GSR0 shifts out on DO during **both** write and read command bytes, so the field is universally available. §5.8 states the error bits are **sticky** — cleared only by a SW or HW reset (FIFO reset also clears `FOU_ERR`). The reference `xensiv_bgt60trxx` library therefore checks GSR0 in exactly one place: the burst-header response of `get_fifo_data()`. That is the highest-value check (frame integrity gate) and it avoids the sticky-bit log-flooding problem of per-transaction checking.
 
-This is the integrity check recommended by the Infineon reference library; without it a `CLK_NUM_ERR` (SPI misalignment) can silently corrupt a whole frame.
+Implemented in `bgt60tr13c_get_fifo_data()`: after `spi_transceive_dt()` returns, `rx_hdr[0]` (the first MISO byte during the 4-byte burst header, which the wire format guarantees is the GSR0 byte) is masked against `FOU_ERR | SPI_BURST_ERR | CLK_NUM_ERR`. Any set bit produces a single `LOG_ERR` line naming the flags and returns `-EIO` without unpacking the burst payload.
+
+- No new fields in `struct bgt60tr13c_runtime_data`, no API change, no binding change.
+- `read_reg` / `write_reg` unchanged — matches the reference library.
+- Cost: FLASH +224 B, RAM unchanged.
+
+Verified on kit_pse84_ai: no burst-abort messages across 10 back-to-back frames, all frames unpacked normally.
