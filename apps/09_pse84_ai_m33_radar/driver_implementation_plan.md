@@ -120,13 +120,10 @@ sample[1] = ((byte[1] & 0x0F) << 8) | byte[2]
 
 ---
 
+
 ## Status (as of 2026-07-31)
 
-Phases 1–4 implemented and verified on `kit_pse84_ai` (CM33). Phase 5 deliberately skipped for now — see item 4 below.
-
-- Baseline commit: `e0903a2` — polled FIFO acquisition, all frames captured.
-- IRQ commit: `b7ffe85` — `wait_fifo_ready()` on GPIO edge trigger.
-- Refactor commit: `d9155f4` — binding uses `include: spi-device.yaml`, own `CONFIG_BGT60TR13C_INIT_PRIORITY`, no more `CONFIG_SENSOR=y` dependency.
+Phases 1–4 implemented and verified on `kit_pse84_ai` (CM33). Phase 5 (Zephyr sensor API integration) deliberately skipped for now — see open item 4 below.
 
 Tutorials produced alongside the driver:
 - [doc/Zephyr_Interrupts.md](../../doc/Zephyr_Interrupts.md) §12 documents the IRQ path.
@@ -134,47 +131,33 @@ Tutorials produced alongside the driver:
 
 ---
 
+## Completed items
+
+### 1. Trim the overlay — commit `7ab2547`
+
+Binding now inherits `spi-device.yaml`, so the overlay no longer needs to redeclare standard SPI child properties. Dropped `duplex = <0>` and `frame-format = <0>` (both matched defaults). Kept `spi-interframe-delay-ns = <200>` as a datasheet-safe override of the SPI-default half-of-SCK (~20 ns @ 25 MHz). Verified byte-identical `spi_config` output in `devicetree_generated.h`; FLASH unchanged at 57004 B.
+
+### 2. Log-drop cosmetic — commit `d27ea46`
+
+`main.c` mixed `LOG_INF` (from the driver) and `printk` (from the app frame loop) on the same console; the log subsystem back-pressured and printed `--- N messages dropped ---` mid-line.
+
+Fixed: converted `main.c` to pure `LOG_INF` / `LOG_ERR`; frame stats built into a 128-byte local buffer via `snprintf` and emitted in a single `LOG_INF` call (backend commits or drops the whole line atomically, never splits it); bumped `CONFIG_LOG_BUFFER_SIZE=4096`. Verified 10 back-to-back frames log cleanly with 5 ms cadence timestamps. Cost: FLASH +32 B, RAM +3 KB.
+
+### 5. GSR0 status check on FIFO burst read — commit `5ab0140`
+
+Every 32-bit SPI response echoes the 8-bit `GSR0` register in the top nibble. Datasheet §5.6 confirms this on both write and read command bytes; §5.8 states `SPI_BURST_ERR` and `CLK_NUM_ERR` are *sticky* (cleared only by SW/HW reset) and `FOU_ERR` is cleared by FIFO/SW/HW reset. Because the error bits latch across transactions, per-transaction checking on register reads would either flood the log or need stateful throttling — so the reference `xensiv_bgt60trxx` library checks GSR0 exactly once, on the burst-header response of `get_fifo_data()`. This driver adopts the same pattern.
+
+`bgt60tr13c_get_fifo_data()` now examines `rx_hdr[0]` against `FOU_ERR | SPI_BURST_ERR | CLK_NUM_ERR`. Any set bit produces a single `LOG_ERR` naming the flags and returns `-EIO` without unpacking the burst payload. No changes to `read_reg` / `write_reg` / `init`, no runtime-data changes, no API change. Cost: FLASH +224 B, RAM 0. Verified silent on healthy hardware.
+
+---
+
 ## Open items
 
-Ordered by cost. Numbered so we can reference them by ID.
+### 3. Saturation investigation (small, no code change)
 
-### 1. Trim the overlay (small)
+Every frame under the polled baseline showed `max = 4094` (top rail of the 12-bit ADC); the IRQ-driven capture in item 2 dropped it to 3773–4080 with roughly half the frames still touching the rail. Likely: `if_gain_dB = 60` in the configurator input is too high for open space.
 
-Now that the binding pulls in `spi-device.yaml`, the standard SPI child
-properties are inherited with defaults. The overlay
-[boards/kit_pse84_ai_pse846gps2dbzc4a_m33.overlay](boards/kit_pse84_ai_pse846gps2dbzc4a_m33.overlay)
-still sets:
-
-- `duplex = <0>` — matches the default in `spi-device.yaml`, drop.
-- `frame-format = <0>` — matches the default, drop.
-- `spi-interframe-delay-ns = <200>` — the default of 0 means "half of SCK period", which for 25 MHz SCK is 20 ns. Keep the explicit 200 ns as a datasheet-safe margin; document why in the overlay.
-
-Verification: pristine build must produce byte-identical `spi_config.operation` and `.word_delay` fields for the sensor instance (the two dropped properties both encode as 0 in the `.operation` OR).
-
-### 2. Log-drop cosmetic (small) — done
-
-`main.c` mixed `LOG_INF` (from the driver) and `printk` (from the app
-frame loop) on the same console. The log subsystem back-pressured and
-printed `--- N messages dropped ---` mid-line.
-
-Fixed by converting `main.c` to pure `LOG_INF` / `LOG_ERR`, building
-each frame stats line into a 128-byte local buffer via `snprintf` and
-logging it in a single `LOG_INF` call (so the backend either commits
-the whole frame or drops it, never splits it), and bumping
-`CONFIG_LOG_BUFFER_SIZE=4096` in prj.conf.
-
-Verified: 10 back-to-back frame lines print with no drops, timestamps
-spaced 5 ms apart matching the chirp cadence.
-
-### 3. Saturation investigation (small–medium, no code)
-
-Every frame shows `max = 4094` (the top rail of the 12-bit ADC). Likely causes:
-
-- `if_gain_dB = 60` in the configurator input is too high for the current test scene.
-- DC offset in the IF path.
-- A strong close reflector (metal on the bench).
-
-Action: regenerate `bgt60tr13c_default_config.h` with `bgt60-configurator-cli` at `if_gain_dB = 40`, re-flash, compare. Purely a signal-processing question, not a driver bug.
+Action: regenerate `bgt60tr13c_default_config.h` with `bgt60-configurator-cli` at `if_gain_dB = 40`, re-flash, compare against the reference capture below. Purely a signal-processing question, not a driver bug. Blocked on getting the Infineon RDK CLI tool installed in the container.
 
 **Reference capture — board pointing at the ceiling (open space)** — kept as a known-good baseline for regression comparison after gain adjustment:
 
@@ -199,8 +182,7 @@ Interpretation:
 
 ### 4. Migrate to `sensor_driver_api` + RTIO streaming (large)
 
-The current custom `struct bgt60tr13c_api` is documented as a bring-up shim in
-[doc/Zephyr_Device_Drivers.md §17](../../doc/Zephyr_Device_Drivers.md#17-zephyr-sensor_driver_api-vs-a-custom-api).
+The current custom `struct bgt60tr13c_api` is documented as a bring-up shim in [doc/Zephyr_Device_Drivers.md §17](../../doc/Zephyr_Device_Drivers.md#17-zephyr-sensor_driver_api-vs-a-custom-api).
 Modern upstream Zephyr FIFO sensors (BMI08x, BMI270, ICM42688, BMP581) all use the standard sensor API extended with:
 
 - `SENSOR_TRIG_FIFO_WATERMARK` from the driver's GPIO ISR — replaces our per-frame `k_sem_give`.
@@ -211,16 +193,72 @@ Reference implementation to mirror: [drivers/sensor/bosch/bmi08x/bmi08x_accel_st
 
 Est. size: ~400 lines of new code + one binding extension for the RTIO iodev. Prerequisite before proposing the driver upstream.
 
-### 5. GSR0 status checking (small–medium) — done
+### 6. Move `bgt60tr13c_default_config.h` out of the driver (small)
 
-Every 32-bit SPI response from the sensor carries a 4-bit GSR0 field in bits [27:24] (`FOU_ERR`, `SPI_BURST_ERR`, `CLK_NUM_ERR`).
+The register-array config
+[modules/bgt60tr13c/drivers/bgt60tr13c/bgt60tr13c_default_config.h](../../modules/bgt60tr13c/drivers/bgt60tr13c/bgt60tr13c_default_config.h)
+encodes an **application choice**, not a chip property. Its 38 packed SPI-write words come from `bgt60-configurator-cli` with a specific JSON input:
 
-Datasheet §5.6 confirms GSR0 shifts out on DO during **both** write and read command bytes, so the field is universally available. §5.8 states the error bits are **sticky** — cleared only by a SW or HW reset (FIFO reset also clears `FOU_ERR`). The reference `xensiv_bgt60trxx` library therefore checks GSR0 in exactly one place: the burst-header response of `get_fifo_data()`. That is the highest-value check (frame integrity gate) and it avoids the sticky-bit log-flooding problem of per-transaction checking.
+- 1 RX antenna, 1 TX antenna, `tx_power_level = 31`, `if_gain_dB = 60`
+- Chirp band 61.020 → 61.480 GHz, 1 chirp / frame, 128 samples / chirp
+- Chirp repetition 70 µs, frame repetition 5 ms, sample rate 2.33 MHz
 
-Implemented in `bgt60tr13c_get_fifo_data()`: after `spi_transceive_dt()` returns, `rx_hdr[0]` (the first MISO byte during the 4-byte burst header, which the wire format guarantees is the GSR0 byte) is masked against `FOU_ERR | SPI_BURST_ERR | CLK_NUM_ERR`. Any set bit produces a single `LOG_ERR` line naming the flags and returns `-EIO` without unpacking the burst payload.
+Any other use case — different bandwidth, different number of antennas, different chirp cadence for range/velocity trade-off — would want a different array. That knowledge belongs to the app, not the driver.
 
-- No new fields in `struct bgt60tr13c_runtime_data`, no API change, no binding change.
-- `read_reg` / `write_reg` unchanged — matches the reference library.
-- Cost: FLASH +224 B, RAM unchanged.
+**Concrete changes required**
 
-Verified on kit_pse84_ai: no burst-abort messages across 10 back-to-back frames, all frames unpacked normally.
+1. **Move the header**: `git mv modules/bgt60tr13c/drivers/bgt60tr13c/bgt60tr13c_default_config.h apps/09_pse84_ai_m33_radar/src/radar_config.h` (rename drops `_default_` since it is no longer a driver default).
+2. **App `src/main.c`**:
+   - Replace `#include "bgt60tr13c_default_config.h"` with `#include "radar_config.h"`.
+   - Rename references `bgt60tr13c_default_regs` → `radar_regs`, `BGT60TR13C_DEFAULT_REGS_LEN` → `RADAR_REGS_LEN`, `BGT60TR13C_DEFAULT_NUM_SAMPLES_PER_FRAME` → `RADAR_NUM_SAMPLES_PER_FRAME` (application namespace, not driver namespace).
+3. **Driver `CMakeLists.txt` / includes**: nothing to change — the driver never included the config header, only the app did.
+4. **Driver documentation**: add one line to the driver header noting that `api->config()` takes a caller-owned register array and pointing at `bgt60-configurator-cli` for generation. No API change.
+5. **Doc update**: [doc/Zephyr_Device_Drivers.md §6 "Repository layout"](../../doc/Zephyr_Device_Drivers.md#6-repository-layout) currently mentions `bgt60tr13c_default_config.h` under the driver dir — remove that line and add a note in §12 that the app supplies the register array.
+
+Justification cross-references [doc/Zephyr_Device_Drivers.md §12 last paragraph](../../doc/Zephyr_Device_Drivers.md#12-prjconf-and-cmake-glue) — the driver should not carry an app-specific radar recipe. Est. change: ~30 lines touched across 4 files, purely mechanical, no behaviour change.
+
+### 7. New app `10_pse84_ai_m33_udp_radar` — stream frames over UDP (medium)
+
+Combine the radar acquisition from [apps/09_pse84_ai_m33_radar/](.) with the UDP-streaming pattern from [apps/08_pse84_ai_m55_udp/](../08_pse84_ai_m55_udp/) so that raw ADC frames can be captured on a host running [apps/08_pse84_ai_m55_udp/host/udp_server.py](../08_pse84_ai_m55_udp/host/udp_server.py) for offline analysis (FFT, range-Doppler processing, ML training data).
+
+**Non-trivial design choice — which core owns Wi-Fi?**
+
+App 09 is CM33; app 08 is CM55. The AIROC/WHD Wi-Fi driver in app 08 was chosen for CM55 because of memory footprint. Two candidate architectures:
+
+- **A) Single-core CM33** — port the AIROC Wi-Fi stack to CM33 too. Simplest structure (one thread reads FIFO on IRQ, hands buffer to socket) but likely blocked by memory footprint / HAL support (needs verification).
+- **B) Dual-core CM33+CM55** — CM33 runs the radar (SPI + IRQ + FIFO drain) and forwards frames to CM55 via IPC (shared memory ring + mbox); CM55 runs Wi-Fi and UDP send. Two apps to build, more complex, but each core keeps its existing driver stack.
+
+Recommendation: attempt A first with a quick memory-footprint sanity check. Fall back to B if either the Wi-Fi driver or the memory won't cooperate.
+
+**Wire format**
+
+At 128 samples / frame × 2 bytes = **256 B / frame**, 200 fps (5 ms cadence), so ~51 kB/s = 410 kbit/s of application data. Well under UDP MTU (1472 B) and well under Wi-Fi bandwidth.
+
+Proposed payload header (16 B, little-endian) followed by the raw sample buffer:
+
+```
+offset  size  field
+0       4     magic          = 0x42475452   ('BGTR')
+4       4     seq            (u32 frame counter)
+8       8     timestamp_ns   (k_uptime_get_ns())
+16      N*2   samples[N]     (u16 little-endian, N = 128)
+```
+
+Total 272 B / packet. Simple, self-describing, versioned by the magic.
+
+**Concrete changes required**
+
+1. **New directory** `apps/10_pse84_ai_m33_udp_radar/` with the standard layout:
+   - `CMakeLists.txt` — sets `ZEPHYR_EXTRA_MODULES` for the radar driver (mirrors app 09).
+   - `prj.conf` — merges app 09's `CONFIG_BGT60TR13C=y` / `CONFIG_SPI=y` / `CONFIG_GPIO=y` with app 08's networking block (`CONFIG_NETWORKING=y`, `CONFIG_NET_IPV4=y`, `CONFIG_NET_UDP=y`, `CONFIG_NET_SOCKETS=y`, `CONFIG_NET_DHCPV4=y`, `CONFIG_WIFI=y`, plus buffer counts and heap).
+   - `boards/kit_pse84_ai_pse846gps2dbzc4a_m33.overlay` — merges the SCB3 SPI + `bgt60tr13c@0` node from app 09 with whatever Wi-Fi/SDIO wiring app 08 uses (currently a `.conf` file, no overlay — check whether Wi-Fi enablement moves to the overlay for CM33).
+   - `src/main.c` — one thread combining app 09's frame loop with app 08's `zsock_socket` / `zsock_sendto` pattern.
+   - `src/scb3_clock_fix.c` — copy from app 09 (same CLK_HF10 fix needed).
+2. **Payload builder** — a helper in `main.c` that writes the 16 B header + 256 B samples into a single 272 B buffer, then a single `zsock_sendto`. Reuse the existing `struct bgt60tr13c_api` — no driver change.
+3. **`host/udp_server.py`** — extend the existing script (which prints text JSON packets today) to detect the `'BGTR'` magic on incoming packets and, when seen, dump the binary sample block to a per-session `.raw` file plus a summary line (seq, timestamp, min/max/mean) on stdout. Add a `--format {text,radar,auto}` flag defaulting to `auto`.
+4. **Wi-Fi provisioning** — reuse app 08's shell-driven `wifi connect -s SSID -k 1 -p PASS` flow. Add `CONFIG_SHELL=y` + `CONFIG_NET_L2_WIFI_SHELL=y` to prj.conf so the user can connect interactively before starting the stream.
+5. **Config source** — depends on item 6. If item 6 is done first, app 10 gets its own `src/radar_config.h`. Otherwise app 10 `#include`s the driver's default header (same as app 09 does today).
+
+Est. size: ~250 lines of new C in `main.c`, plus prj.conf/overlay merging. Wire format above is intentionally simple to keep the offline processing script trivial.
+
+Cross-app dependency: item 6 is a prerequisite because otherwise app 10 duplicates the `#include "bgt60tr13c_default_config.h"` hack from the driver directory. Do 6 first, then 7.
