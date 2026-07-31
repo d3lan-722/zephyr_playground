@@ -1,0 +1,83 @@
+/*
+ * kit_pse84_ai board overlay for the CM55 radar streamer.
+ *
+ * Wires SCB3 (SPI master) to the BGT60TR13C on the shield header.
+ * Pins match the CM33 variant (app 09) - SoC hardware is single-instance
+ * and the M55 board DTS already enables gpio_prt21 for the SDHC block,
+ * so we only need to enable gpio_prt20 here.
+ *
+ * References:
+ *  - kit_pse84_ai_m55.dts (base):
+ *      /home/ubuntu/zephyrproject/zephyr/boards/infineon/kit_pse84_ai/
+ *      kit_pse84_ai_m55.dts
+ *  - pse84.cm55.dtsi (per-core interrupt indices for SCB3, gpio_prt20/21):
+ *      /home/ubuntu/zephyrproject/zephyr/dts/arm/infineon/edge/pse84/
+ *      pse84.cm55.dtsi
+ *  - infineon,spi binding:
+ *      https://docs.zephyrproject.org/latest/build/dts/api/bindings/spi/
+ *      infineon,spi.html
+ */
+
+/{
+        aliases {
+                radar-sensor = &bgt60tr13c_radar;
+        };
+};
+
+
+spi3: &scb3 {
+        compatible = "infineon,spi";
+        status = "okay";
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        clocks = <&peri0_group1_16bit_2>;
+
+        pinctrl-0 = <&p21_6_scb3_spi_m_clk &p21_4_scb3_spi_m_miso &p21_5_scb3_spi_m_mosi>;
+        pinctrl-names = "default";
+        cs-gpios = <&gpio_prt21 7 GPIO_ACTIVE_LOW>;
+
+        bgt60tr13c_radar: bgt60tr13c@0 {
+                compatible = "infineon,bgt60tr13c";
+                reg = <0>;
+                spi-max-frequency = <25000000>;
+                /* Datasheet-safe inter-word gap; SPI-default is
+                 * half-of-SCK (~20 ns @ 25 MHz) which is under the
+                 * chip's tSSCK setup requirement.
+                 */
+                spi-interframe-delay-ns = <200>;
+                reset-gpios = <&gpio_prt20 7 GPIO_ACTIVE_LOW>;
+                irq-gpios = <&gpio_prt20 3 GPIO_ACTIVE_HIGH>;
+        };
+};
+
+&peri0_group1_16bit_2 {
+        status = "okay";
+        clock-div = <1>;
+};
+
+&p21_6_scb3_spi_m_clk {
+        drive-strength = "full";
+        drive-push-pull;
+};
+
+&p21_4_scb3_spi_m_miso {
+        drive-strength = "full";
+        input-enable;
+};
+
+&p21_5_scb3_spi_m_mosi {
+        drive-strength = "full";
+        drive-push-pull;
+};
+
+&p21_7_scb3_spi_m_select1 {
+        drive-push-pull;
+};
+
+/* gpio_prt21 is enabled by the base M55 board DTS (SDHC block).
+ * gpio_prt20 is not enabled by default - reset + IRQ pins need it.
+ */
+&gpio_prt20 {
+        status = "okay";
+};

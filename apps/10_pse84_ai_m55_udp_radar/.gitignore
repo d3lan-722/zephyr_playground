@@ -1,0 +1,5 @@
+# Private Wi-Fi credentials never leave the workspace.
+src/wifi_credentials.h
+
+# Build artefacts (belt & suspenders - top-level .gitignore likely covers this).
+build/
