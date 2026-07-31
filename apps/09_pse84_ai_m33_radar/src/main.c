@@ -4,14 +4,14 @@
 #include <cy_sysclk.h>
 
 #include "bgt60tr13c.h"
-#include "bgt60tr13c_default_config.h"
+#include "radar_config.h"
 
 LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 
 static const struct device *radar_sensor =
     DEVICE_DT_GET(DT_ALIAS(radar_sensor));
 
-#define NUM_SAMPLES BGT60TR13C_DEFAULT_NUM_SAMPLES_PER_FRAME
+#define NUM_SAMPLES RADAR_NUM_SAMPLES_PER_FRAME
 #define NUM_FRAMES 10
 #define FRAME_PERIOD_MS 5 /* matches config frame_repetition_time_s = 5e-3 */
 
@@ -46,10 +46,9 @@ static void log_frame_stats(uint32_t frame_idx, const uint16_t *buf,
 	uint32_t mean = sum / count;
 
 	char line[128];
-	int n = snprintf(line, sizeof(line),
-			 "Frame %2u: min=%4u max=%4u mean=%4u | ",
-			 (unsigned int)frame_idx, min_val, max_val,
-			 (unsigned int)mean);
+	int n = snprintf(
+	    line, sizeof(line), "Frame %2u: min=%4u max=%4u mean=%4u | ",
+	    (unsigned int)frame_idx, min_val, max_val, (unsigned int)mean);
 
 	for (int i = 0; i < 8 && i < (int)count && n < (int)sizeof(line); i++) {
 		n += snprintf(line + n, sizeof(line) - n, "%04X ", buf[i]);
@@ -73,9 +72,8 @@ int main(void)
 	LOG_INF("Sensor ready (CHIP_ID verified during init)");
 
 	LOG_INF("Configuring sensor (%u registers)...",
-		(unsigned int)BGT60TR13C_DEFAULT_REGS_LEN);
-	ret = api->config(radar_sensor, bgt60tr13c_default_regs,
-			  BGT60TR13C_DEFAULT_REGS_LEN);
+		(unsigned int)RADAR_REGS_LEN);
+	ret = api->config(radar_sensor, radar_regs, RADAR_REGS_LEN);
 	if (ret < 0) {
 		LOG_ERR("config failed: %d", ret);
 		return ret;
@@ -103,8 +101,7 @@ int main(void)
 			(void)api->get_fifo_status(radar_sensor, &fstat);
 			LOG_ERR("Frame %u: IRQ wait failed (ret=%d, "
 				"fstat=0x%06X)",
-				(unsigned int)frame, ret,
-				(unsigned int)fstat);
+				(unsigned int)frame, ret, (unsigned int)fstat);
 			break;
 		}
 

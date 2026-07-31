@@ -149,6 +149,14 @@ Every 32-bit SPI response echoes the 8-bit `GSR0` register in the top nibble. Da
 
 `bgt60tr13c_get_fifo_data()` now examines `rx_hdr[0]` against `FOU_ERR | SPI_BURST_ERR | CLK_NUM_ERR`. Any set bit produces a single `LOG_ERR` naming the flags and returns `-EIO` without unpacking the burst payload. No changes to `read_reg` / `write_reg` / `init`, no runtime-data changes, no API change. Cost: FLASH +224 B, RAM 0. Verified silent on healthy hardware.
 
+### 6. Move `bgt60tr13c_default_config.h` out of the driver — done
+
+Moved [modules/bgt60tr13c/drivers/bgt60tr13c/bgt60tr13c_default_config.h](../../modules/bgt60tr13c/drivers/bgt60tr13c/bgt60tr13c_default_config.h) → [apps/09_pse84_ai_m33_radar/src/radar_config.h](src/radar_config.h) via `git mv`. Renamed the identifiers to app-namespace (`bgt60tr13c_default_regs` → `radar_regs`, `BGT60TR13C_DEFAULT_REGS_LEN` → `RADAR_REGS_LEN`, `BGT60TR13C_DEFAULT_NUM_SAMPLES_PER_FRAME` → `RADAR_NUM_SAMPLES_PER_FRAME`) so the file no longer masquerades as a driver default. Added an explicit `#include <zephyr/sys/util.h>` for `ARRAY_SIZE` (was previously picked up transitively through the driver include path). Fixed the file's comment header which erroneously described the recipe as an "LFSR data test" — it is a normal FMCW capture recipe.
+
+Driver side: added a paragraph to the `config()` entry of `struct bgt60tr13c_api` explaining that the register array is a caller-owned radar recipe from `bgt60-configurator-cli`. No API change, no source change to `bgt60tr13c.c`. Tutorial [doc/Zephyr_Device_Drivers.md](../../doc/Zephyr_Device_Drivers.md) §6 dropped the moved file from the repo-layout tree and gained a "Note what is not in this tree" paragraph; §12 gained a "Register array is app-owned" note explaining the boundary.
+
+Cost: FLASH byte-identical (57260 B), no runtime change; verified boot log unchanged.
+
 ---
 
 ## Open items
@@ -193,30 +201,6 @@ Reference implementation to mirror: [drivers/sensor/bosch/bmi08x/bmi08x_accel_st
 
 Est. size: ~400 lines of new code + one binding extension for the RTIO iodev. Prerequisite before proposing the driver upstream.
 
-### 6. Move `bgt60tr13c_default_config.h` out of the driver (small)
-
-The register-array config
-[modules/bgt60tr13c/drivers/bgt60tr13c/bgt60tr13c_default_config.h](../../modules/bgt60tr13c/drivers/bgt60tr13c/bgt60tr13c_default_config.h)
-encodes an **application choice**, not a chip property. Its 38 packed SPI-write words come from `bgt60-configurator-cli` with a specific JSON input:
-
-- 1 RX antenna, 1 TX antenna, `tx_power_level = 31`, `if_gain_dB = 60`
-- Chirp band 61.020 → 61.480 GHz, 1 chirp / frame, 128 samples / chirp
-- Chirp repetition 70 µs, frame repetition 5 ms, sample rate 2.33 MHz
-
-Any other use case — different bandwidth, different number of antennas, different chirp cadence for range/velocity trade-off — would want a different array. That knowledge belongs to the app, not the driver.
-
-**Concrete changes required**
-
-1. **Move the header**: `git mv modules/bgt60tr13c/drivers/bgt60tr13c/bgt60tr13c_default_config.h apps/09_pse84_ai_m33_radar/src/radar_config.h` (rename drops `_default_` since it is no longer a driver default).
-2. **App `src/main.c`**:
-   - Replace `#include "bgt60tr13c_default_config.h"` with `#include "radar_config.h"`.
-   - Rename references `bgt60tr13c_default_regs` → `radar_regs`, `BGT60TR13C_DEFAULT_REGS_LEN` → `RADAR_REGS_LEN`, `BGT60TR13C_DEFAULT_NUM_SAMPLES_PER_FRAME` → `RADAR_NUM_SAMPLES_PER_FRAME` (application namespace, not driver namespace).
-3. **Driver `CMakeLists.txt` / includes**: nothing to change — the driver never included the config header, only the app did.
-4. **Driver documentation**: add one line to the driver header noting that `api->config()` takes a caller-owned register array and pointing at `bgt60-configurator-cli` for generation. No API change.
-5. **Doc update**: [doc/Zephyr_Device_Drivers.md §6 "Repository layout"](../../doc/Zephyr_Device_Drivers.md#6-repository-layout) currently mentions `bgt60tr13c_default_config.h` under the driver dir — remove that line and add a note in §12 that the app supplies the register array.
-
-Justification cross-references [doc/Zephyr_Device_Drivers.md §12 last paragraph](../../doc/Zephyr_Device_Drivers.md#12-prjconf-and-cmake-glue) — the driver should not carry an app-specific radar recipe. Est. change: ~30 lines touched across 4 files, purely mechanical, no behaviour change.
-
 ### 7. New app `10_pse84_ai_m33_udp_radar` — stream frames over UDP (medium)
 
 Combine the radar acquisition from [apps/09_pse84_ai_m33_radar/](.) with the UDP-streaming pattern from [apps/08_pse84_ai_m55_udp/](../08_pse84_ai_m55_udp/) so that raw ADC frames can be captured on a host running [apps/08_pse84_ai_m55_udp/host/udp_server.py](../08_pse84_ai_m55_udp/host/udp_server.py) for offline analysis (FFT, range-Doppler processing, ML training data).
@@ -257,8 +241,6 @@ Total 272 B / packet. Simple, self-describing, versioned by the magic.
 2. **Payload builder** — a helper in `main.c` that writes the 16 B header + 256 B samples into a single 272 B buffer, then a single `zsock_sendto`. Reuse the existing `struct bgt60tr13c_api` — no driver change.
 3. **`host/udp_server.py`** — extend the existing script (which prints text JSON packets today) to detect the `'BGTR'` magic on incoming packets and, when seen, dump the binary sample block to a per-session `.raw` file plus a summary line (seq, timestamp, min/max/mean) on stdout. Add a `--format {text,radar,auto}` flag defaulting to `auto`.
 4. **Wi-Fi provisioning** — reuse app 08's shell-driven `wifi connect -s SSID -k 1 -p PASS` flow. Add `CONFIG_SHELL=y` + `CONFIG_NET_L2_WIFI_SHELL=y` to prj.conf so the user can connect interactively before starting the stream.
-5. **Config source** — depends on item 6. If item 6 is done first, app 10 gets its own `src/radar_config.h`. Otherwise app 10 `#include`s the driver's default header (same as app 09 does today).
+5. **Config source** — copy [apps/09_pse84_ai_m33_radar/src/radar_config.h](src/radar_config.h) into `apps/10_pse84_ai_m33_udp_radar/src/`. App 10 may want to regenerate it with a different `if_gain_dB` or chirp cadence tuned for streaming rather than terminal-log debugging.
 
 Est. size: ~250 lines of new C in `main.c`, plus prj.conf/overlay merging. Wire format above is intentionally simple to keep the offline processing script trivial.
-
-Cross-app dependency: item 6 is a prerequisite because otherwise app 10 duplicates the `#include "bgt60tr13c_default_config.h"` hack from the driver directory. Do 6 first, then 7.
