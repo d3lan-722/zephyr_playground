@@ -30,10 +30,12 @@ spi3: &scb3 {
         bgt60tr13c_radar: bgt60tr13c@0 {
                 compatible = "infineon,bgt60tr13c";
                 reg = <0>;
-                spi-max-frequency = <25000000>; /* 25 MHz max SPI frequency */
-                duplex = <0>; /* SPI_FULL_DUPLEX */
-                frame-format = <0>; /* SPI_FRAME_FORMAT_MOTOROLA */
-                spi-interframe-delay-ns = <200>; /* 200ns delay between frames */
+                spi-max-frequency = <25000000>;
+                /* Datasheet-safe inter-word gap; SPI-default is
+                 * half-of-SCK (~20 ns @ 25 MHz) which is under the
+                 * chip's tSSCK setup requirement.
+                 */
+                spi-interframe-delay-ns = <200>;
                 reset-gpios = <&gpio_prt20 7 GPIO_ACTIVE_LOW>;
                 irq-gpios = <&gpio_prt20 3 GPIO_ACTIVE_HIGH>;
         };

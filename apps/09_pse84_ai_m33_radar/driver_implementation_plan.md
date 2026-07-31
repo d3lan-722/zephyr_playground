@@ -117,3 +117,78 @@ FIFO word = 3 bytes = 2 × 12-bit ADC samples
 sample[0] = (byte[0] << 4) | (byte[1] >> 4)
 sample[1] = ((byte[1] & 0x0F) << 8) | byte[2]
 ```
+
+---
+
+## Status (as of 2026-07-31)
+
+Phases 1–4 implemented and verified on `kit_pse84_ai` (CM33). Phase 5 deliberately skipped for now — see item 4 below.
+
+- Baseline commit: `e0903a2` — polled FIFO acquisition, all frames captured.
+- IRQ commit: `b7ffe85` — `wait_fifo_ready()` on GPIO edge trigger.
+- Refactor commit: `d9155f4` — binding uses `include: spi-device.yaml`, own `CONFIG_BGT60TR13C_INIT_PRIORITY`, no more `CONFIG_SENSOR=y` dependency.
+
+Tutorials produced alongside the driver:
+- [doc/Zephyr_Interrupts.md](../../doc/Zephyr_Interrupts.md) §12 documents the IRQ path.
+- [doc/Zephyr_Device_Drivers.md](../../doc/Zephyr_Device_Drivers.md) uses this driver as the running example.
+
+---
+
+## Open items
+
+Ordered by cost. Numbered so we can reference them by ID.
+
+### 1. Trim the overlay (small)
+
+Now that the binding pulls in `spi-device.yaml`, the standard SPI child
+properties are inherited with defaults. The overlay
+[boards/kit_pse84_ai_pse846gps2dbzc4a_m33.overlay](boards/kit_pse84_ai_pse846gps2dbzc4a_m33.overlay)
+still sets:
+
+- `duplex = <0>` — matches the default in `spi-device.yaml`, drop.
+- `frame-format = <0>` — matches the default, drop.
+- `spi-interframe-delay-ns = <200>` — the default of 0 means "half of SCK period", which for 25 MHz SCK is 20 ns. Keep the explicit 200 ns as a datasheet-safe margin; document why in the overlay.
+
+Verification: pristine build must produce byte-identical `spi_config.operation` and `.word_delay` fields for the sensor instance (the two dropped properties both encode as 0 in the `.operation` OR).
+
+### 2. Log-drop cosmetic (small)
+
+`main.c` mixes `LOG_INF` (from the driver) and `printk` (from the app frame loop) on the same console. The log subsystem back-pressures and prints `--- N messages dropped ---` mid-line. Two clean fixes:
+
+- Convert `main.c` to pure `LOG_INF` and bump `CONFIG_LOG_BUFFER_SIZE=2048`, **or**
+- Drop `CONFIG_LOG=y`, remove the driver's `LOG_MODULE_REGISTER`, and use `printk` everywhere.
+
+Prefer the first — the driver already has structured log module `bgt60tr13c` and losing that hurts debug.
+
+### 3. Saturation investigation (small–medium, no code)
+
+Every frame shows `max = 4094` (the top rail of the 12-bit ADC). Likely causes:
+
+- `if_gain_dB = 60` in the configurator input is too high for the current test scene.
+- DC offset in the IF path.
+- A strong close reflector (metal on the bench).
+
+Action: regenerate `bgt60tr13c_default_config.h` with `bgt60-configurator-cli` at `if_gain_dB = 40`, re-flash, compare. Purely a signal-processing question, not a driver bug.
+
+### 4. Migrate to `sensor_driver_api` + RTIO streaming (large)
+
+The current custom `struct bgt60tr13c_api` is documented as a bring-up shim in
+[doc/Zephyr_Device_Drivers.md §17](../../doc/Zephyr_Device_Drivers.md#17-zephyr-sensor_driver_api-vs-a-custom-api).
+Modern upstream Zephyr FIFO sensors (BMI08x, BMI270, ICM42688, BMP581) all use the standard sensor API extended with:
+
+- `SENSOR_TRIG_FIFO_WATERMARK` from the driver's GPIO ISR — replaces our per-frame `k_sem_give`.
+- `rtio_iodev` + `submit()` hook so `sensor_stream(iodev, ctx, userdata, handle)` can DMA FIFO contents into caller-supplied buffer pools.
+- A `sensor_decoder_api` that unpacks the 12-bit samples into a public frame struct.
+
+Reference implementation to mirror: [drivers/sensor/bosch/bmi08x/bmi08x_accel_stream.c](../../../../home/ubuntu/zephyrproject/zephyr/drivers/sensor/bosch/bmi08x/bmi08x_accel_stream.c).
+
+Est. size: ~400 lines of new code + one binding extension for the RTIO iodev. Prerequisite before proposing the driver upstream.
+
+### 5. GSR0 status checking (small–medium)
+
+Every 32-bit SPI response from the sensor carries a 4-bit GSR0 field in bits [27:24] (`FOU_ERR`, `SPI_BURST_ERR`, `CLK_NUM_ERR`). The masks are already defined in [bgt60tr13c.h](../../modules/bgt60tr13c/drivers/bgt60tr13c/bgt60tr13c.h) but `read_reg()` masks them off and drops them; the FIFO burst read does not check them at all. Suggested change:
+
+- Have `read_reg()` return `-EIO` on non-zero GSR0 and log which flag fired.
+- Check the burst-header GSR0 in `get_fifo_data()` before trusting the payload.
+
+This is the integrity check recommended by the Infineon reference library; without it a `CLK_NUM_ERR` (SPI misalignment) can silently corrupt a whole frame.
