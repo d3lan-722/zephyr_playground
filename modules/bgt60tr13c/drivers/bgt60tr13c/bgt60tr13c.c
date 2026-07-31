@@ -227,8 +227,7 @@ static int bgt60tr13c_init(const struct device *dev)
 			return ret;
 		}
 
-		LOG_INF("FIFO-ready IRQ wired on pin %u",
-			cfg->irq_gpio.pin);
+		LOG_INF("FIFO-ready IRQ wired on pin %u", cfg->irq_gpio.pin);
 	}
 
 	data->initialized = true;
@@ -240,14 +239,13 @@ static int bgt60tr13c_init(const struct device *dev)
  * ────────────────────────────────────────────────────────────── */
 
 static void bgt60tr13c_fifo_isr(const struct device *port,
-				struct gpio_callback *cb,
-				gpio_port_pins_t pins)
+				struct gpio_callback *cb, gpio_port_pins_t pins)
 {
 	ARG_UNUSED(port);
 	ARG_UNUSED(pins);
 
 	struct bgt60tr13c_runtime_data *data =
-		CONTAINER_OF(cb, struct bgt60tr13c_runtime_data, irq_cb);
+	    CONTAINER_OF(cb, struct bgt60tr13c_runtime_data, irq_cb);
 
 	k_sem_give(&data->fifo_ready);
 }
@@ -607,12 +605,11 @@ static const struct bgt60tr13c_api bgt60tr13c_api_funcs = {
 	    .spi = SPI_DT_SPEC_INST_GET(inst,                                  \
 					SPI_WORD_SET(8) | SPI_TRANSFER_MSB),   \
 	    .reset_gpio = GPIO_DT_SPEC_INST_GET(inst, reset_gpios),            \
-	    .irq_gpio =                                                        \
-		GPIO_DT_SPEC_INST_GET_OR(inst, irq_gpios, {0}),                \
+	    .irq_gpio = GPIO_DT_SPEC_INST_GET_OR(inst, irq_gpios, {0}),        \
 	};                                                                     \
 	DEVICE_DT_INST_DEFINE(                                                 \
 	    inst, bgt60tr13c_init, NULL, &bgt60tr13c_data_##inst,              \
 	    &bgt60tr13c_config_##inst, POST_KERNEL,                            \
-	    CONFIG_SENSOR_INIT_PRIORITY, &bgt60tr13c_api_funcs);
+	    CONFIG_BGT60TR13C_INIT_PRIORITY, &bgt60tr13c_api_funcs);
 
 DT_INST_FOREACH_STATUS_OKAY(BGT60TR13C_DEFINE)

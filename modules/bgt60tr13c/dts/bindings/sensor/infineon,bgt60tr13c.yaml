@@ -1,48 +1,25 @@
-# Description of the device
-description: Infineon BGT60TR13C 60GHz RADAR Sensor for Zephyr RTOS
+description: |
+  Infineon BGT60TR13C 60 GHz FMCW radar sensor.
 
-# Device compatibility
+  Standard SPI-child properties (reg, spi-max-frequency, duplex,
+  frame-format, spi-interframe-delay-ns, spi-cpol, spi-cpha, ...) are
+  inherited from spi-device.yaml.
+
 compatible: "infineon,bgt60tr13c"
 
-# Define required node properties
+include: spi-device.yaml
+
 properties:
-  spi-max-frequency:
-    type: int
-    required: true
-    description: Maximum SPI clock frequency in Hz
-    
-  duplex:
-    type: int
-    required: false
-    description: SPI duplex mode (0 for full duplex, 1 for half duplex)
-    default: 0
-    
-  frame-format:
-    type: int
-    required: false
-    description: SPI frame format (0 for Motorola, 1 for TI)
-    default: 0
-    
-  spi-interframe-delay-ns:
-    type: int
-    required: false
-    description: Delay between SPI frames in nanoseconds
-    default: 200
-    
   reset-gpios:
     type: phandle-array
     required: true
-    description: GPIO for sensor reset control
-    
+    description: Sensor hard reset (RSTN), typically active low.
+
   irq-gpios:
     type: phandle-array
     required: false
-    description: GPIO for interrupt from sensor
-    
-  reg:
-    type: int
-    required: true
-    description: SPI chip select identifier
-
-# This device sits on SPI bus
-on-bus: spi
+    description: |
+      FIFO-ready interrupt output from the sensor. Rising edge when
+      FIFO fill level reaches SFCTL.FIFO_CREF. If present the driver
+      signals a waiting thread via wait_fifo_ready(); if absent the
+      caller must poll get_fifo_status().
