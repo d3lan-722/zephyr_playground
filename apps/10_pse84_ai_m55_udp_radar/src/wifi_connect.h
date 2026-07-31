@@ -16,7 +16,7 @@
  * apps/08_pse84_ai_m55_udp/host/udp_server.py (or the app-10 fork of it).
  * Edit for your capture host.
  */
-#define UDP_SERVER_IP "192.168.1.100"
+#define UDP_SERVER_IP "192.168.178.22"
 #define UDP_SERVER_PORT 5005
 
 /**

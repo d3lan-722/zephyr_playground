@@ -1,5 +1,9 @@
 # Private Wi-Fi credentials never leave the workspace.
 src/wifi_credentials.h
 
+# Recorded UDP streams - transient debug data.  If you want to keep a
+# specific capture as a regression fixture, use `git add -f`.
+radar_data/
+
 # Build artefacts (belt & suspenders - top-level .gitignore likely covers this).
 build/
