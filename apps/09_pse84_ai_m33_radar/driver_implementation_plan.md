@@ -151,14 +151,20 @@ still sets:
 
 Verification: pristine build must produce byte-identical `spi_config.operation` and `.word_delay` fields for the sensor instance (the two dropped properties both encode as 0 in the `.operation` OR).
 
-### 2. Log-drop cosmetic (small)
+### 2. Log-drop cosmetic (small) — done
 
-`main.c` mixes `LOG_INF` (from the driver) and `printk` (from the app frame loop) on the same console. The log subsystem back-pressures and prints `--- N messages dropped ---` mid-line. Two clean fixes:
+`main.c` mixed `LOG_INF` (from the driver) and `printk` (from the app
+frame loop) on the same console. The log subsystem back-pressured and
+printed `--- N messages dropped ---` mid-line.
 
-- Convert `main.c` to pure `LOG_INF` and bump `CONFIG_LOG_BUFFER_SIZE=2048`, **or**
-- Drop `CONFIG_LOG=y`, remove the driver's `LOG_MODULE_REGISTER`, and use `printk` everywhere.
+Fixed by converting `main.c` to pure `LOG_INF` / `LOG_ERR`, building
+each frame stats line into a 128-byte local buffer via `snprintf` and
+logging it in a single `LOG_INF` call (so the backend either commits
+the whole frame or drops it, never splits it), and bumping
+`CONFIG_LOG_BUFFER_SIZE=4096` in prj.conf.
 
-Prefer the first — the driver already has structured log module `bgt60tr13c` and losing that hurts debug.
+Verified: 10 back-to-back frame lines print with no drops, timestamps
+spaced 5 ms apart matching the chirp cadence.
 
 ### 3. Saturation investigation (small–medium, no code)
 
