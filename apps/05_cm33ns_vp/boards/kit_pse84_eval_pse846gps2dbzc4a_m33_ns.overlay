@@ -49,3 +49,38 @@
 &peri0_group1_16bit_3   { status = "disabled"; };  /* i2c0  */
 &peri0_group1_16_5bit_0 { status = "disabled"; };  /* uart4 */
 &peri1_group2_8bit_0    { status = "disabled"; };  /* sdhc0 */
+
+/* --- Virtual-platform PMU (SystemC/TLM model) --------------------------
+ * Generic Power Modeling Unit hooked to the M33-NS bus in the SystemC
+ * model. Base address is chosen inside the free peripheral window
+ * 0x40000000 .. 0x48000000; the model accepts any base in that range.
+ */
+/ {
+	soc {
+		pmu0: pmu@40100000 {
+			compatible = "infineon,pmu-dvfs";
+			reg = <0x40100000 0x10000>;
+			status = "okay";
+
+			num-pstates = <4>;
+			transition-timeout-us = <1000>;
+
+			/* (freq-MHz, voltage-mV) pairs, one per P-state.
+			 * Ordered low-power (P0) to high-performance (P3).
+			 */
+			pstate-table = <
+				100   700
+				200   800
+				400   900
+				800  1000
+			>;
+
+			init-enable;
+			init-pstate = <0>;
+		};
+	};
+
+	aliases {
+		pmu0 = &pmu0;
+	};
+};

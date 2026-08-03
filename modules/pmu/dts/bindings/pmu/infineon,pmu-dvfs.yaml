@@ -1,0 +1,62 @@
+description: |
+  Infineon generic Power Modeling Unit (PMU) with software-driven DVFS.
+
+  The PMU exposes a 64 KB memory-mapped register block with a
+  P-state table (up to 10 entries) and a DVFS control engine that
+  can be driven either from software (register-driven mode) or from
+  a workload-level input signal (signal-driven mode).
+
+  Register map (byte offsets):
+    0x0004 DVFSCTRL         DVFS control
+    0x0008 DVFSPSTATEREQ    Target P-state request (register-driven)
+    0x000C DVFSSTATUS       Current P-state, busy / phase / error
+    0x0010 CURRVOLTMV       Current output voltage in mV (RO)
+    0x0014 CURRFREQMHZ      Current output frequency in MHz (RO)
+    0x0100 + 4*i            DVFSPSTATETABLE_PSTATE[i], i in [0..9]
+
+compatible: "infineon,pmu-dvfs"
+
+include: base.yaml
+
+properties:
+  reg:
+    required: true
+
+  num-pstates:
+    type: int
+    default: 10
+    description: |
+      Number of P-state table entries the driver will program from
+      the pstate-table property (1..10). Passed to DVFSCTRL.NUMSTATES
+      at init time.
+
+  transition-timeout-us:
+    type: int
+    default: 100
+    description: |
+      DVFS transition timeout in microseconds, written to
+      DVFSCTRL.TRANSTIMEOUT at init time.
+
+  pstate-table:
+    type: array
+    required: false
+    description: |
+      Optional flat list of (freq-MHz, voltage-mV) pairs used to
+      preload the P-state table at driver init. Length must be
+      2 * num-pstates. Entry i uses index (2*i) as frequency and
+      (2*i + 1) as voltage. If omitted, the application must program
+      the table via pmu_set_pstate() before enabling DVFS.
+
+  init-enable:
+    type: boolean
+    description: |
+      If present, the driver enables DVFS (DVFSCTRL.DVFSEN=1) at the
+      end of init after programming the table, num-states and
+      timeout. Requires pstate-table to be set.
+
+  init-pstate:
+    type: int
+    default: 0
+    description: |
+      When init-enable is set, the driver writes this P-state to
+      DVFSPSTATEREQ after enabling DVFS to drive the first target.

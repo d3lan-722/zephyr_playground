@@ -1,0 +1,26 @@
+config PMU_DVFS
+    bool "Enable Infineon generic PMU / DVFS driver"
+    default n
+    help
+      Enable this option to include the driver for the generic
+      Power Modeling Unit (PMU) with software-driven DVFS. The
+      device is memory-mapped and described in the devicetree with
+      the "infineon,pmu-dvfs" compatible.
+
+if PMU_DVFS
+
+config PMU_DVFS_INIT_PRIORITY
+    int "PMU DVFS init priority"
+    default 90
+    help
+      Device driver init priority. Lower numbers init earlier.
+
+config PMU_DVFS_LOG_LEVEL
+    int "PMU DVFS log level"
+    depends on LOG
+    range 0 4
+    default 3
+    help
+      Log level for the PMU driver (0=off, 4=debug).
+
+endif # PMU_DVFS
