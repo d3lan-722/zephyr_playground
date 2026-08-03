@@ -14,8 +14,10 @@ CM55_DIR=$HERE/cm55
 cmd=${1:-all}
 
 build() {
-    west build -p always -b "$BOARD_CM33" -d "$CM33_DIR/build" "$CM33_DIR"
-    west build -p always -b "$BOARD_CM55" -d "$CM55_DIR/build" "$CM55_DIR" -- \
+    rm -rf "$CM33_DIR/build"
+    west build -b "$BOARD_CM33" -d "$CM33_DIR/build" "$CM33_DIR" -- -DDTC_OVERLAY_FILE=$CM33_DIR/boards/kit_pse84_eval_pse846gps2dbzc4a_m33_ns.overlay
+    rm -rf  "$CM55_DIR/build"
+    west build -b "$BOARD_CM55" -d "$CM55_DIR/build" "$CM55_DIR" -- \
         -DPSE84_CM33_BUILD_DIR="$CM33_DIR/build"
 }
 

@@ -21,6 +21,9 @@
  */
 
 / {
+	chosen {
+		zephyr,ipc = &ipc0;
+	};
 	power-states {
 		cpu_sleep: cpu-sleep {
 			compatible = "zephyr,power-state";
@@ -87,4 +90,7 @@
  */
 &mcwdt0 {
 	status = "okay";
+};
+&ipc0 {
+    status = "okay";
 };
