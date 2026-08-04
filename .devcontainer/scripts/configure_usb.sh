@@ -87,6 +87,27 @@ load_usb_modules() {
     fi
 }
 
+# Function to ensure USB bind-mount source paths exist on the host
+# Arguments: None
+# Returns: None (void function)
+# Side effects:
+#   - Loads vhci_hcd kernel module (needed for USB/IP forwarding in WSL)
+#   - Creates /dev/bus/usb if missing so Docker bind mount source is valid
+#
+# Rationale: devcontainer.json bind-mounts /dev/bus/usb/ into the container.
+# Docker refuses to start the container when the source path does not exist
+# ("invalid mount config for type bind: bind source path does not exist").
+# In WSL this directory only appears after vhci_hcd is loaded AND at least
+# one USB device has been forwarded via usbipd. On a fresh boot with no
+# device attached, we must create the directory ourselves.
+ensure_usb_mount_sources() {
+    load_usb_modules
+    if [[ ! -d /dev/bus/usb ]]; then
+        echo "Creating /dev/bus/usb (missing on host - required by devcontainer bind mount)..."
+        sudo mkdir -p /dev/bus/usb || echo "Warning: Failed to create /dev/bus/usb"
+    fi
+}
+
 # Function to find suitable USB development devices
 # Arguments: None
 # Returns: Space-separated list of USB device bus IDs (e.g., "5-1 3-2") or empty string
@@ -418,10 +439,12 @@ handle_unknown_environment() {
 #   - Prints completion message and usage instructions
 main() {
     if is_wsl; then
+        ensure_usb_mount_sources
         handle_wsl_environment
     elif [[ "$OSTYPE" == "darwin"* ]]; then
         handle_macos_environment
     elif [[ "$OSTYPE" == "linux-gnu"* ]] && [[ ! -f /proc/version ]] || ! grep -qEi "(microsoft|wsl)" /proc/version; then
+        ensure_usb_mount_sources
         handle_linux_environment
     else
         handle_unknown_environment

@@ -4,7 +4,7 @@
 #
 # To add support for new hardware, add the required HAL to name-allowlist
 # below, then sync and pull the new module:
-#   cp /workspaces/radar/.devcontainer/west.yml /home/ubuntu/zephyrproject/manifest-repo/west.yml
+#   cp /workspaces/z_playground/.devcontainer/west.yml /home/ubuntu/zephyrproject/manifest-repo/west.yml
 #   cd /home/ubuntu/zephyrproject && west update
 manifest:
   remotes:
