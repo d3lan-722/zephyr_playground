@@ -21,6 +21,7 @@ target_sources(app PRIVATE
     src/shell_cmds.c
     src/cmd_noidle.c
     src/cmd_sleep.c
+    src/cmd_deep_sleep.c
     src/gpio_indicators.c
     src/diag.c
 )
