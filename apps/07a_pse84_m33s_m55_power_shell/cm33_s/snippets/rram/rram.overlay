@@ -1,0 +1,48 @@
+/*
+ * Copyright (c) 2026 Infineon Technologies AG
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Redirect zephyr,flash from the board default (`m33s_xip` in SMIF
+ * at 0x18100400) to internal RRAM. Mirrors the layout used by
+ * apps/17_pse84_ds_ram_exact/m33_s.
+ *
+ * Memory placement
+ * ----------------
+ * - SBUS alias (0x32011400) is used because CM33-S transactions
+ *   travel as Secure (HNONSEC=0). 0x32xxxxxx is the Secure SBUS view
+ *   of the same RRAM cells that CM55 sees through CBUS 0x02xxxxxx.
+ * - The `m33s_header` partition (1 KB) is relocated from the board's
+ *   SMIF default (0x18100000) to RRAM at 0x32011000 so SE-ROM finds
+ *   the signed-header record at the start of the CM33-S image.
+ * - Size (below): the RRAM `boot_partition` slot is 256 KB
+ *   (0x32011000..0x32050FFF per the SoC memory map). After the 1 KB
+ *   m33s_header at 0x32011000..0x320113FF we have 255 KB available
+ *   for code. 200 KB gives comfortable headroom for shell commands +
+ *   Zephyr subsystems while staying well clear of storage_rram at
+ *   0x32051000. Was 63 KB during early bring-up; bumped when adding
+ *   the deep_sleep / MCWDT0 work made the image no longer fit.
+ */
+
+/ {
+	chosen {
+		zephyr,flash = &m33s_rram;
+	};
+
+	m33s_rram_phy {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		m33s_rram: rram@32011400 {
+			compatible = "soc-nv-flash";
+			reg = <0x32011400 DT_SIZE_K(200)>;
+		};
+	};
+};
+
+&flash0 {
+        partitions {
+                m33s_header_rram: m33s_header@32011000 {
+                        reg = <0x32011000 0x400>;
+                };
+        };
+};

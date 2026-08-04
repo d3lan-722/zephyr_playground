@@ -1,0 +1,5 @@
+name: rram
+description: Execute from on-chip RRAM instead of off-chip SMIF flash.
+append:
+  EXTRA_DTC_OVERLAY_FILE: rram.overlay
+  EXTRA_CONF_FILE: rram.conf

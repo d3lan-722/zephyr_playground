@@ -1,0 +1,19 @@
+# App-level Kconfig for project 06.
+#
+# Zephyr's ARM_ON_ENTER_CPU_IDLE_HOOK symbol has no user prompt and
+# can only be turned on via `select` from another Kconfig. Provide a
+# thin app-visible wrapper so prj.conf can toggle it.
+
+mainmenu "Options for pse84_m33_s_shell_ulp_lp_hp"
+
+config APP_ENABLE_IDLE_HOOK
+	bool "Enable ARM idle-entry hook (required by the `noidle` shell command)"
+	default y
+	select ARM_ON_ENTER_CPU_IDLE_HOOK
+	help
+	  Enables the z_arm_on_enter_cpu_idle() hook so the `noidle`
+	  shell command in src/cmd_noidle.c can veto WFI in the idle
+	  thread. With this off, `noidle on` is a no-op (idle keeps
+	  entering WFI regardless of the flag).
+
+source "Kconfig.zephyr"
