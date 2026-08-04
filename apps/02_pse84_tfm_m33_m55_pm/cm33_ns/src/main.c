@@ -48,8 +48,8 @@
  * Phase-8 scoped attempt and what would be required to finish it.
  */
 // #define SLEEP_BETWEEN_BLINKS_MS 5 /* cpu_sleep                 */
-#define SLEEP_BETWEEN_BLINKS_MS 100 /* cpu_deep_sleep — direct PDL */
-// #define SLEEP_BETWEEN_BLINKS_MS 1500 /* system_deep_sleep       */
+// #define SLEEP_BETWEEN_BLINKS_MS 100 /* cpu_deep_sleep — direct PDL */
+#define SLEEP_BETWEEN_BLINKS_MS 1500 /* system_deep_sleep       */
 
 int main(void)
 {
