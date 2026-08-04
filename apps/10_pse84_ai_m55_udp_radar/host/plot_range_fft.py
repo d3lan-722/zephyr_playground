@@ -21,29 +21,28 @@ Usage:
 import argparse
 import sys
 
-import numpy as np
 import matplotlib.pyplot as plt
-
+import numpy as np
 
 NUM_SAMPLES = 128
 
 # Chirp parameters from radar_config.h (bgt60-configurator-cli input JSON).
 # Range resolution = c / (2 * B).  Max range = c * fs / (2 * S), where S is
 # the chirp slope in Hz/s and fs is the ADC sample rate in Hz.
-LOWER_FREQ_HZ    = 61.020_098e9
-UPPER_FREQ_HZ    = 61.479_902e9
-CHIRP_TIME_S     = 70e-6
-SAMPLE_RATE_HZ   = 2.33e6
-SPEED_OF_LIGHT   = 299_792_458.0
+LOWER_FREQ_HZ = 61.020_098e9
+UPPER_FREQ_HZ = 61.479_902e9
+CHIRP_TIME_S = 70e-6
+SAMPLE_RATE_HZ = 2.33e6
+SPEED_OF_LIGHT = 299_792_458.0
 
 
 def range_axis():
     """Return the range bin -> metres mapping for a single-shot FMCW chirp."""
     bandwidth = UPPER_FREQ_HZ - LOWER_FREQ_HZ
-    slope = bandwidth / CHIRP_TIME_S                 # Hz/s
+    slope = bandwidth / CHIRP_TIME_S  # Hz/s
     # FFT bin k corresponds to beat frequency k * fs / N
     fbeat = np.arange(NUM_SAMPLES // 2 + 1) * SAMPLE_RATE_HZ / NUM_SAMPLES
-    return SPEED_OF_LIGHT * fbeat / (2.0 * slope)    # metres
+    return SPEED_OF_LIGHT * fbeat / (2.0 * slope)  # metres
 
 
 def load_frames(path):
@@ -121,15 +120,25 @@ def plot(frames, mag_db, frame_idx, save):
 def main():
     ap = argparse.ArgumentParser(description="BGT60TR13C range-FFT viewer")
     ap.add_argument("raw", help="path to .raw file from udp_server.py --output-raw")
-    ap.add_argument("--frame", type=int, default=None,
-                    help="frame index to plot (default: middle of capture)")
-    ap.add_argument("--save", type=str, default=None,
-                    help="save PNG instead of showing interactively")
+    ap.add_argument(
+        "--frame",
+        type=int,
+        default=None,
+        help="frame index to plot (default: middle of capture)",
+    )
+    ap.add_argument(
+        "--save",
+        type=str,
+        default=None,
+        help="save PNG instead of showing interactively",
+    )
     args = ap.parse_args()
 
     frames = load_frames(args.raw)
-    print(f"Loaded {frames.shape[0]} frames of {NUM_SAMPLES} samples "
-          f"({frames.nbytes/1024:.1f} KiB)")
+    print(
+        f"Loaded {frames.shape[0]} frames of {NUM_SAMPLES} samples "
+        f"({frames.nbytes/1024:.1f} KiB)"
+    )
 
     frame_idx = args.frame if args.frame is not None else frames.shape[0] // 2
     if not (0 <= frame_idx < frames.shape[0]):
