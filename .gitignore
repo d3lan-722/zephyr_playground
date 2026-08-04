@@ -51,11 +51,14 @@ Thumbs.db
 /home/
 /tmp/
 
-# Presentations: generated artefacts
-presentations/deck.pptx
-presentations/deck.pdf
-presentations/template_pandoc.pptx
-presentations/.soffice-profile/
+# Presentations: not tracked
+presentations/
+
+# Understand-anything tool cache
+.understand-anything/
+
+# WSL / NTFS metadata
+*:Zone.Identifier
 
 # Logging
 logs/
