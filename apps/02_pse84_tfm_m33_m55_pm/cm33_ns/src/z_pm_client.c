@@ -47,3 +47,21 @@ psa_status_t z_pm_set_deep_sleep_mode(uint32_t mode)
 	return psa_call(Z_PM_SERVICE_HANDLE, Z_PM_OP_SET_DEEP_SLEEP_MODE,
 			in_vec, IOVEC_LEN(in_vec), NULL, 0);
 }
+
+psa_status_t z_pm_clk_root_select_enable(uint32_t index)
+{
+    psa_invec in_vec[] = {
+        {.base = &index, .len = sizeof(index)},
+    };
+    return psa_call(Z_PM_SERVICE_HANDLE, Z_PM_OP_CLK_ROOT_SELECT_ENABLE,
+                    in_vec, IOVEC_LEN(in_vec), NULL, 0);
+}
+
+psa_status_t z_pm_clk_root_select_disable(uint32_t index)
+{
+    psa_invec in_vec[] = {
+        {.base = &index, .len = sizeof(index)},
+    };
+    return psa_call(Z_PM_SERVICE_HANDLE, Z_PM_OP_CLK_ROOT_SELECT_DISABLE,
+                    in_vec, IOVEC_LEN(in_vec), NULL, 0);
+}

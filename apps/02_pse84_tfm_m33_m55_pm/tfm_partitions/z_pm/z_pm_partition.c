@@ -58,11 +58,14 @@
 
 #include "cy_syspm.h"
 #include "cy_sysclk.h"
+#include "cy_device.h"
 
 /* Op IDs - keep in sync with cm33_ns/src/z_pm_client.h */
 #define Z_PM_OP_PING 1
 #define Z_PM_OP_LAYER_B_INIT 2
 #define Z_PM_OP_SET_DEEP_SLEEP_MODE 3
+#define Z_PM_OP_CLK_ROOT_SELECT_ENABLE  4
+#define Z_PM_OP_CLK_ROOT_SELECT_DISABLE 5
 
 #define Z_PM_PING_COOKIE 0xABCD1234u
 
@@ -232,6 +235,40 @@ static psa_status_t z_pm_op_set_deep_sleep_mode(const psa_msg_t *msg)
 	return PSA_SUCCESS;
 }
 
+static psa_status_t z_pm_op_clk_root_select_enable(const psa_msg_t *msg)
+{
+    uint32_t index;
+    if (msg->in_size[0] < sizeof(index)) {
+        return PSA_ERROR_INVALID_ARGUMENT;
+    }
+    if (psa_read(msg->handle, 0, &index, sizeof(index)) != sizeof(index)) {
+        return PSA_ERROR_COMMUNICATION_FAILURE;
+    }
+    if (index > 15u) {
+        return PSA_ERROR_INVALID_ARGUMENT;
+    }
+    SRSS->CLK_ROOT_SELECT[index] |= (1u << 31u);
+    return PSA_SUCCESS;
+}
+
+static psa_status_t z_pm_op_clk_root_select_disable(const psa_msg_t *msg)
+{
+    uint32_t index;
+    if (msg->in_size[0] < sizeof(index)) {
+        return PSA_ERROR_INVALID_ARGUMENT;
+    }
+    if (psa_read(msg->handle, 0, &index, sizeof(index)) != sizeof(index)) {
+        return PSA_ERROR_COMMUNICATION_FAILURE;
+    }
+    if (index > 15u) {
+        return PSA_ERROR_INVALID_ARGUMENT;
+    }
+    SRSS->CLK_ROOT_SELECT[index] &= ~(1u << 31u);
+    return PSA_SUCCESS;
+}
+
+
+
 psa_status_t z_pm_service_sfn(const psa_msg_t *msg)
 {
 	switch (msg->type) {
@@ -241,6 +278,10 @@ psa_status_t z_pm_service_sfn(const psa_msg_t *msg)
 		return z_pm_op_layer_b_init(msg);
 	case Z_PM_OP_SET_DEEP_SLEEP_MODE:
 		return z_pm_op_set_deep_sleep_mode(msg);
+	case Z_PM_OP_CLK_ROOT_SELECT_ENABLE:
+    		return z_pm_op_clk_root_select_enable(msg);
+	case Z_PM_OP_CLK_ROOT_SELECT_DISABLE:
+    		return z_pm_op_clk_root_select_disable(msg);
 	default:
 		return PSA_ERROR_NOT_SUPPORTED;
 	}

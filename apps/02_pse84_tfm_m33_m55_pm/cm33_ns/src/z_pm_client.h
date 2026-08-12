@@ -38,6 +38,9 @@ extern "C" {
 #define Z_PM_OP_PING 1
 #define Z_PM_OP_LAYER_B_INIT 2
 #define Z_PM_OP_SET_DEEP_SLEEP_MODE 3
+#define Z_PM_OP_CLK_ROOT_SELECT_ENABLE  4
+#define Z_PM_OP_CLK_ROOT_SELECT_DISABLE 5
+
 
 #define Z_PM_PING_COOKIE 0xABCD1234u
 
@@ -111,6 +114,9 @@ psa_status_t z_pm_layer_b_init(void);
  * @retval PSA_ERROR_*                From psa_call.
  */
 psa_status_t z_pm_set_deep_sleep_mode(uint32_t mode);
+
+psa_status_t z_pm_clk_root_select_enable(uint32_t index);
+psa_status_t z_pm_clk_root_select_disable(uint32_t index);
 
 #ifdef __cplusplus
 }

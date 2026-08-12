@@ -49,35 +49,11 @@
  */
 // #define SLEEP_BETWEEN_BLINKS_MS 5 /* cpu_sleep                 */
 // #define SLEEP_BETWEEN_BLINKS_MS 100 /* cpu_deep_sleep — direct PDL */
- #define SLEEP_BETWEEN_BLINKS_MS 1500 /* system_deep_sleep       */
-volatile int instrumentation_marker;
-extern volatile uint32_t scb_enabled_before;
-extern volatile uint32_t scb_enabled_after;
-/* Trigger function: marks the point where instrumentation should
- * START recording. Referenced by CONFIG_INSTRUMENTATION_TRIGGER_FUNCTION.
- */
+#define SLEEP_BETWEEN_BLINKS_MS 1500 /* system_deep_sleep       */
 
-//Compiler options
-// - used: Avoid optimization due to lack of use
-// - noinline: Function as an external entity, real function calls.
-__attribute__((used, noinline))
-void instrumentation_trigger(void)
-{
-    instrumentation_marker = 1;
-}
-
-/* Stopper function: marks the point where instrumentation should
- * stop recording. Referenced by CONFIG_INSTRUMENTATION_STOPPER_FUNCTION.
- */
-
-__attribute__((used, noinline))
-void instrumentation_stopper(void)
-{
-    instrumentation_marker = 2;
-}
 int main(void)
 {
-	printf("CM33-NS indicator blinky on %s\n", CONFIG_BOARD);
+	//printf("CM33-NS indicator blinky on %s\n", CONFIG_BOARD);
 
 	indicator_init();
 
@@ -89,27 +65,18 @@ int main(void)
 	psa_status_t st = z_pm_ping(&cookie);
 
 	if (st == PSA_SUCCESS && cookie == Z_PM_PING_COOKIE) {
-		printf("z_pm ping ok: cookie=0x%08x\n", cookie);
+		//printf("z_pm ping ok: cookie=0x%08x\n", cookie);
 	} else {
-		printf("z_pm ping FAIL: status=%d cookie=0x%08x\n", (int)st,
-		
-		cookie);
+		//printf("z_pm ping FAIL: status=%d cookie=0x%08x\n", (int)st,
+		//       cookie);
 	}
 
-	indicator_active_on();
-	k_busy_wait(BLINK_ON_MS * 1000U);
-	instrumentation_trigger();
-	indicator_active_off();
-	k_msleep(SLEEP_BETWEEN_BLINKS_MS);
-	instrumentation_stopper();
-
 	while (1) {
-		k_busy_wait(100000); 
-		printf("%u %u\n", (unsigned)scb_enabled_before, (unsigned)scb_enabled_after);
+		indicator_active_on();
+		k_busy_wait(BLINK_ON_MS * 1000U);
+		indicator_active_off();
+		k_msleep(SLEEP_BETWEEN_BLINKS_MS);
 	}
 
 	return 0;
 }
-
-
-
