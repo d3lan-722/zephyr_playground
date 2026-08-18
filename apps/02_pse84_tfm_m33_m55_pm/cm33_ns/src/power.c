@@ -35,7 +35,6 @@
 #include <zephyr/kernel.h>
 #include <zephyr/init.h>
 #include <zephyr/pm/pm.h>
-#include <zephyr/sys/printk.h>
 
 #include <cmsis_core.h>
 
@@ -81,10 +80,10 @@ static inline void pm_irq_prologue(void)
  */
 static void enter_cpu_sleep(void)
 {
-	indicator_cpu_sleep_on();
+	//indicator_cpu_sleep_on();
 	pm_irq_prologue();
 	(void)Cy_SysPm_CpuEnterSleep(CY_SYSPM_WAIT_FOR_INTERRUPT);
-	indicator_cpu_sleep_off();
+	//indicator_cpu_sleep_off();
 }
 
 /**
@@ -103,10 +102,10 @@ static void enter_cpu_sleep(void)
  */
 static void enter_cpu_deep_sleep(void)
 {
-	indicator_cpu_deep_sleep_on();
+	//indicator_cpu_deep_sleep_on();
 	pm_irq_prologue();
 	(void)Cy_SysPm_CpuEnterDeepSleep(CY_SYSPM_WAIT_FOR_INTERRUPT);
-	indicator_cpu_deep_sleep_off();
+	//indicator_cpu_deep_sleep_off();
 }
 
 /**
@@ -141,20 +140,17 @@ static void enter_cpu_deep_sleep(void)
  */
 static void enter_system_deep_sleep(void)
 {
-	indicator_system_deep_sleep_on();
+	//indicator_system_deep_sleep_on();
 
 	psa_status_t st =
 	    z_pm_set_deep_sleep_mode((uint32_t)CY_SYSPM_MODE_DEEPSLEEP);
 	if (st != PSA_SUCCESS) {
-		printk("pm: z_pm_set_deep_sleep_mode(DEEPSLEEP) failed: %d\n",
-		       (int)st);
-		/* Fall through: still enter CPU DS. Worse current, but
-		 * the wake path is unaffected. */
+
 	}
 
 	pm_irq_prologue();
 	(void)Cy_SysPm_CpuEnterDeepSleep(CY_SYSPM_WAIT_FOR_INTERRUPT);
-	indicator_system_deep_sleep_off();
+	//indicator_system_deep_sleep_off();
 }
 
 /**
@@ -205,8 +201,6 @@ void pm_state_set(enum pm_state state, uint8_t substate_id)
 			enter_system_deep_sleep();
 			break;
 		default:
-			printk("pm: STANDBY substate %u not implemented\n",
-			       substate_id);
 			break;
 		}
 		break;
@@ -292,9 +286,7 @@ static int ns_layer_b_init(void)
 	psa_status_t st = z_pm_layer_b_init();
 
 	if (st == PSA_SUCCESS) {
-		printk("z_pm layer-B init ok\n");
 	} else {
-		printk("z_pm layer-B init FAIL: status=%d\n", (int)st);
 	}
 	return 0;
 }

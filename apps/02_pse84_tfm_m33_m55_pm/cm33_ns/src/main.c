@@ -7,7 +7,6 @@
  * Phase 1 of the porting plan: drive the green RGB indicator only,
  * no PM core involvement yet.
  */
-
 #include <stdio.h>
 #include <zephyr/kernel.h>
 
@@ -47,16 +46,47 @@
  * TODO for future implementation; see DS_RAM_RETROSPECTIVE.md for the
  * Phase-8 scoped attempt and what would be required to finish it.
  */
-// #define SLEEP_BETWEEN_BLINKS_MS 5 /* cpu_sleep                 */
+ #define SLEEP_BETWEEN_BLINKS_MS 5 /* cpu_sleep                 */
 // #define SLEEP_BETWEEN_BLINKS_MS 100 /* cpu_deep_sleep — direct PDL */
-#define SLEEP_BETWEEN_BLINKS_MS 1500 /* system_deep_sleep       */
+// #define SLEEP_BETWEEN_BLINKS_MS 1500 /* system_deep_sleep       */
+
+
+volatile int instrumentation_marker;
+volatile uint32_t heartbeat;
+
+
+/* Trigger function: marks the point where instrumentation should
+ * START recording. Referenced by CONFIG_INSTRUMENTATION_TRIGGER_FUNCTION.
+ */
+ 
+//Compiler options
+// - used: Avoid optimization due to lack of use
+// - noinline: Function as an external entity, real function calls.
+__attribute__((used, noinline))
+void instrumentation_trigger(void)
+{
+    instrumentation_marker = 1;
+}
+ 
+ 
+ 
+/* Stopper function: marks the point where instrumentation should
+ * stop recording. Referenced by CONFIG_INSTRUMENTATION_STOPPER_FUNCTION.
+ */
+ 
+__attribute__((used, noinline))
+void instrumentation_stopper(void)
+{
+    instrumentation_marker = 2;
+}
 
 int main(void)
 {
 	//printf("CM33-NS indicator blinky on %s\n", CONFIG_BOARD);
 
 	indicator_init();
-
+	heartbeat = 0;
+	bool flag = 0;
 	/* Phase 6 step 1: ping the z_pm secure partition to validate the
 	 * out-of-tree partition + PSA call infrastructure end-to-end.
 	 * Logs the result once at boot; does not affect the blink loop.
@@ -70,12 +100,55 @@ int main(void)
 		//printf("z_pm ping FAIL: status=%d cookie=0x%08x\n", (int)st,
 		//       cookie);
 	}
+	indicator_active_off();
 
+	//clk_st = z_pm_clk_root_select_disable(6u);
+	//clk_st = z_pm_clk_root_select_disable(7u);
+	//clk_st = z_pm_clk_root_select_disable(8u);
+	//cookie = 0;
+	//k_busy_wait(BLINK_ON_MS * 1000U);
+	//cookie = cookie + 1;
+	//instrumentation_trigger();
+	//k_msleep(SLEEP_BETWEEN_BLINKS_MS);
+	//cookie++;
+	//instrumentation_stopper();
+	//if (cookie==5){
+	//	indicator_active_on();
+	//}
+	//k_busy_wait(100000);
+	//instrumentation_trigger();
+	psa_status_t clk_st = z_pm_clk_root_select_disable(10u);
+	//instrumentation_trigger();	
+	k_msleep(SLEEP_BETWEEN_BLINKS_MS);
+	//instrumentation_stopper();
+	clk_st = z_pm_clk_root_select_enable(10u);
+	flag = 1; 
+	k_busy_wait(500000);
+	indicator_active_on();
+	
+	
 	while (1) {
-		indicator_active_on();
+		
+		heartbeat++;
+		//k_busy_wait(50000);
 		k_busy_wait(BLINK_ON_MS * 1000U);
 		indicator_active_off();
-		k_msleep(SLEEP_BETWEEN_BLINKS_MS);
+		//if (flag == 0){
+			//instrumentation_trigger();
+			clk_st = z_pm_clk_root_select_disable(10u);
+			k_msleep(SLEEP_BETWEEN_BLINKS_MS);
+			//instrumentation_stopper();
+			clk_st = z_pm_clk_root_select_enable(10u);
+			indicator_active_on();
+		//}else{
+		//	k_busy_wait(100000);
+			//k_msleep(SLEEP_BETWEEN_BLINKS_MS);
+		//	indicator_active_on();
+		//}
+		
+
+		//k_busy_wait(100000);
+		//printk("%u\n", (unsigned)cookie);*/
 	}
 
 	return 0;

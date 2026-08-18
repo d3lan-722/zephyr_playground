@@ -43,8 +43,8 @@ void indicator_init(void)
 	(void)gpio_pin_configure_dt(&led_blue, GPIO_OUTPUT_INACTIVE);
 }
 
-void indicator_active_on(void) { led_set(&led_red, 1); }
-void indicator_active_off(void) { led_set(&led_red, 0); }
+void indicator_active_on(void) { led_set(&led_green, 1); }
+void indicator_active_off(void) { led_set(&led_green, 0); }
 
 void indicator_cpu_sleep_on(void) { led_set(&led_red, 1); }
 void indicator_cpu_sleep_off(void) { led_set(&led_red, 0); }
