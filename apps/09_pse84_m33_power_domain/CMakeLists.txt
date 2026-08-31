@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+cmake_minimum_required(VERSION 3.28.0)
+
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(pse84_power_domain)
+
+target_sources(app PRIVATE
+    src/main.c
+)
+
+target_sources_ifdef(CONFIG_PM_DEVICE_POWER_DOMAIN app PRIVATE
+    src/infineon_power_domain.c
+)

@@ -1,0 +1,12 @@
+/{
+	hf_clock_domain_10: hf_clock_domain_10 {
+		compatible = "power-domain";
+		#power-domain-cells = <0>;
+		zephyr,pm-device-runtime-auto;
+	};
+
+};
+&scb2{
+	zephyr,pm-device-runtime-auto;
+	power-domains = <&hf_clock_domain_10>;
+};
