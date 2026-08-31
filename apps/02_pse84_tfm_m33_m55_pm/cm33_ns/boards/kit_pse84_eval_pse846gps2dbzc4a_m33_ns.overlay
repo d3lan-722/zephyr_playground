@@ -23,8 +23,6 @@
 / {
 	chosen {
 		zephyr,ipc = &ipc0;
-		zephyr,console = &scb1;
-   		zephyr,shell-uart = &scb1;
 	};
 	power-states {
 		cpu_sleep: cpu-sleep {
@@ -96,18 +94,7 @@
 &ipc0 {
     status = "okay";
 };
-
-&uart2{
-    status = "disabled";
-};
-&scb1 {
-    compatible = "infineon,uart";
-        status = "disabled";
-        current-speed = <115200>;
-	pinctrl-0 = < &p6_7_scb2_uart_tx &p6_5_scb2_uart_rx >;
-	pinctrl-names = "default"; 
-};
-&bt_hci_uart{
+&scb4{
     status = "disabled";
 };
 

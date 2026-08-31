@@ -12,6 +12,7 @@
 
 #include "indicator.h"
 #include "z_pm_client.h"
+#include "cy_device.h"
 
 #define BLINK_ON_MS 200
 
@@ -48,13 +49,17 @@
  */
  #define SLEEP_BETWEEN_BLINKS_MS 5 /* cpu_sleep                 */
 // #define SLEEP_BETWEEN_BLINKS_MS 100 /* cpu_deep_sleep — direct PDL */
-// #define SLEEP_BETWEEN_BLINKS_MS 1500 /* system_deep_sleep       */
+//#define SLEEP_BETWEEN_BLINKS_MS 1500 /* system_deep_sleep       */
 
 
 volatile int instrumentation_marker;
 volatile uint32_t heartbeat;
-
-
+//extern uint32_t scb_enabled_before;
+volatile uint32_t *peri0_gr1_address = 0x00000000;
+volatile uint32_t peri0_gr1_scb2;
+volatile uint32_t scb_before = 0xAAAAAAAA;
+volatile uint32_t scb_after  = 0x55555555;
+volatile uint32_t *auxiliar =0x00000000 ;
 /* Trigger function: marks the point where instrumentation should
  * START recording. Referenced by CONFIG_INSTRUMENTATION_TRIGGER_FUNCTION.
  */
@@ -95,12 +100,12 @@ int main(void)
 	psa_status_t st = z_pm_ping(&cookie);
 
 	if (st == PSA_SUCCESS && cookie == Z_PM_PING_COOKIE) {
-		//printf("z_pm ping ok: cookie=0x%08x\n", cookie);
+		printf("z_pm ping ok: cookie=0x%08x\n", cookie);
 	} else {
 		//printf("z_pm ping FAIL: status=%d cookie=0x%08x\n", (int)st,
 		//       cookie);
 	}
-	indicator_active_off();
+	//indicator_active_off();
 
 	//clk_st = z_pm_clk_root_select_disable(6u);
 	//clk_st = z_pm_clk_root_select_disable(7u);
@@ -117,29 +122,68 @@ int main(void)
 	//}
 	//k_busy_wait(100000);
 	//instrumentation_trigger();
-	psa_status_t clk_st = z_pm_clk_root_select_disable(10u);
+	//psa_status_t clk_st = z_pm_clk_root_select_disable(10u);
 	//instrumentation_trigger();	
-	k_msleep(SLEEP_BETWEEN_BLINKS_MS);
+	//k_msleep(SLEEP_BETWEEN_BLINKS_MS);
 	//instrumentation_stopper();
-	clk_st = z_pm_clk_root_select_enable(10u);
-	flag = 1; 
-	k_busy_wait(500000);
-	indicator_active_on();
+	//clk_st = z_pm_clk_root_select_enable(10u);
+	//k_busy_wait(0000);
+	//indicator_active_on();
 	
-	
-	while (1) {
-		
-		heartbeat++;
-		//k_busy_wait(50000);
+	/*SLAVE CONTROL
+		peri0_gr1_address = &PERI_GR_SL_CTL(0,1);
+		peri0_gr1_scb2 = (PERI_GR_SL_CTL(0,1) >> 7u) & 1u;
+		PERI_GR_SL_CTL(0, 1) &= ~(1u << 7);
+	*/
+
+
+	/*POWER DOMAINS
+	*/
+		//auxiliar = &CY_PDCM_PD_SENSE(0);
+		//scb_before = PWRMODE_BASE;
+		psa_status_t op_result = z_pm_read_register(PWRMODE_BASE,&heartbeat);
+		//heartbeat = *(uint32_t *)CY_PPU_PD1_BASE;
+		//printk("%u\n",auxiliar);
+		//*(volatile uint32_t *)CY_PPU_PD0_BASE &= ~(0xFu);  
+
+
+
+	while(1){
 		k_busy_wait(BLINK_ON_MS * 1000U);
-		indicator_active_off();
+		printk("%u\n",heartbeat);
+		//indicator_active_off();
 		//if (flag == 0){
 			//instrumentation_trigger();
-			clk_st = z_pm_clk_root_select_disable(10u);
-			k_msleep(SLEEP_BETWEEN_BLINKS_MS);
+			//clk_st = z_pm_clk_root_select_disable(10u);
+
+			//scb_before = (SCB_CTRL(0x42990000) >> 28U) & 1U;;
+			//SCB_CTRL(0x429A0000) &= ~(1U << 28U);
+		//k_msleep(SLEEP_BETWEEN_BLINKS_MS);
+		//indicator_active_on();
+
+	}
+		//k_busy_wait(50000);
+		
+		//indicator_active_off();
+		//if (flag == 0){
+			//instrumentation_trigger();
+			//clk_st = z_pm_clk_root_select_disable(10u);
+
+			//scb_before = (SCB_CTRL(0x42990000) >> 28U) & 1U;;
+			//SCB_CTRL(0x429A0000) &= ~(1U << 28U);
 			//instrumentation_stopper();
-			clk_st = z_pm_clk_root_select_enable(10u);
-			indicator_active_on();
+			//clk_st = z_pm_clk_root_select_enable(10u);
+			//scb_after = (SCB_CTRL(0x429A0000) >> 28U) & 1U;
+			//SCB_CTRL(0x429A0000) |= (1U << 28U);
+			//indicator_active_on();
+			/*while(1){
+				k_busy_wait(50000);
+				//printk("%p\n", (void*)peri0_gr1_address);
+			/	printk("%u\n",peri0_gr1_scb2);
+				//printk("Before: %u, After: %u\n", (unsigned)scb_before, (unsigned)scb_after);
+
+				//printk("a");
+			}*/
 		//}else{
 		//	k_busy_wait(100000);
 			//k_msleep(SLEEP_BETWEEN_BLINKS_MS);
@@ -149,7 +193,7 @@ int main(void)
 
 		//k_busy_wait(100000);
 		//printk("%u\n", (unsigned)cookie);*/
-	}
+
 
 	return 0;
 }

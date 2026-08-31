@@ -40,7 +40,8 @@ extern "C" {
 #define Z_PM_OP_SET_DEEP_SLEEP_MODE 3
 #define Z_PM_OP_CLK_ROOT_SELECT_ENABLE  4
 #define Z_PM_OP_CLK_ROOT_SELECT_DISABLE 5
-
+#define Z_PM_OP_READ_REGISTER 6
+//#define Z_PM_OP_WRITE_REGISTER 7
 
 #define Z_PM_PING_COOKIE 0xABCD1234u
 
@@ -117,6 +118,8 @@ psa_status_t z_pm_set_deep_sleep_mode(uint32_t mode);
 
 psa_status_t z_pm_clk_root_select_enable(uint32_t index);
 psa_status_t z_pm_clk_root_select_disable(uint32_t index);
+psa_status_t z_pm_read_register(uint32_t address, uint32_t *value);
+//psa_status_t z_pm_write_register(uint32_t address, uint32_t value);
 
 #ifdef __cplusplus
 }

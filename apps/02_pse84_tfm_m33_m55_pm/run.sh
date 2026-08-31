@@ -4,8 +4,8 @@
 # CM55 is flashed first (CM33-NS jumps to it on boot).
 set -euo pipefail
 
-BOARD_CM33=kit_pse84_ai/pse846gps2dbzc4a/m33/ns
-BOARD_CM55=kit_pse84_ai/pse846gps2dbzc4a/m55
+BOARD_CM33=kit_pse84_eval/pse846gps2dbzc4a/m33/ns
+BOARD_CM55=kit_pse84_eval/pse846gps2dbzc4a/m55
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 CM33_DIR=$HERE/cm33_ns

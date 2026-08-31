@@ -8,19 +8,3 @@
 &ipc0 {
     status = "okay";
 };
-
-&uart2{
-    status = "disabled";
-};
-
-&bt_hci_uart{
-    status = "disabled";
-};
-
-&scb1 {
-    compatible = "infineon,uart";
-        status = "disabled";
-        current-speed = <115200>;
-	pinctrl-0 = < &p6_7_scb2_uart_tx &p6_5_scb2_uart_rx >;
-	pinctrl-names = "default"; 
-};

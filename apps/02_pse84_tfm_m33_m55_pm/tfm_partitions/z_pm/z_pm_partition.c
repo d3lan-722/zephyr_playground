@@ -66,7 +66,8 @@
 #define Z_PM_OP_SET_DEEP_SLEEP_MODE 3
 #define Z_PM_OP_CLK_ROOT_SELECT_ENABLE  4
 #define Z_PM_OP_CLK_ROOT_SELECT_DISABLE 5
-
+#define Z_PM_OP_READ_REGISTER 6
+//#define Z_PM_OP_WRITE_REGISTER 7
 #define Z_PM_PING_COOKIE 0xABCD1234u
 
 static psa_status_t z_pm_op_ping(const psa_msg_t *msg)
@@ -267,7 +268,29 @@ static psa_status_t z_pm_op_clk_root_select_disable(const psa_msg_t *msg)
     return PSA_SUCCESS;
 }
 
+static psa_status_t z_pm_op_read_register(const psa_msg_t *msg)
+{
+    uint32_t address;
+    uint32_t value;
 
+    if (msg->in_size[0] < sizeof(address)) {
+        return PSA_ERROR_INVALID_ARGUMENT;
+    }
+    if (msg->out_size[0] < sizeof(value)) {
+        return PSA_ERROR_INVALID_ARGUMENT;
+    }
+
+
+    if (psa_read(msg->handle, 0, &address, sizeof(address)) != sizeof(address)) {
+        return PSA_ERROR_COMMUNICATION_FAILURE;
+    }
+
+    value = *(uint32_t *)address;
+    
+    psa_write(msg->handle, 0, &value, sizeof(value));
+
+    return PSA_SUCCESS;
+}
 
 psa_status_t z_pm_service_sfn(const psa_msg_t *msg)
 {
@@ -282,6 +305,8 @@ psa_status_t z_pm_service_sfn(const psa_msg_t *msg)
     		return z_pm_op_clk_root_select_enable(msg);
 	case Z_PM_OP_CLK_ROOT_SELECT_DISABLE:
     		return z_pm_op_clk_root_select_disable(msg);
+	case Z_PM_OP_READ_REGISTER:
+		return z_pm_op_read_register(msg);
 	default:
 		return PSA_ERROR_NOT_SUPPORTED;
 	}

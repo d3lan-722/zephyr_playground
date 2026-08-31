@@ -59,9 +59,36 @@ psa_status_t z_pm_clk_root_select_enable(uint32_t index)
 
 psa_status_t z_pm_clk_root_select_disable(uint32_t index)
 {
-    psa_invec in_vec[] = {
-        {.base = &index, .len = sizeof(index)},
-    };
+    	psa_invec in_vec[] = {
+        	{.base = &index, .len = sizeof(index)},
+    	};
     return psa_call(Z_PM_SERVICE_HANDLE, Z_PM_OP_CLK_ROOT_SELECT_DISABLE,
                     in_vec, IOVEC_LEN(in_vec), NULL, 0);
 }
+
+psa_status_t z_pm_read_register(uint32_t address, uint32_t *value)
+{
+    	psa_invec in_vec[] = {
+        	{ .base = &address, .len = sizeof(address) },
+    	};
+
+    	psa_outvec out_vec[] = {
+        	{ .base = value, .len = sizeof(*value) },
+    	};
+
+    	return psa_call(Z_PM_SERVICE_HANDLE, Z_PM_OP_READ_REGISTER,
+                   	in_vec, IOVEC_LEN(in_vec),
+                    	out_vec, IOVEC_LEN(out_vec));
+}
+
+/*psa_status_t z_pm_write_register(uint32_t address, uint32_t value)
+{
+    	 psa_invec in_vec[] = {
+        	{ .base = &address, .len = sizeof(address) },
+        	{ .base = &value,   .len = sizeof(value)   },
+   	 };
+
+    return psa_call(Z_PM_SERVICE_HANDLE, Z_PM_OP_WRITE_REGISTER,
+                    in_vec, IOVEC_LEN(in_vec),
+                    out_vec, IOVEC_LEN(out_vec));
+}*/
