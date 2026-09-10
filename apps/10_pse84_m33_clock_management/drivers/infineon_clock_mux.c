@@ -27,6 +27,11 @@ struct clock_mux_config {
 
 };
 
+static int mux_clock_onoff(const struct clk *clk_hw, bool on){
+	return 0;
+}
+
+
 static int configure_mux_recalc(const struct clk *clk_hw, const void *data){
 	const uint32_t *mux_data = (uint32_t *)data;
 	return (int)*mux_data;
@@ -71,7 +76,10 @@ static int ifx_cat1_mux_get_parent(const struct clk *clk_hw)
 
 /*clock driver API implementation*/
 const struct clock_management_mux_api ifx_cat1_path_mux_api = {
-	.shared.configure = mux_configure,
+	.shared = {
+		.configure = mux_configure,
+		.on_off = mux_clock_onoff,
+	},
 	.get_parent = ifx_cat1_mux_get_parent,
 #if defined(CONFIG_CLOCK_MANAGEMENT_RUNTIME)
 	.mux_configure_recalc = configure_mux_recalc,

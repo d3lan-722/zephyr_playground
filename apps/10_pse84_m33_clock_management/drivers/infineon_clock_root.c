@@ -13,6 +13,10 @@ struct clock_root_config {
 	uint8_t system_clock;
 };
 
+static int root_clock_onoff(const struct clk *clk_hw, bool on){
+	return 0;
+}
+
 static clock_freq_t configure_root_recalc(const struct clk *clk_hw, const void *data){
 	const struct clock_root_config *config = clk_hw->hw_data;
 	const uint32_t *root_data = (uint32_t *)data;
@@ -60,7 +64,10 @@ static clock_freq_t root_get_rate(const struct clk *clk_hw)
 
 /*clock driver API implementation*/
 const struct clock_management_root_api ifx_root_api = {
-	.shared.configure = root_configure,
+	.shared = {
+		.configure = root_configure,
+		.on_off = root_clock_onoff,
+	},
 	.get_rate = root_get_rate,
 #if defined(CONFIG_CLOCK_MANAGEMENT_RUNTIME)
 	.root_configure_recalc = configure_root_recalc,

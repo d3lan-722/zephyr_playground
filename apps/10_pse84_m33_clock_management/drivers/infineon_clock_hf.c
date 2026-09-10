@@ -66,11 +66,12 @@ static int hf_clock_onoff(const struct clk *clk_hw, bool on){
 	}
 	return 0;
 }
-static int ifx_hf_get_parent(const struct clk *clk_hw)
-{
-	const struct clock_hf_config *config = clk_hw->hw_data;
-	uint32_t sel = (uint32_t)Cy_SysClk_ClkHfGetSource(config->instance);
-	return sel;
+static int ifx_hf_get_parent(const struct clk *clk_hw){
+	/*const struct clock_hf_config *config = clk_hw->hw_data;
+	uint32_t parent = (uint32_t)Cy_SysClk_ClkHfGetSource(config->instance)-1;
+	return parent;
+	*/
+	return 0;
 }
 
 
