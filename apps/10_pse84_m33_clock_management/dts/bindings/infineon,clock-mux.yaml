@@ -1,0 +1,29 @@
+description: Infineon CAT1 Clock Root Mux
+compatible: "infineon,clock-mux"
+
+include: [clock-node.yaml]
+
+properties:
+
+  system-clock:
+    type: int
+    required: true
+    description: |
+      The type of clock (refer to include/.../dt-bindings/clock/ifx_clock_source_common.h):
+
+  instance:
+    type: int
+    required: true
+    description: |
+      Instance of a given high frequency mux.
+
+  input-sources:
+    type: phandles
+    required: true
+    description: List of clock path sources
+
+  "#clock-cells":
+    const: 1
+
+clock-cells:
+  - mux

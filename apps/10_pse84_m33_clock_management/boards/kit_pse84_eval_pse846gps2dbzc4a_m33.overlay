@@ -1,0 +1,48 @@
+&clk_iho {
+	#clock-cells = <1>;
+	compatible = "infineon,clock-root";
+};
+&path_mux1 {
+	#clock-cells = <1>;
+	compatible = "infineon,clock-mux";
+	input-sources = <&clk_iho>;
+	/delete-property/ source-path;
+};
+&dpll_lp1 {
+	#clock-cells = <7>;
+	compatible = "infineon,clock-pll";
+	clock-frequency = < 0x17d78400 >;
+	feedback-div = < 0x38 >;
+	output-div = < 0x1 >;
+	fraction-div = < 0x0 >;
+	input = <&path_mux1>;
+	dco-mode-enable;
+};
+&clk_hf10 {
+	#clock-cells = <2>;
+	input-sources = <&dpll_lp1>;
+	compatible = "infineon,clock-hf";
+	clock-div = < 0x3 >;
+	/delete-property/ source-path;
+	clk_output_hf10: clk_output_hf10 {
+		#clock-cells = <0>;
+		compatible = "clock-output";
+		clk_output_hf10_default_state: clk_output_hf10_default_state {
+			compatible = "clock-state";
+			clocks = <&clk_iho 0x2faf080>, <&path_mux1 0>, <&dpll_lp1 1 0 56 7 1 1 0>, <&clk_hf10 0 3>;
+		};
+	};
+};
+&scb2 {
+	clock-outputs = <&clk_output_hf10>;
+	clock-output-names = "uart_clk";
+	clock-request-0 = <&clk_output_hf10_default_state>;
+	clock-request-names = "default";
+};
+&scb4 {
+	clock-outputs = <&clk_output_hf10>;
+	clock-output-names = "uart_clk";
+	clock-request-0 = <&clk_output_hf10_default_state>;
+	clock-request-names = "default";
+	status = "disabled";
+};

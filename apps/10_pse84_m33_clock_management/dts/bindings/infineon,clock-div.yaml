@@ -1,0 +1,31 @@
+# Copyright (c) 2025 Cypress Semiconductor Corporation (an Infineon company) or
+# an affiliate of Cypress Semiconductor Corporation
+#
+# SPDX-License-Identifier: Apache-2.0
+
+description: Generic fixed-rate clock provider
+
+compatible: "infineon,clock-div"
+
+include: fixed-factor-clock.yaml
+
+properties:
+  instance:
+    type: int
+    required: true
+    description: |
+      Instance of a given clock type.
+      clk_hf0   : instance = <0>
+
+  input:
+    type: phandle
+    required: true
+    description: Clock-path multiplexer supplying the DPLL reference.
+
+    
+  "#clock-cells":
+    type: int
+    const: 1
+
+clock-cells:
+  - div

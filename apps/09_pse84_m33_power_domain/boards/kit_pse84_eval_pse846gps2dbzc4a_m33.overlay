@@ -2,9 +2,14 @@
 	hf_clock_domain_10: hf_clock_domain_10 {
 		compatible = "power-domain";
 		#power-domain-cells = <0>;
+		power-domains = <&clk_path_1_domain>;
 		zephyr,pm-device-runtime-auto;
 	};
-
+	clk_path_1_domain: clk_path_1_domain{
+		compatible = "power-domain";
+		#power-domain-cells = <0>;
+		zephyr,pm-device-runtime-auto;
+	};
 };
 &scb2{
 	zephyr,pm-device-runtime-auto;

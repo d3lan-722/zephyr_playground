@@ -42,7 +42,6 @@ int main(void)
     enum pm_device_state state;
     int rc;
 
-    /* Estado ANTES de cualquier printk */
     rc = pm_device_state_get(domain, &state);
     if (rc == 0) {
         if (state == PM_DEVICE_STATE_ACTIVE) {
@@ -56,7 +55,6 @@ int main(void)
 
 
     k_busy_wait(100000);
-    /* Estado DESPUÉS del printk anterior */
     rc = pm_device_state_get(domain, &state);
     if (rc == 0) {
         if (state == PM_DEVICE_STATE_ACTIVE) {
