@@ -56,17 +56,18 @@ void instrumentation_stopper(void)
 
 int main(void)
 { 	
-	volatile uint8_t hf_onoff_count = my_hf_clock->subsys_data->usage_cnt;
+	/*volatile uint8_t hf_onoff_count = my_hf_clock->subsys_data->usage_cnt;
 	volatile uint8_t pll_onoff_count = my_pll_clock->subsys_data->usage_cnt;
 	volatile uint8_t mux_onoff_count = my_mux_clock->subsys_data->usage_cnt;
 	volatile uint8_t root_onoff_count = my_root_clock->subsys_data->usage_cnt;
 	printf("Before on: [root -> mux -> pll -> hf]\n %u -> %u -> %u -> %u\n",\
-		root_onoff_count,mux_onoff_count,pll_onoff_count,hf_onoff_count);
+		root_onoff_count,mux_onoff_count,pll_onoff_count,hf_onoff_count);*/
 	int volatile ret=230;
-	//instrumentation_trigger();
+	instrumentation_trigger();
     	ret = ifx_cat1_uart_clk_on(dev);
+	instrumentation_stopper();
 	k_busy_wait(10);
-	hf_onoff_count = my_hf_clock->subsys_data->usage_cnt;
+	/*hf_onoff_count = my_hf_clock->subsys_data->usage_cnt;
 	pll_onoff_count = my_pll_clock->subsys_data->usage_cnt;
 	mux_onoff_count = my_mux_clock->subsys_data->usage_cnt;
 	root_onoff_count = my_root_clock->subsys_data->usage_cnt;
@@ -78,7 +79,7 @@ int main(void)
 	mux_onoff_count = my_mux_clock->subsys_data->usage_cnt;
 	root_onoff_count = my_root_clock->subsys_data->usage_cnt;
 	//instrumentation_stopper();
-	
+	*/
 	//printf("%d\n", onoff_flag);
 	//ret = ifx_cat1_uart_clk_off(dev);
 	//printf("%u",clk_idx);
