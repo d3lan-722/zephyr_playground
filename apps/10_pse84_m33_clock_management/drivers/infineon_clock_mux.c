@@ -17,21 +17,23 @@ struct clock_mux_config {
 	*/
 	MUX_CLK_SUBSYS_DATA_DEFINE
 	/*
-		Type of mux. 
-	*/
+	 * Type of mux. 
+	 */
 	uint32_t block;
 	/*
-		Path number.
-	*/
+	 * Path number.
+	 */
+	
 	uint8_t instance;
-
+	
+	/*
+	 * Input Sources
+	 */
+	uint32_t *sources;
 };
 
-static int mux_clock_onoff(const struct clk *clk_hw, bool on){
-	return 0;
-}
 
-
+#if defined(CONFIG_CLOCK_MANAGEMENT_RUNTIME)
 static int configure_mux_recalc(const struct clk *clk_hw, const void *data){
 	const uint32_t *mux_data = (uint32_t *)data;
 	return (int)*mux_data;
@@ -44,15 +46,12 @@ static int validate_mux_parent(const struct clk *clk_hw, clock_freq_t parent_fre
 	}
 		return 0;
 }
+#endif
 
-static int mux_configure(const struct clk *clk_hw, const void *mux)
-{
+#if defined(CONFIG_CLOCK_MANAGEMENT_SET_RATE)
+static int mux_set_parent(const struct clk *clk_hw, uint8_t new_idx){
 	const struct clock_mux_config *config = clk_hw->hw_data;
-	/*
-	   Source selection sent as an specifier from the framework
-	*/
-	uint32_t source = *(const uint32_t *)mux;
-
+	uint32_t source = config->sources[new_idx];
 	uint32_t ret;
 	
 	switch (config->block)
@@ -60,18 +59,67 @@ static int mux_configure(const struct clk *clk_hw, const void *mux)
 		case IFX_PATHMUX:
 			ret = Cy_SysClk_ClkPathSetSource(config->instance,source);
 		break;
+		case IFX_HF:
+			ret = Cy_SysClk_ClkHfSetSource(config->instance,source);
+		break;
+		default:
+			return -EINVAL;
+	}
+	return ret;
 
+}
+#endif
+
+static int mux_configure(const struct clk *clk_hw, const void *mux)
+{
+	const struct clock_mux_config *config = clk_hw->hw_data;
+	/*
+	   Source provided as an specifier from the overlay - Its necessary to map
+	*/
+	uint32_t source = config->sources[*(const uint32_t *)mux];
+	uint32_t ret;
+	
+	switch (config->block)
+	{
+		case IFX_PATHMUX:
+			ret = Cy_SysClk_ClkPathSetSource(config->instance,source);
+		break;
+		case IFX_HF:
+			ret = Cy_SysClk_ClkHfSetSource(config->instance,source);
+		break;
 		default:
 			return -EINVAL;
 	}
 	return ret;
 }
 
+static int mux_clock_onoff(const struct clk *clk_hw, bool on){
+	return 0;
+}
+
+
 static int ifx_cat1_mux_get_parent(const struct clk *clk_hw)
 {
 	const struct clock_mux_config *config = clk_hw->hw_data;
-	uint32_t sel = (uint32_t)Cy_SysClk_ClkPathGetSource(config->instance);
-	return sel;
+	uint32_t cy_parent;
+	int ret = -EINVAL;
+	switch (config->block)
+	{
+		case IFX_PATHMUX:
+			cy_parent = (uint32_t)Cy_SysClk_ClkPathGetSource(config->instance);
+			for (uint8_t i = 0; i<config->parent_cnt; i++){
+				 if (config->sources[i] == cy_parent) {
+            				ret = (int)i;
+        			}	
+			}
+		break;
+		case IFX_HF:
+			ret = (int)Cy_SysClk_ClkHfGetSource(config->instance);
+		break;
+		default:
+			break;
+	}
+	return ret;
 }
 
 /*clock driver API implementation*/
@@ -84,6 +132,9 @@ const struct clock_management_mux_api ifx_cat1_path_mux_api = {
 #if defined(CONFIG_CLOCK_MANAGEMENT_RUNTIME)
 	.mux_configure_recalc = configure_mux_recalc,
 	.mux_validate_parent = validate_mux_parent,
+#endif
+#if defined(CONFIG_CLOCK_MANAGEMENT_SET_RATE)
+	.set_parent = mux_set_parent,
 #endif
 };
 
@@ -98,12 +149,14 @@ Parents struct, with pointers to clk structs, is builded.
 
 #define CLOCK_MUX_DEFINE(n)                                                                     \
 	static const struct clk *const mux_##n##_parents[] = {                                  \
-		DT_INST_FOREACH_PROP_ELEM(n, input_sources, GET_MUX_INPUT)};                   \
+		DT_INST_FOREACH_PROP_ELEM(n, input_sources, GET_MUX_INPUT)};                   	\
+	static uint32_t sources_##n[] = DT_INST_PROP(n,source_selects); 			\
 	static const struct clock_mux_config mux_##n = {                                        \
 		MUX_CLK_SUBSYS_DATA_INIT(mux_##n##_parents,                                     \
 					 DT_INST_PROP_LEN(n, input_sources))                    \
 		.block = DT_INST_PROP(n, system_clock),                                         \
-		.instance = DT_INST_PROP(n,instance)                                  		\
+		.instance = DT_INST_PROP(n,instance),                                  		\
+		.sources = sources_##n 					 		\
 	};                                                                                      \
 	MUX_CLOCK_DT_INST_DEFINE(n, &mux_##n, &ifx_cat1_path_mux_api);
 

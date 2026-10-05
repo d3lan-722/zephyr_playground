@@ -18,8 +18,12 @@ properties:
       clk_iho  : system-clock = <IFX_IHO>
       clk_pilo : system-clock = <IFX_PILO>
   
+  enable-root:
+    type: boolean
+    description: Enable oscillator 
+
   "#clock-cells":
     const: 1
 
 clock-cells:
-  - root_freq
+  - root_enable

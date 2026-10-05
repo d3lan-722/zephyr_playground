@@ -1,109 +1,135 @@
-/*
- * Copyright (c) 2016 Intel Corporation
- *
- * SPDX-License-Identifier: Apache-2.0
- */
-
-#include <stdio.h>
-#include <zephyr/kernel.h>
-#include <zephyr/drivers/gpio.h>
-#include <zephyr/drivers/clock_management/clock_driver.h>
-#include <zephyr/device.h>
-#include <zephyr/devicetree.h>
-#include "cy_device.h"
-#include <zephyr/drivers/clock_control/clock_control_ifx_cat1.h>
-#include <zephyr/dt-bindings/clock/ifx_clock_source_common.h>
-#include "infineon_uart_header.h"
-#include "cy_device.h"
-#include <cy_sysclk.h>
 #include <zephyr/drivers/clock_management.h>
-#include <zephyr/drivers/clock_management/clock.h>
-/* 1000 msec = 1 sec */
-#define SLEEP_TIME_MS   1000
+#include <zephyr/sys/sys_io.h>
+#include <cy_sysclk.h>
+#include <zephyr/device.h>
+#include <zephyr/kernel.h>
 
-/* The devicetree node identifier for the "led0" alias. */
-#define LED0_NODE DT_ALIAS(led2)
+#define DUMMY_CONSUMER_1 DT_NODELABEL(dummy_clock_consumer_1)
+#define DUMMY_CONSUMER_2 DT_NODELABEL(dummy_clock_consumer_2)
 
-/*
- * A build error on this line means your board is unsupported.
- * See the sample documentation for information on how to fix this.
- */
-static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
-//static const struct clk *const clock_pll_lp1 = CLOCK_DT_GET(DT_NODELABEL(dpll_lp1));
-static const struct device *dev = DEVICE_DT_GET(DT_NODELABEL(scb2));
-extern volatile bool flag;
+static const struct device *dummy_device_1 = DEVICE_DT_GET(DUMMY_CONSUMER_1);
+static const struct device *dummy_device_2 = DEVICE_DT_GET(DUMMY_CONSUMER_2);
+static const struct clk *iho_producer = CLOCK_DT_GET(DT_NODELABEL(clk_iho));
+static const struct clk *pll_hp = CLOCK_DT_GET(DT_NODELABEL(dpll_hp));
+static const struct clk *pll_lp1 = CLOCK_DT_GET(DT_NODELABEL(dpll_lp1));
+static const struct clk *pll_lp0 = CLOCK_DT_GET(DT_NODELABEL(dpll_lp0));
 
-volatile int instrumentation_marker;
-extern volatile bool onoff_flag;
-
-static const struct clk *my_hf_clock = CLOCK_DT_GET(DT_NODELABEL(clk_hf10));
-static const struct clk *my_pll_clock = CLOCK_DT_GET(DT_NODELABEL(dpll_lp1));
-static const struct clk *my_mux_clock = CLOCK_DT_GET(DT_NODELABEL(path_mux1));
-static const struct clk *my_root_clock = CLOCK_DT_GET(DT_NODELABEL(clk_iho));
+static const struct clk *p_mux1 = CLOCK_DT_GET(DT_NODELABEL(path_mux1));
 
 
-__attribute__((used, noinline))
-void instrumentation_trigger(void)
-{
-    instrumentation_marker = 1;
-}
-__attribute__((used, noinline))
-void instrumentation_stopper(void)
-{
-    instrumentation_marker = 2;
-}
+
+static const clock_request_t default_req_dummy_1 = CLOCK_MANAGEMENT_DT_GET_REQUEST(DUMMY_CONSUMER_1, default);
+static const clock_request_t default_req_dummy_2 = CLOCK_MANAGEMENT_DT_GET_REQUEST(DUMMY_CONSUMER_2, default);
+
+static const clock_request_t fast_req_dummy_2 = CLOCK_MANAGEMENT_DT_GET_REQUEST(DUMMY_CONSUMER_2, fast);
+
+static const clock_request_t shared_req_dummy_1 = CLOCK_MANAGEMENT_DT_GET_REQUEST(DUMMY_CONSUMER_1, shared);
+static const clock_request_t shared_req_dummy_2 = CLOCK_MANAGEMENT_DT_GET_REQUEST(DUMMY_CONSUMER_2, shared);
+
+//static const clock_request_t random_req_dummy_1 = CLOCK_MANAGEMENT_DT_GET_REQUEST(DUMMY_CONSUMER_1, random);
+
+static const clock_request_t all_req_dummy_1 = CLOCK_MANAGEMENT_DT_GET_REQUEST(DUMMY_CONSUMER_1, all);
+
+static const clock_output_t dummy_1_clk_1 = CLOCK_MANAGEMENT_DT_GET_OUTPUT_BY_NAME(DUMMY_CONSUMER_1, clock_output_1_dummy_1);
+static const clock_output_t dummy_1_clk_2 = CLOCK_MANAGEMENT_DT_GET_OUTPUT_BY_NAME(DUMMY_CONSUMER_1, clock_output_2_dummy_1);
+static const clock_output_t dummy_2_clk_1 = CLOCK_MANAGEMENT_DT_GET_OUTPUT_BY_NAME(DUMMY_CONSUMER_2, clock_output_1_dummy_2);
 
 
-int main(void)
-{ 	
-	/*volatile uint8_t hf_onoff_count = my_hf_clock->subsys_data->usage_cnt;
-	volatile uint8_t pll_onoff_count = my_pll_clock->subsys_data->usage_cnt;
-	volatile uint8_t mux_onoff_count = my_mux_clock->subsys_data->usage_cnt;
-	volatile uint8_t root_onoff_count = my_root_clock->subsys_data->usage_cnt;
-	printf("Before on: [root -> mux -> pll -> hf]\n %u -> %u -> %u -> %u\n",\
-		root_onoff_count,mux_onoff_count,pll_onoff_count,hf_onoff_count);*/
-	int volatile ret=230;
-	instrumentation_trigger();
-    	ret = ifx_cat1_uart_clk_on(dev);
-	instrumentation_stopper();
-	k_busy_wait(10);
-	/*hf_onoff_count = my_hf_clock->subsys_data->usage_cnt;
-	pll_onoff_count = my_pll_clock->subsys_data->usage_cnt;
-	mux_onoff_count = my_mux_clock->subsys_data->usage_cnt;
-	root_onoff_count = my_root_clock->subsys_data->usage_cnt;
-	printf("After on: [root -> mux -> pll -> hf]\n %u -> %u -> %u -> %u\n", \
-		root_onoff_count,mux_onoff_count,pll_onoff_count,hf_onoff_count);
-	ret = ifx_cat1_uart_clk_off(dev);
-	hf_onoff_count = my_hf_clock->subsys_data->usage_cnt;
-	pll_onoff_count = my_pll_clock->subsys_data->usage_cnt;
-	mux_onoff_count = my_mux_clock->subsys_data->usage_cnt;
-	root_onoff_count = my_root_clock->subsys_data->usage_cnt;
-	//instrumentation_stopper();
+
+
+struct ifx_clock_consumer_config {
+	const struct clock_management_data *clk_mgmt;
+};
+
+int main(void){
+	int ret = -1;
+	const struct ifx_clock_consumer_config *config_dummy_1 = dummy_device_1->config;
+	const struct ifx_clock_consumer_config *config_dummy_2 = dummy_device_2->config;
+	uint8_t activeRequest_dummy_1;
+	uint8_t activeRequest_dummy_2;
+
+	/*LOCKING TEST
 	*/
-	//printf("%d\n", onoff_flag);
-	//ret = ifx_cat1_uart_clk_off(dev);
-	//printf("%u",clk_idx);
-	/*bool led_state = true;
-	if (!gpio_is_ready_dt(&led)) {
-	 	return 0;
-	 }
+	/*
+	ret = clock_management_request_state(config_dummy_1->clk_mgmt,default_req_dummy_1);
+	ret = clock_management_request_state(config_dummy_2->clk_mgmt,default_req_dummy_2);
+	ret = clock_management_lock(config_dummy_1->clk_mgmt,dummy_1_clk_1);
+	ret = clock_management_request_state(config_dummy_1->clk_mgmt,all_req_dummy_1);
 
-	ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
-	if (ret < 0) {
+
+	ret = clock_management_request_state(config_dummy_2->clk_mgmt,fast_req_dummy_2);
+*/
+
+
+	/*ON TEST
+
+	ret = clock_management_request_state(config_dummy_1->clk_mgmt,default_req_dummy_1);
+	if (ret<0){
+		return 0;
+	}
+	ret = clock_management_on(config_dummy_1->clk_mgmt, dummy_1_clk_2);
+	uint8_t iho_counter = iho_producer->subsys_data->usage_cnt;
+	uint8_t pll_hp_counter = pll_hp->subsys_data->usage_cnt;
+	uint8_t pll_lp1_counter = pll_lp1->subsys_data->usage_cnt;
+	uint8_t pll_lp0_counter = pll_lp0->subsys_data->usage_cnt;
+	uint8_t mux_counter = p_mux1->subsys_data->usage_cnt;
+	printk("%d", iho_counter);
+	if (iho_counter<0){
 		return 0;
 	}
 	*/
-	while (1) {
-		/*ret = gpio_pin_toggle_dt(&led);
-		if (ret < 0) {
-	 		return 0;
-	 	}
+	ret = clock_management_request_state(config_dummy_1->clk_mgmt,default_req_dummy_1);
+	if (ret<0){
+		return 0;
+	}
+	ret = clock_management_request_state(config_dummy_2->clk_mgmt,default_req_dummy_2);
+	if (ret<0){
+		return 0;
+	}
+	ret = clock_management_on(config_dummy_1->clk_mgmt, dummy_1_clk_1);
+	ret = clock_management_on(config_dummy_1->clk_mgmt, dummy_1_clk_2);
+	ret = clock_management_on(config_dummy_2->clk_mgmt, dummy_2_clk_1);
 
-	 	led_state = !led_state;
-	 	//printf("LED state: %s\n", led_state ? "ON" : "OFF");
-	 	k_msleep(SLEEP_TIME_MS);
-		*/
-		k_busy_wait(1000);
-	 }
-	 return 0;
+	
+	clock_freq_t freq = 100000000;
+	ret = clock_management_req_rate(config_dummy_1->clk_mgmt, dummy_1_clk_2, freq);
+	if (ret<0){
+		return 0;
+	}
+
+
+/*SHARED_TEST
+
+	ret = clock_management_request_state(config_dummy_2->clk_mgmt,shared_req_dummy_2);
+	if (ret<0){
+		return 0;
+	}
+	activeRequest_dummy_1 =  *(config_dummy_1->clk_mgmt->active_request);
+	activeRequest_dummy_2 = *(config_dummy_2->clk_mgmt->active_request);
+	printf("%d\n",activeRequest_dummy_1);
+	printf("%d\n",activeRequest_dummy_2);
+	
+	ret = clock_management_request_state(config_dummy_1->clk_mgmt,shared_req_dummy_1);
+	if (ret<0){
+		return 0;
+	}
+	activeRequest_dummy_1 =  *(config_dummy_1->clk_mgmt->active_request);
+	activeRequest_dummy_2 = *(config_dummy_2->clk_mgmt->active_request);
+	printf("%d\n",activeRequest_dummy_1);
+	printf("%d\n",activeRequest_dummy_2);
+
+	ret = clock_management_request_state(config_dummy_1->clk_mgmt,random_req_dummy_1);
+	if (ret<0){
+		return 0;
+	}
+	activeRequest_dummy_1 =  *(config_dummy_1->clk_mgmt->active_request);
+	activeRequest_dummy_2 = *(config_dummy_2->clk_mgmt->active_request);
+	printf("%d\n",activeRequest_dummy_1);
+	printf("%d\n",activeRequest_dummy_2);
+
+*/
+	while(1){
+		
+	}
+	return 0;
 }

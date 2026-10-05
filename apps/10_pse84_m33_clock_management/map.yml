@@ -1,0 +1,15 @@
+- connected: true
+  flash_timeout: 60
+  id: 0A1D1998012D2400
+  platform: kit_pse84_ai/pse846gps2dbzc4a/m33
+  product: KitProg3 CMSIS-DAP
+  runner: openocd
+  serial: /dev/ttyACM0
+  serial_baud: 115200
+- connected: false
+  flash_timeout: 60
+  id: 1F180711022F2400
+  platform: kit_pse84_eval/pse846gps2dbzc4a/m33
+  product: Cypress MiniProg4 (CMSIS-DAP)
+  runner: openocd
+  serial_baud: 115200

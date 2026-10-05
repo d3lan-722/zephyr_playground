@@ -13,19 +13,38 @@ struct clock_root_config {
 	uint8_t system_clock;
 };
 
-static int root_clock_onoff(const struct clk *clk_hw, bool on){
-	return 0;
+#if defined(CONFIG_CLOCK_MANAGEMENT_RUNTIME)
+static clock_freq_t configure_root_recalc(const struct clk *clk_hw, const void *data){
+	ARG_UNUSED(data);
+	const struct clock_root_config *config = clk_hw->hw_data;
+	return (clock_freq_t)config->rate;
+}
+#endif
+
+#if defined(CONFIG_CLOCK_MANAGEMENT_SET_RATE)
+clock_freq_t root_clock_best_rate(const struct clk *clk_hw, clock_freq_t rate_req, bool commit){
+	ARG_UNUSED(rate_req);
+	ARG_UNUSED(commit);
+	const struct clock_root_config *config = clk_hw->hw_data;
+	clock_freq_t ret;
+	switch (config->system_clock)
+	{
+		case IFX_IHO:
+#if DT_NODE_HAS_STATUS_OKAY(DT_NODELABEL(clk_iho))
+			ret = (clock_freq_t)config->rate;
+#endif		
+			break;
+		case IFX_PILO:
+			ret = (clock_freq_t)config->rate;
+			break;
+		default:
+			return -EINVAL;
+	}
+	return ret;
+
 }
 
-static clock_freq_t configure_root_recalc(const struct clk *clk_hw, const void *data){
-	const struct clock_root_config *config = clk_hw->hw_data;
-	const uint32_t *root_data = (uint32_t *)data;
-	if (*root_data == config->rate){
-		return (clock_freq_t)*root_data;
-	}else{
-		return -EINVAL;
-	}
-}
+#endif
 
 static int root_configure(const struct clk *clk_hw, const void *data)
 {
@@ -37,7 +56,9 @@ static int root_configure(const struct clk *clk_hw, const void *data)
 			Cy_SysClk_IhoEnable();
 #endif
 			break;
-
+		case IFX_PILO:
+			Cy_SysClk_PiloEnable();
+			break;
 		default:
 			return -EINVAL;
 	}
@@ -45,19 +66,26 @@ static int root_configure(const struct clk *clk_hw, const void *data)
 	return 0;
 }
 
+static int root_clock_onoff(const struct clk *clk_hw, bool on){
+	return 0;
+}
+
 static clock_freq_t root_get_rate(const struct clk *clk_hw)
 {
 	const struct clock_root_config *config = clk_hw->hw_data;
-	uint32_t ret;
+	clock_freq_t ret;
 	switch (config->system_clock)
 	{
 		case IFX_IHO:
 #if DT_NODE_HAS_STATUS_OKAY(DT_NODELABEL(clk_iho))
-			ret = Cy_SysClk_IhoGetTrim();
-#endif
-		break;
+			ret = (clock_freq_t)config->rate;
+#endif		
+			break;
+		case IFX_PILO:
+			ret = (clock_freq_t)config->rate;
+			break;
 		default:
-			return 0;
+			return -EINVAL;
 	}
 	return ret;
 }
@@ -71,6 +99,9 @@ const struct clock_management_root_api ifx_root_api = {
 	.get_rate = root_get_rate,
 #if defined(CONFIG_CLOCK_MANAGEMENT_RUNTIME)
 	.root_configure_recalc = configure_root_recalc,
+#endif
+#if defined(CONFIG_CLOCK_MANAGEMENT_SET_RATE)
+	.root_best_rate = root_clock_best_rate,
 #endif
 };
 

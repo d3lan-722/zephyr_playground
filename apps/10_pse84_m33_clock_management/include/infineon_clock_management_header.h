@@ -11,6 +11,7 @@ typedef struct{
     uint32_t ref_div;
     uint32_t output_div;
     bool dco_mode;
+    uint32_t fraction_enable;
     uint32_t fraction_div;
 }ifx_dpll_lp_spec;
 
@@ -23,8 +24,8 @@ typedef struct{
 ROOT
 */
 #define Z_CLOCK_MANAGEMENT_DATA_DEFINE_infineon_clock_root(node_id, prop, idx) 	\
-	static const uint32_t Z_CLOCK_DATA_##node_id##_##idx =                      \
-    DT_PHA_BY_IDX(node_id, prop, idx, root_freq);                               \
+	static const bool Z_CLOCK_DATA_##node_id##_##idx =                      \
+    DT_PHA_BY_IDX(node_id, prop, idx, root_enable);                             \
 /*Pointer to the specifier value. This pointer is passed to the APIS.*/
 #define Z_CLOCK_MANAGEMENT_DATA_GET_infineon_clock_root(node_id, prop, idx) 	\
 	((void *)&Z_CLOCK_DATA_##node_id##_##idx)
@@ -33,18 +34,18 @@ ROOT
 MUX
 */
 #define Z_CLOCK_MANAGEMENT_DATA_DEFINE_infineon_clock_mux(node_id, prop, idx) 	\
-	static const uint32_t Z_CLOCK_DATA_##node_id##_##idx = 			\
+	static const uint32_t Z_CLOCK_DATA_##node_id##_##idx = 			            \
 	DT_PHA_BY_IDX(node_id, prop, idx, mux);
 /*Pointer to the specifier value. This pointer is passed to the APIS.*/
-#define Z_CLOCK_MANAGEMENT_DATA_GET_infineon_clock_mux(node_id, prop, idx) 	\
+#define Z_CLOCK_MANAGEMENT_DATA_GET_infineon_clock_mux(node_id, prop, idx) 	    \
 	((void *)&Z_CLOCK_DATA_##node_id##_##idx)
 /*
 DIVIDER
 */
 #define Z_CLOCK_MANAGEMENT_DATA_DEFINE_infineon_clock_div(node_id, prop, idx) 	\
-	static const uint32_t Z_CLOCK_DATA_##node_id##_##idx = 			\
+	static const uint32_t Z_CLOCK_DATA_##node_id##_##idx = 			            \
 	DT_PHA_BY_IDX(node_id, prop, idx, div);
-#define Z_CLOCK_MANAGEMENT_DATA_GET_infineon_clock_div(node_id, prop, idx) 	\
+#define Z_CLOCK_MANAGEMENT_DATA_GET_infineon_clock_div(node_id, prop, idx) 	    \
 	((void *)&Z_CLOCK_DATA_##node_id##_##idx)
 /*
 PLL
@@ -56,8 +57,9 @@ PLL
         .fb_div     = DT_PHA_BY_IDX(node_id, prop, idx, feedback),        	    \
         .ref_div    = DT_PHA_BY_IDX(node_id, prop, idx, reference),       	    \
         .output_div = DT_PHA_BY_IDX(node_id, prop, idx, output),          	    \
-        .dco_mode   = (bool)DT_PHA_BY_IDX(node_id, prop, idx, dco),            	    \
-        .fraction_div = DT_PHA_BY_IDX(node_id, prop, idx, fraction),     	    \
+        .dco_mode   = (bool)DT_PHA_BY_IDX(node_id, prop, idx, dco),            	\
+        .fraction_enable = DT_PHA_BY_IDX(node_id, prop, idx, fraction),             \
+        .fraction_div = DT_PHA_BY_IDX(node_id, prop, idx, fraction_div),     	\
     	};
 #define Z_CLOCK_MANAGEMENT_DATA_GET_infineon_clock_pll(node_id, prop, idx) 	    \
 	((void *)&Z_CLOCK_DATA_##node_id##_##idx)

@@ -10,7 +10,7 @@
  *
  */
 
-#define DT_DRV_COMPAT infineon_scb_uart
+#define DT_DRV_COMPAT infineon_uart
 
 #include <string.h>
 #include <zephyr/irq.h>
@@ -1301,7 +1301,7 @@ static int ifx_cat1_uart_init(const struct device *dev)
 	cy_rslt_t result;
 	int ret;
 	/*Sets default request*/
-	ret = clock_management_request_state(config->clk_mgmt,config->default_clock_request);
+	//ret = clock_management_request_state(config->clk_mgmt,config->default_clock_request);
 
 	/* Dedicate SCB HW resource */
 	data->hw_resource.type = IFX_RSC_SCB;
@@ -1576,10 +1576,10 @@ int ifx_cat1_uart_clk_on(const struct device *dev)
 
 int ifx_cat1_uart_clk_off(const struct device *dev)
 {
-    const struct ifx_cat1_uart_config *cfg = dev->config;
+    const struct ifx_cat1_uart_config *config = dev->config;
     int ret;
 
-    ret = clock_management_off(cfg->clk_mgmt, cfg->clock_uart);
+    ret = clock_management_request_state(config->clk_mgmt,config->default_clock_request);
     if (ret < 0) {
         return ret;
     }

@@ -21,8 +21,9 @@ struct clock_hf_config {
 	uint32_t system_clock;
 	uint32_t instance;
 	uint32_t clock_division;
+	uint32_t *sources;
 };
-
+#if defined(CONFIG_CLOCK_MANAGEMENT_RUNTIME)
 static int configure_hf_recalc(const struct clk *clk_hw, const void *data){
 	const uint32_t *hf_data = (uint32_t *)data;
 	return (int)*hf_data;
@@ -35,22 +36,31 @@ static int validate_hf_parent(const struct clk *clk_hw, clock_freq_t parent_freq
 	}
 		return 0;
 }
+#endif
 
 static int hf_clock_configure(const struct clk *clk_hw, const void *data){
 	const struct clock_hf_config *config = clk_hw->hw_data;
 	const ifx_hf_clock_spec *hf_spec = (const ifx_hf_clock_spec*)data;
-	
-	int ret;
-	if (Cy_SysClk_ClkHfSetSource(config->instance, (hf_spec->selector)+1) != CY_SYSCLK_SUCCESS){
+	const uint32_t source = config->sources[hf_spec->selector];
+	cy_en_clkhf_dividers_t divider;
+	int ret = 0;
+	if (Cy_SysClk_ClkHfSetSource(config->instance, source) != CY_SYSCLK_SUCCESS){
 		return -EIO;
 	}
-	if (Cy_SysClk_ClkHfSetDivider(config->instance, hf_spec->clock_division) != CY_SYSCLK_SUCCESS){
+	
+	if (hf_spec->clock_division < 1 || hf_spec->clock_division > 16)
+		return -EIO;
+
+	divider = (cy_en_clkhf_dividers_t)(hf_spec->clock_division-1);
+
+
+	if (Cy_SysClk_ClkHfSetDivider(config->instance, divider) != CY_SYSCLK_SUCCESS){
 		return -EIO;
 	}
 	if (Cy_SysClk_ClkHfEnable(config->instance) != CY_SYSCLK_SUCCESS){
 		return -EIO;
 	}
-	return 0;
+	return ret;
 }
 
 static int hf_clock_onoff(const struct clk *clk_hw, bool on){
@@ -73,7 +83,6 @@ static int ifx_hf_get_parent(const struct clk *clk_hw){
 	*/
 	return 0;
 }
-
 
 /*clock driver API implementation*/
 const struct clock_management_mux_api ifx_hf_clock_api = {
@@ -98,12 +107,14 @@ to device struct.
 #define CLOCK_HF_DEFINE(n)                                                                     	\
 	static const struct clk *const hf_##n##_parents[] = {                                  	\
 		DT_INST_FOREACH_PROP_ELEM(n, input_sources, GET_HF_INPUT)};                   	\
+	static uint32_t sources_##n[] = DT_INST_PROP(n,source_selects);			\
 	static const struct clock_hf_config hf_##n = {                                        	\
 		MUX_CLK_SUBSYS_DATA_INIT(hf_##n##_parents,                               	\
 					 DT_INST_PROP_LEN(n, input_sources))                    \
 		.system_clock = DT_INST_PROP(n, system_clock),                                  \
 		.instance = DT_INST_PROP(n,instance),                                  		\
-		.clock_division = DT_INST_PROP(n, clock_div)                    		\
+		.clock_division = DT_INST_PROP(n, clock_div),                    		\
+		.sources = sources_##n								\
 	};                                                                                      \
 	MUX_CLOCK_DT_INST_DEFINE(n, &hf_##n, &ifx_hf_clock_api);
 

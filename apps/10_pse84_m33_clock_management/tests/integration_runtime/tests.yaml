@@ -1,0 +1,14 @@
+tests:
+  dummy.testing.ztest:
+    build_only: false
+    platform_allow:
+      - native_sim
+      - kit_pse84_ai/pse846gps2dbzc4a/m55
+      - kit_pse84_ai/pse846gps2dbzc4a/m33
+      - kit_pse84_eval/pse846gps2dbzc4a/m33
+    integration_platforms:
+      - native_sim
+      - kit_pse84_ai/pse846gps2dbzc4a/m55
+      - kit_pse84_ai/pse846gps2dbzc4a/m33
+      - kit_pse84_eval/pse846gps2dbzc4a/m33
+    tags: dummy_driver_fcn_test

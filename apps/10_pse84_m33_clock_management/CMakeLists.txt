@@ -11,8 +11,7 @@ target_sources(app PRIVATE
     drivers/infineon_clock_mux.c
     drivers/infineon_clock_pll.c
     drivers/infineon_clock_hf.c
+    drivers/infineon_clock_div.c
+    drivers/infineon_clock_consumer.c
 )
 
-target_include_directories(app PRIVATE
-    drivers/include
-)

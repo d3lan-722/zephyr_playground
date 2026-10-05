@@ -7,7 +7,6 @@ properties:
 
   system-clock:
     type: int
-    required: true
     description: |
       The type of clock (refer to include/.../dt-bindings/clock/ifx_clock_source_common.h):
 
@@ -15,12 +14,20 @@ properties:
     type: int
     required: true
     description: |
-      Instance of a given high frequency mux.
+      Instance (correlated to path number) of a given high frequency mux.
 
   input-sources:
     type: phandles
     required: true
     description: List of clock path sources
+
+  source-selects:
+    type: array
+    required: true
+    description: |
+      Hardware source identifier for each entry in
+      input-sources, in the same order. Provides the index-to-enum mapping
+      the generic clock-mux binding lacks.
 
   "#clock-cells":
     const: 1

@@ -1,0 +1,3 @@
+compatible: "infineon,clock-consumer"
+
+include: [clock-device.yaml, base.yaml]

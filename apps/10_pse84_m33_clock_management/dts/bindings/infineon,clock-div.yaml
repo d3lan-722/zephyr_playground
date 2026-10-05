@@ -20,9 +20,8 @@ properties:
   input:
     type: phandle
     required: true
-    description: Clock-path multiplexer supplying the DPLL reference.
+    description: Reference to its parent producer.
 
-    
   "#clock-cells":
     type: int
     const: 1

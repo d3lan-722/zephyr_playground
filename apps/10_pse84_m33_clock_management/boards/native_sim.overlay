@@ -1,0 +1,593 @@
+
+
+/ {
+	/* Clock tree 1/3: roots and path muxes (the 3 /clocks blocks merge). */
+	clocks {
+		/*
+		 * Root oscillator sources (TRM 21.3).
+		 */
+
+		/*
+		 * Default clock source fixed frequency of 50MHz.
+		 */
+		clk_iho: clk_iho {
+			compatible = "infineon,clock-root";
+			#clock-cells = <1>;
+			clock-frequency = <50000000>;
+			system-clock = <IFX_IHO>;
+			enable-root;
+			status = "okay";
+		};
+
+		/*
+		 * Precision-Low Power clock. 
+		 */
+
+		clk_pilo: clk_pilo {
+			compatible = "infineon,clock-root";
+			#clock-cells = <1>;
+			clock-frequency = <32768>;
+			system-clock = <IFX_PILO>;
+			enable-root;
+			status = "okay";
+		};
+
+		clk_wco: clk_wco {
+			compatible = "infineon,clock-root";
+			#clock-cells = <1>;
+			clock-frequency = <32768>;
+			system-clock = <IFX_WCO>;
+			enable-root;
+			status = "okay";
+		};
+
+		/*
+		 * ECO and EXT_CLK need board components (a crystal or a driven
+		 * clock pin)
+		 */
+		clk_eco: clk_eco {
+			compatible = "infineon,clock-root";
+			#clock-cells = <1>;
+			clock-frequency = <0>;
+			system-clock = <IFX_ECO>;
+			status = "okay";
+		};
+
+
+		clk_ext: clk_ext {
+			compatible = "infineon,clock-root";
+			#clock-cells = <1>;
+			clock-frequency = <0>;
+			system-clock = <IFX_EXT>;
+			status = "okay";
+		};
+
+		/*
+		 * ECO prescaler (TRM 19.3.7); one of the CLK_LF source options.
+		 * Disabled with its ECO parent: the generic fixed-factor
+		 * producer would otherwise reference a clock object that a
+		 * disabled clk_eco never emits.
+		 */
+		eco_prescaler: eco_prescaler {
+			compatible = "fixed-factor-clock";
+			#clock-cells = <0>;
+			clocks = <&clk_eco 0>;
+			clock-div = <1>;
+			status = "okay";
+		};
+
+		/*
+		 * Each clock path mux has a dsi mux which selects a 
+		 * low frequency clock to clock a path.
+		 * WCO - PILO
+		 */
+		/*
+		 * Each clock-path has a mux that determines its source. 
+		 * IHO - EXTCLK - ECO - DSI( WCO - PILO)
+		 */
+		path_mux0: path_mux0 {
+			compatible = "infineon,clock-mux";
+			#clock-cells = <1>;
+			system-clock = < IFX_PATHMUX >;
+			instance = <0>;
+			input-sources = <&clk_iho &clk_ext &clk_eco &clk_wco &clk_pilo>;
+			source-selects = < IFX_CAT1_CLKPATH_IN_IHO IFX_CAT1_CLKPATH_IN_EXT 
+					   IFX_CAT1_CLKPATH_IN_ECO IFX_CAT1_CLKPATH_IN_WCO 
+					   IFX_CAT1_CLKPATH_IN_PILO >;
+			status = "okay";
+		};
+
+		path_mux1: path_mux1 {
+			compatible = "infineon,clock-mux";
+			#clock-cells = <1>;
+			system-clock = < IFX_PATHMUX >;
+			instance = <1>;
+			input-sources = <&clk_iho &clk_ext &clk_eco &clk_wco &clk_pilo>;
+			source-selects = < IFX_CAT1_CLKPATH_IN_IHO IFX_CAT1_CLKPATH_IN_EXT 
+					   IFX_CAT1_CLKPATH_IN_ECO IFX_CAT1_CLKPATH_IN_WCO 
+					   IFX_CAT1_CLKPATH_IN_PILO >;
+			status = "okay";
+		};
+
+		path_mux2: path_mux2 {
+			compatible = "infineon,clock-mux";
+			#clock-cells = <1>;
+			system-clock = < IFX_PATHMUX >;
+			instance = <2>;
+			input-sources = <&clk_iho &clk_ext &clk_eco &clk_wco &clk_pilo>;
+			source-selects = < IFX_CAT1_CLKPATH_IN_IHO IFX_CAT1_CLKPATH_IN_EXT 
+					   IFX_CAT1_CLKPATH_IN_ECO IFX_CAT1_CLKPATH_IN_WCO 
+					   IFX_CAT1_CLKPATH_IN_PILO >;
+			status = "okay";
+		};
+
+		path_mux3: path_mux3 {
+			compatible = "infineon,clock-mux";
+			#clock-cells = <1>;
+			system-clock = < IFX_PATHMUX >;
+			instance = <3>;
+			input-sources = <&clk_iho &clk_ext &clk_eco &clk_wco &clk_pilo>;
+			source-selects = < IFX_CAT1_CLKPATH_IN_IHO IFX_CAT1_CLKPATH_IN_EXT 
+					   IFX_CAT1_CLKPATH_IN_ECO IFX_CAT1_CLKPATH_IN_WCO 
+					   IFX_CAT1_CLKPATH_IN_PILO >;
+			status = "okay";
+		};
+
+		path_mux4: path_mux4 {
+			compatible = "infineon,clock-mux";
+			#clock-cells = <1>;
+			system-clock = < IFX_PATHMUX >;
+			instance = <4>;
+			input-sources = <&clk_iho &clk_ext &clk_eco &clk_wco &clk_pilo>;
+			source-selects = < IFX_CAT1_CLKPATH_IN_IHO IFX_CAT1_CLKPATH_IN_EXT 
+					   IFX_CAT1_CLKPATH_IN_ECO IFX_CAT1_CLKPATH_IN_WCO 
+					   IFX_CAT1_CLKPATH_IN_PILO >;
+			status = "okay";
+		};
+
+		path_mux5: path_mux5 {
+			compatible = "infineon,clock-mux";
+			#clock-cells = <1>;
+			system-clock = < IFX_PATHMUX >;
+			instance = <5>;
+			input-sources = <&clk_iho &clk_ext &clk_eco &clk_wco &clk_pilo>;
+			source-selects = < IFX_CAT1_CLKPATH_IN_IHO IFX_CAT1_CLKPATH_IN_EXT 
+					   IFX_CAT1_CLKPATH_IN_ECO IFX_CAT1_CLKPATH_IN_WCO 
+					   IFX_CAT1_CLKPATH_IN_PILO >;
+			status = "okay";
+		};
+	};
+};
+
+/ {
+	/* Clock tree 2/3: FLL, DPLLs, and the clk_hf roots. */
+	clocks {
+		/*
+		 * The DPLL_i sits in CLK_PATH_i with path_mux_i as its reference.
+		 */
+
+		dpll_lp0: dpll_lp0 {
+			compatible = "infineon,clock-pll";
+			#clock-cells = < 8 >;  
+			system-clock = < IFX_DPLL250_0 >;          
+			input = < &path_mux0 >;
+			bypass-sel = < 0 >;
+			dco-mode-enable;
+			output-div = < 1 >;
+			reference-div = < 7 >; 
+			feedback-div = < 56 >;
+			fraction-enable = <0>;        
+			fraction-div = < 0x0 >;            
+			clock-frequency = < 400000000 >; 
+			status = "okay";                            
+		};
+
+		dpll_lp1: dpll_lp1 {
+			compatible = "infineon,clock-pll";
+			#clock-cells = < 8 >;  
+			system-clock = < IFX_DPLL250_1 >;          
+			input = < &path_mux1 >;
+			bypass-sel = < 0 >;
+			dco-mode-enable;
+			output-div = < 1 >;
+			reference-div = < 7 >; 
+			feedback-div = < 56 >;
+			fraction-enable = <0>;       
+			fraction-div = < 0x0 >;            
+			clock-frequency = < 400000000 >; 
+			status = "okay"; 
+		};
+		
+		dpll_hp: dpll_hp {          
+			compatible = "infineon,clock-pll";
+			#clock-cells = < 8 >;
+			system-clock = < IFX_DPLL500 >;
+			input = < &path_mux2 >;
+			bypass-sel = < 0 >;         
+			div-p = < 0x0 >;                     
+			div-n = < 0xb >;                    
+			div-k = < 0x1 >;                     
+			fraction-div = < 0x0 >;              
+			freq-mode-sel = < 0x7 >;            
+			flock-enable-threshold = < 0x3 >;    
+			lf-beta-value = < 0x14 >;
+			clock-frequency = < 0x11e1a300 >;
+			status = "okay";         
+		};
+
+		/*
+		 * Each high freq clock selects a clock path via ROOT_MUX
+		 * and applies a predivider.
+		 */
+
+
+		mux_hf0: mux-hf0 {
+			compatible = "infineon,clock-mux";
+			#clock-cells = <1>;
+			system-clock = < IFX_HF >;
+			input-sources = < &dpll_lp0 &dpll_lp1 &dpll_hp &path_mux3 &path_mux4 &path_mux5 >;
+			source-selects = < IFX_CLK_HF_IN_CLKPATH0 IFX_CLK_HF_IN_CLKPATH1 
+					   IFX_CLK_HF_IN_CLKPATH2 IFX_CLK_HF_IN_CLKPATH3 
+					   IFX_CLK_HF_IN_CLKPATH4 IFX_CLK_HF_IN_CLKPATH5 >;
+			instance = <0>;
+			status = "okay";
+		};
+
+		div_hf0: div-hf0 {
+			compatible = "infineon,clock-div";
+			#clock-cells = <1>;
+			input = <&mux_hf0>;
+			instance = < 0 >;
+			clock-div = <IFX_CLK_HF_DIVIDE_BY_2>;
+			status = "okay";
+		};
+
+		mux_hf1: mux-hf1 {
+			compatible = "infineon,clock-mux";
+			#clock-cells = <1>;
+			system-clock = < IFX_HF >;
+			input-sources = < &dpll_lp0 &dpll_lp1 &dpll_hp &path_mux3 &path_mux4 &path_mux5 >;
+			source-selects = < IFX_CLK_HF_IN_CLKPATH0 IFX_CLK_HF_IN_CLKPATH1 
+					   IFX_CLK_HF_IN_CLKPATH2 IFX_CLK_HF_IN_CLKPATH3 
+					   IFX_CLK_HF_IN_CLKPATH4 IFX_CLK_HF_IN_CLKPATH5 >;
+			instance = <1>;
+			status = "okay";
+		};
+
+		div_hf1: div-hf1 {
+			compatible = "infineon,clock-div";
+			#clock-cells = <1>;
+			input = <&mux_hf1>;
+			instance = < 1 >;
+			clock-div = <IFX_CLK_HF_NO_DIVIDE>;
+			status = "okay";
+		};
+
+		mux_hf2: mux-hf2 {
+			compatible = "infineon,clock-mux";
+			#clock-cells = <1>;
+			system-clock = < IFX_HF >;
+			input-sources = < &dpll_lp0 &dpll_lp1 &dpll_hp &path_mux3 &path_mux4 &path_mux5 >;
+			source-selects = < IFX_CLK_HF_IN_CLKPATH0 IFX_CLK_HF_IN_CLKPATH1 
+					   IFX_CLK_HF_IN_CLKPATH2 IFX_CLK_HF_IN_CLKPATH3 
+					   IFX_CLK_HF_IN_CLKPATH4 IFX_CLK_HF_IN_CLKPATH5 >;
+			instance = <2>;
+			status = "okay";
+		};
+
+		div_hf2: div-hf2 {
+			compatible = "infineon,clock-div";
+			#clock-cells = <1>;
+			input = <&mux_hf2>;
+			instance = < 2 >;
+			clock-div = <IFX_CLK_HF_NO_DIVIDE>;
+			status = "okay";
+		};
+
+		mux_hf3: mux-hf3 {
+			compatible = "infineon,clock-mux";
+			#clock-cells = <1>;
+			system-clock = < IFX_HF >;
+			input-sources = < &dpll_lp0 &dpll_lp1 &dpll_hp &path_mux3 &path_mux4 &path_mux5 >;
+			source-selects = < IFX_CLK_HF_IN_CLKPATH0 IFX_CLK_HF_IN_CLKPATH1 
+					   IFX_CLK_HF_IN_CLKPATH2 IFX_CLK_HF_IN_CLKPATH3 
+					   IFX_CLK_HF_IN_CLKPATH4 IFX_CLK_HF_IN_CLKPATH5 >;
+			instance = <3>;
+			status = "okay";
+		};
+
+		div_hf3: div-hf3 {
+			compatible = "infineon,clock-div";
+			#clock-cells = <1>;
+			input = <&mux_hf3>;
+			instance = < 3 >;
+			clock-div = <IFX_CLK_HF_NO_DIVIDE>;
+			status = "okay";
+		};
+
+		mux_hf4: mux-hf4 {
+			compatible = "infineon,clock-mux";
+			#clock-cells = <1>;
+			system-clock = < IFX_HF >;
+			input-sources = < &dpll_lp0 &dpll_lp1 &dpll_hp &path_mux3 &path_mux4 &path_mux5 >;
+			source-selects = < IFX_CLK_HF_IN_CLKPATH0 IFX_CLK_HF_IN_CLKPATH1 
+					   IFX_CLK_HF_IN_CLKPATH2 IFX_CLK_HF_IN_CLKPATH3 
+					   IFX_CLK_HF_IN_CLKPATH4 IFX_CLK_HF_IN_CLKPATH5 >;
+			instance = <4>;
+			status = "okay";
+		};
+
+		div_hf4: div-hf4 {
+			compatible = "infineon,clock-div";
+			#clock-cells = <1>;
+			input = <&mux_hf4>;
+			instance = < 4 >;
+			clock-div = <IFX_CLK_HF_NO_DIVIDE>;
+			status = "okay";
+		};
+
+		mux_hf5: mux-hf5 {
+			compatible = "infineon,clock-mux";
+			#clock-cells = <1>;
+			system-clock = < IFX_HF >;
+			input-sources = < &dpll_lp0 &dpll_lp1 &dpll_hp &path_mux3 &path_mux4 &path_mux5 >;
+			source-selects = < IFX_CLK_HF_IN_CLKPATH0 IFX_CLK_HF_IN_CLKPATH1 
+					   IFX_CLK_HF_IN_CLKPATH2 IFX_CLK_HF_IN_CLKPATH3 
+					   IFX_CLK_HF_IN_CLKPATH4 IFX_CLK_HF_IN_CLKPATH5 >;
+			instance = <5>;
+			status = "okay";
+		};
+
+		div_hf5: div-hf5 {
+			compatible = "infineon,clock-div";
+			#clock-cells = <1>;
+			input = <&mux_hf5>;
+			instance = < 5 >;
+			clock-div = <IFX_CLK_HF_NO_DIVIDE>;
+			status = "okay";
+		};
+
+		mux_hf6: mux-hf6 {
+			compatible = "infineon,clock-mux";
+			#clock-cells = <1>;
+			system-clock = < IFX_HF >;
+			input-sources = < &dpll_lp0 &dpll_lp1 &dpll_hp &path_mux3 &path_mux4 &path_mux5 >;
+			source-selects = < IFX_CLK_HF_IN_CLKPATH0 IFX_CLK_HF_IN_CLKPATH1 
+					   IFX_CLK_HF_IN_CLKPATH2 IFX_CLK_HF_IN_CLKPATH3 
+					   IFX_CLK_HF_IN_CLKPATH4 IFX_CLK_HF_IN_CLKPATH5 >;
+			instance = <6>;
+			status = "okay";
+		};
+
+		div_hf6: div-hf6 {
+			compatible = "infineon,clock-div";
+			#clock-cells = <1>;
+			input = <&mux_hf6>;
+			instance = < 6 >;
+			clock-div = <IFX_CLK_HF_NO_DIVIDE>;
+			status = "okay";
+		};
+
+		mux_hf7: mux-hf7 {
+			compatible = "infineon,clock-mux";
+			#clock-cells = <1>;
+			system-clock = < IFX_HF >;
+			input-sources = < &dpll_lp0 &dpll_lp1 &dpll_hp &path_mux3 &path_mux4 &path_mux5 >;
+			source-selects = < IFX_CLK_HF_IN_CLKPATH0 IFX_CLK_HF_IN_CLKPATH1 
+					   IFX_CLK_HF_IN_CLKPATH2 IFX_CLK_HF_IN_CLKPATH3 
+					   IFX_CLK_HF_IN_CLKPATH4 IFX_CLK_HF_IN_CLKPATH5 >;
+			instance = <7>;
+			status = "okay";
+		};
+
+		div_hf7: div-hf7 {
+			compatible = "infineon,clock-div";
+			#clock-cells = <1>;
+			input = <&mux_hf7>;
+			instance = < 7 >;
+			clock-div = <IFX_CLK_HF_NO_DIVIDE>;
+			status = "okay";
+		};
+
+		mux_hf8: mux-hf8 {
+			compatible = "infineon,clock-mux";
+			#clock-cells = <1>;
+			system-clock = < IFX_HF >;
+			input-sources = < &dpll_lp0 &dpll_lp1 &dpll_hp &path_mux3 &path_mux4 &path_mux5 >;
+			source-selects = < IFX_CLK_HF_IN_CLKPATH0 IFX_CLK_HF_IN_CLKPATH1 
+					   IFX_CLK_HF_IN_CLKPATH2 IFX_CLK_HF_IN_CLKPATH3 
+					   IFX_CLK_HF_IN_CLKPATH4 IFX_CLK_HF_IN_CLKPATH5 >;
+			instance = <8>;
+			status = "okay";
+		};
+
+		div_hf8: div-hf8 {
+			compatible = "infineon,clock-div";
+			#clock-cells = <1>;
+			input = <&mux_hf8>;
+			instance = < 8 >;
+			clock-div = <IFX_CLK_HF_NO_DIVIDE>;
+			status = "okay";
+		};
+
+		mux_hf9: mux-hf9 {
+			compatible = "infineon,clock-mux";
+			#clock-cells = <1>;
+			system-clock = < IFX_HF >;
+			input-sources = < &dpll_lp0 &dpll_lp1 &dpll_hp &path_mux3 &path_mux4 &path_mux5 >;
+			source-selects = < IFX_CLK_HF_IN_CLKPATH0 IFX_CLK_HF_IN_CLKPATH1 
+					   IFX_CLK_HF_IN_CLKPATH2 IFX_CLK_HF_IN_CLKPATH3 
+					   IFX_CLK_HF_IN_CLKPATH4 IFX_CLK_HF_IN_CLKPATH5 >;
+			instance = <9>;
+			status = "okay";
+		};
+
+		div_hf9: div-hf9 {
+			compatible = "infineon,clock-div";
+			#clock-cells = <1>;
+			input = <&mux_hf9>;
+			instance = < 9 >;
+			clock-div = <IFX_CLK_HF_NO_DIVIDE>;
+			status = "okay";
+		};
+
+		mux_hf10: mux-hf10 {
+			compatible = "infineon,clock-mux";
+			#clock-cells = <1>;
+			system-clock = < IFX_HF >;
+			input-sources = < &dpll_lp0 &dpll_lp1 &dpll_hp &path_mux3 &path_mux4 &path_mux5 >;
+			source-selects = < IFX_CLK_HF_IN_CLKPATH0 IFX_CLK_HF_IN_CLKPATH1 
+					   IFX_CLK_HF_IN_CLKPATH2 IFX_CLK_HF_IN_CLKPATH3 
+					   IFX_CLK_HF_IN_CLKPATH4 IFX_CLK_HF_IN_CLKPATH5 >;
+			instance = <10>;
+			status = "okay";
+		};
+
+		div_hf10: div-hf10 {
+			compatible = "infineon,clock-div";
+			#clock-cells = <1>;
+			input = <&mux_hf10>;
+			instance = < 10 >;
+			clock-div = <IFX_CLK_HF_DIVIDE_BY_4>;
+			status = "okay";
+		};
+
+		mux_hf11: mux-hf11 {
+			compatible = "infineon,clock-mux";
+			#clock-cells = <1>;
+			system-clock = < IFX_HF >;
+			input-sources = < &dpll_lp0 &dpll_lp1 &dpll_hp &path_mux3 &path_mux4 &path_mux5 >;
+			source-selects = < IFX_CLK_HF_IN_CLKPATH0 IFX_CLK_HF_IN_CLKPATH1 
+					   IFX_CLK_HF_IN_CLKPATH2 IFX_CLK_HF_IN_CLKPATH3 
+					   IFX_CLK_HF_IN_CLKPATH4 IFX_CLK_HF_IN_CLKPATH5 >;
+			instance = <11>;
+			status = "okay";
+		};
+
+		div_hf11: div-hf11 {
+			compatible = "infineon,clock-div";
+			#clock-cells = <1>;
+			input = <&mux_hf11>;
+			instance = < 11 >;
+			clock-div = <IFX_CLK_HF_NO_DIVIDE>;
+			status = "okay";
+		};
+
+		mux_hf12: mux-hf12 {
+			compatible = "infineon,clock-mux";
+			#clock-cells = <1>;
+			system-clock = < IFX_HF >;
+			input-sources = < &dpll_lp0 &dpll_lp1 &dpll_hp &path_mux3 &path_mux4 &path_mux5 >;
+			source-selects = < IFX_CLK_HF_IN_CLKPATH0 IFX_CLK_HF_IN_CLKPATH1 
+					   IFX_CLK_HF_IN_CLKPATH2 IFX_CLK_HF_IN_CLKPATH3 
+					   IFX_CLK_HF_IN_CLKPATH4 IFX_CLK_HF_IN_CLKPATH5 >;
+			instance = <12>;
+			status = "okay";
+		};
+
+		div_hf12: div-hf12 {
+			compatible = "infineon,clock-div";
+			#clock-cells = <1>;
+			input = <&mux_hf12>;
+			instance = < 12 >;
+			clock-div = <IFX_CLK_HF_NO_DIVIDE>;
+			status = "okay";
+		};
+
+		mux_hf13: mux-hf13 {
+			compatible = "infineon,clock-mux";
+			#clock-cells = <1>;
+			system-clock = < IFX_HF >;
+			input-sources = < &dpll_lp0 &dpll_lp1 &dpll_hp &path_mux3 &path_mux4 &path_mux5 >;
+			source-selects = < IFX_CLK_HF_IN_CLKPATH0 IFX_CLK_HF_IN_CLKPATH1 
+					   IFX_CLK_HF_IN_CLKPATH2 IFX_CLK_HF_IN_CLKPATH3 
+					   IFX_CLK_HF_IN_CLKPATH4 IFX_CLK_HF_IN_CLKPATH5 >;
+			instance = <13>;
+			status = "okay";
+		};
+
+		div_hf13: div-hf13 {
+			compatible = "infineon,clock-div";
+			#clock-cells = <1>;
+			input = <&mux_hf13>;
+			instance = < 13 >;
+			clock-div = <IFX_CLK_HF_NO_DIVIDE>;
+			status = "okay";
+		};
+
+	};
+};
+
+/{
+	dummy_clock_consumer_1: dummy-clock-consumer-1{
+		compatible = "infineon,clock-consumer";
+		clock-outputs = <&clk_output_hf11 &clk_output_hf13>;
+		clock-output-names = "clock_output_1_dummy_1", "clock_output_2_dummy_1";
+		clock-request-0 = <&clk_output_hf11_default_state &clk_output_hf13_default_state>;
+		clock-request-1 = <&clk_output_hf11_shared_state &clk_output_hf13_shared_state>;
+		clock-request-2 = <&clk_output_hf11_fast_state &clk_output_hf13_default_state>;
+		clock-request-3 = <&clk_output_hf13_iho_state>;
+		clock-request-4 = <&clk_output_hf11_default_state &clk_output_hf11_shared_state &clk_output_hf11_fast_state>;
+		clock-request-names = "default", "shared", "fast", "iho", "all";
+	};
+
+	dummy_clock_consumer_2: dummy-clock-consumer-2{
+		compatible = "infineon,clock-consumer";
+		clock-outputs = <&clk_output_hf11>;
+		clock-output-names = "clock_output_1_dummy_2";
+		clock-request-0 = <&clk_output_hf11_default_state>;
+		clock-request-1 = <&clk_output_hf11_fast_state>;
+		clock-request-2 = <&clk_output_hf11_shared_state>;
+		clock-request-names = "default", "fast", "shared";
+	};
+};
+
+&div_hf11 {
+	clk_output_hf11: clk_output_hf11 {
+		#clock-cells = <0>;
+		compatible = "clock-output";
+		clk_output_hf11_default_state: clk-output-hf11-default-state {
+			compatible = "clock-state";
+			clocks = <&clk_iho 1>, <&path_mux1 0>, <&dpll_lp1 1 0 1 1 7 56 0 0>, <&mux_hf11 1 >, <&div_hf11 3>;
+			clock-frequency = <133333330>;
+			rank = < 2 >;
+		};
+		clk_output_hf11_fast_state: clk-output-hf11-fast-state {
+			compatible = "clock-state";
+			clocks = <&clk_iho 1>, <&path_mux2 0>, <&dpll_hp 1 0 1 1 7 56 0 0>, <&mux_hf11 2>, <&div_hf11 1>;
+			clock-frequency = <450000000>;
+			rank = < 0 >;
+		};
+		clk_output_hf11_shared_state: clk-output-hf11-shared-state {
+			compatible = "clock-state";
+			clocks = <&clk_pilo 1>, <&path_mux3 4>, <&mux_hf11 3>, <&div_hf11 2>;
+			clock-frequency = <16384>;
+			rank = < 1 >;
+		};
+	};
+};
+
+&div_hf13 {
+	clk_output_hf13: clk_output_hf13 {
+		#clock-cells = <0>;
+		compatible = "clock-output";
+		clk_output_hf13_default_state: clk-output-hf13-default-state {
+			compatible = "clock-state";
+			clocks = <&clk_iho 1>, <&path_mux2 0>, <&dpll_hp 1 0 1 2 1 18 1 0>, <&mux_hf13 2 >, <&div_hf13 2>;
+			clock-frequency = <225000000>;
+			rank = < 0 >;
+		};
+		clk_output_hf13_shared_state: clk-output-hf13-shared-state {
+			compatible = "clock-state";
+			clocks = <&clk_pilo 1>, <&path_mux3 4>, <&mux_hf13 3>, <&div_hf13 1>;
+			clock-frequency = <32768>;
+			rank = < 0 >;
+		};
+		clk_output_hf13_iho_state: clk-output-hf13-iho-state {
+			compatible = "clock-state";
+			clocks = <&clk_iho 1>, <&path_mux3 0>, <&mux_hf13 3>, <&div_hf13 1>;
+			clock-frequency = <50000000>;
+			rank = < 0 >;
+		};
+	};
+};

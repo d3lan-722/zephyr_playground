@@ -14,7 +14,7 @@ properties:
     type: int
     required: true
     description: |
-      The type of clock (refer to include/.../dt-bindings/clock/ifx_clock_source_common.h):
+      Clock producer identifier
       clk_iho  : system-clock = <IFX_IHO>
       clk_pilo : system-clock = <IFX_PILO>
 
@@ -27,24 +27,31 @@ properties:
     type: int
     description: output clock frequency (Hz)
     required: true
+  
+  enable: 
+    type: int
     
   bypass-sel:
+    type: int
+
+  dco-mode-enable:
+    type: boolean
+
+  output-div:
+    type: int
+  
+  reference-div:
     type: int
 
   feedback-div:
     type: int
 
-  reference-div:
-    type: int
-
-  output-div:
+  fraction-enable:
     type: int
 
   fraction-div:
     type: int
-
-  dco-mode-enable:
-    type: boolean
+    description: Sets the frac_div value in f_OUT = f_REF(N + FRAC_DIV/2^24)
 
   div-p:
     type: int
@@ -66,13 +73,14 @@ properties:
 
   "#clock-cells":
     type: int
-    const: 7
+    const: 8
 
 clock-cells:
   - enable
   - bypass
-  - feedback
-  - reference
-  - output
   - dco
+  - output
+  - reference
+  - feedback
   - fraction
+  - fraction-div
