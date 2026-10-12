@@ -1,0 +1,557 @@
+Loading Zephyr module(s) (Zephyr base): sysbuild_default
+-- Found Python3: /home/ubuntu/zephyrproject/.venv/bin/python3 (found suitable version "3.12.3", minimum required is "3.12") found components: Interpreter 
+-- Cache files will be written to: /home/ubuntu/.cache/zephyr
+-- Found west (found suitable version "1.5.0", minimum required is "0.14.0")
+-- Board: kit_pse84_ai, qualifiers: pse846gps2dbzc4a/m55
+Parsing /home/ubuntu/zephyrproject/zephyr/share/sysbuild/Kconfig
+Loaded configuration '/workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/_sysbuild/empty.conf'
+Merged configuration '/workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/_sysbuild/empty.conf'
+Merged configuration '/workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/zephyr/misc/generated/extra_kconfig_options.conf'
+Configuration saved to '/workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/zephyr/.config'
+Kconfig header saved to '/workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/_sysbuild/autoconf.h'
+-- 
+   *****************************************
+   * Running CMake for integration_runtime *
+   *****************************************
+
+Loading Zephyr default modules (Zephyr base (cached)).
+-- Application: /workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime
+-- CMake version: 3.28.3
+-- Found Python3: /home/ubuntu/zephyrproject/.venv/bin/python3 (found suitable version "3.12.3", minimum required is "3.12") found components: Interpreter 
+-- Cache files will be written to: /home/ubuntu/.cache/zephyr
+-- Zephyr version: 4.4.99 (/home/ubuntu/zephyrproject/zephyr)
+-- Found west (found suitable version "1.5.0", minimum required is "0.14.0")
+-- Board: kit_pse84_ai, qualifiers: pse846gps2dbzc4a/m55
+-- Found host-tools: zephyr 1.0.1 (/usr/local/zephyr-sdk-1.0.1)
+-- Found toolchain: zephyr 1.0.1 (/usr/local/zephyr-sdk-1.0.1)
+-- Found Dtc: /usr/bin/dtc (found suitable version "1.7.0", minimum required is "1.4.6") 
+-- Found BOARD.dts: /home/ubuntu/zephyrproject/zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m55.dts
+-- Found devicetree overlay: /workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay
+-- Generated zephyr.dts: /workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/integration_runtime/zephyr/zephyr.dts
+-- Generated pickled edt: /workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/integration_runtime/zephyr/edt.pickle
+-- Generated devicetree_generated.h: /workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/integration_runtime/zephyr/include/generated/zephyr/devicetree_generated.h
+Parsing /home/ubuntu/zephyrproject/zephyr/Kconfig
+Loaded configuration '/home/ubuntu/zephyrproject/zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m55_defconfig'
+Merged configuration '/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/prj.conf'
+Merged configuration '/workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/twister/testsuite_extra.conf'
+Merged configuration '/workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/integration_runtime/zephyr/.config.sysbuild'
+Configuration saved to '/workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/integration_runtime/zephyr/.config'
+Kconfig header saved to '/workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/integration_runtime/zephyr/include/generated/zephyr/autoconf.h'
+-- Could NOT find Ccache: Found unsuitable version "4.9.1", but required is at least "4.12" (found /usr/bin/ccache)
+-- Found GnuLd: /usr/local/zephyr-sdk-1.0.1/gnu/arm-zephyr-eabi/arm-zephyr-eabi/bin/ld.bfd (found version "2.43.1") 
+-- The C compiler identification is GNU 14.3.0
+-- The CXX compiler identification is GNU 14.3.0
+-- The ASM compiler identification is GNU
+-- Found assembler: /usr/local/zephyr-sdk-1.0.1/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcc
+-- Using ccache: /usr/bin/ccache
+-- Found gen_kobject_list: /home/ubuntu/zephyrproject/zephyr/scripts/build/gen_kobject_list.py
+-- Configuring done (6.9s)
+-- Generating done (0.1s)
+-- Build files have been written to: /workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/integration_runtime
+-- 
+   *********************************
+   * Running CMake for enable_cm55 *
+   *********************************
+
+Loading Zephyr default modules (Zephyr base (cached)).
+-- Application: /home/ubuntu/zephyrproject/zephyr/samples/basic/minimal
+-- CMake version: 3.28.3
+-- Found Python3: /home/ubuntu/zephyrproject/.venv/bin/python3 (found suitable version "3.12.3", minimum required is "3.12") found components: Interpreter 
+-- Cache files will be written to: /home/ubuntu/.cache/zephyr
+-- Zephyr version: 4.4.99 (/home/ubuntu/zephyrproject/zephyr)
+-- Found west (found suitable version "1.5.0", minimum required is "0.14.0")
+-- Board: kit_pse84_ai, qualifiers: pse846gps2dbzc4a/m33
+-- Found host-tools: zephyr 1.0.1 (/usr/local/zephyr-sdk-1.0.1)
+-- Found toolchain: zephyr 1.0.1 (/usr/local/zephyr-sdk-1.0.1)
+-- Found Dtc: /usr/bin/dtc (found suitable version "1.7.0", minimum required is "1.4.6") 
+-- Found BOARD.dts: /home/ubuntu/zephyrproject/zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts
+-- Generated zephyr.dts: /workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/enable_cm55/zephyr/zephyr.dts
+-- Generated pickled edt: /workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/enable_cm55/zephyr/edt.pickle
+-- Generated devicetree_generated.h: /workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/enable_cm55/zephyr/include/generated/zephyr/devicetree_generated.h
+Parsing /home/ubuntu/zephyrproject/zephyr/samples/basic/minimal/Kconfig
+Loaded configuration '/home/ubuntu/zephyrproject/zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33_defconfig'
+Merged configuration '/home/ubuntu/zephyrproject/zephyr/samples/basic/minimal/prj.conf'
+Merged configuration '/workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/enable_cm55/zephyr/.config.sysbuild'
+Configuration saved to '/workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/enable_cm55/zephyr/.config'
+Kconfig header saved to '/workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/enable_cm55/zephyr/include/generated/zephyr/autoconf.h'
+-- Could NOT find Ccache: Found unsuitable version "4.9.1", but required is at least "4.12" (found /usr/bin/ccache)
+-- Found GnuLd: /usr/local/zephyr-sdk-1.0.1/gnu/arm-zephyr-eabi/arm-zephyr-eabi/bin/ld.bfd (found version "2.43.1") 
+-- The C compiler identification is GNU 14.3.0
+-- The CXX compiler identification is GNU 14.3.0
+-- The ASM compiler identification is GNU
+-- Found assembler: /usr/local/zephyr-sdk-1.0.1/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcc
+-- Using ccache: /usr/bin/ccache
+-- Found gen_kobject_list: /home/ubuntu/zephyrproject/zephyr/scripts/build/gen_kobject_list.py
+-- Configuring done (9.2s)
+-- Generating done (0.1s)
+-- Build files have been written to: /workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/enable_cm55
+-- Configuring done (20.2s)
+-- Generating done (0.0s)
+-- Build files have been written to: /workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest
+[1/16] Creating directories for 'integration_runtime'
+[2/16] Creating directories for 'enable_cm55'
+[3/16] No download step for 'integration_runtime'
+[4/16] No download step for 'enable_cm55'
+[5/16] No update step for 'integration_runtime'
+[6/16] No update step for 'enable_cm55'
+[7/16] No patch step for 'integration_runtime'
+[8/16] No patch step for 'enable_cm55'
+[9/16] No configure step for 'integration_runtime'
+[9/16] Performing build step for 'integration_runtime'
+[1/221] Preparing syscall dependency handling
+
+[2/221] Generating include/generated/zephyr/version.h
+-- Zephyr version: 4.4.99 (/home/ubuntu/zephyrproject/zephyr), build: 6eec41c6cb14
+[3/221] Generating misc/generated/syscalls_subdirs.trigger
+[4/221] Generating misc/generated/syscalls.json, misc/generated/struct_tags.json
+[5/221] Generating include/generated/device-api-sections.ld, include/generated/device-api-sections.cmake
+[6/221] Generating include/generated/zephyr/syscall_dispatch.c, include/generated/zephyr/syscall_exports_llext.c, syscall_weakdefs_llext.c, include/generated/zephyr/syscall_list.h
+[7/221] Generating include/generated/zephyr/driver-validation.h
+[8/221] Generating include/generated/zephyr/kobj-types-enum.h, include/generated/zephyr/otype-to-str.h, include/generated/zephyr/otype-to-size.h
+[9/221] Building C object zephyr/lib/heap/CMakeFiles/heap_constants.dir/heap_constants.c.obj
+[10/221] Generating ../../include/generated/zephyr/heap_constants.h
+[11/221] Building C object zephyr/CMakeFiles/offsets.dir/arch/arm/core/offsets/offsets.c.obj
+[12/221] Generating include/generated/zephyr/offsets.h
+[13/221] Building C object CMakeFiles/app.dir/workspaces/z_playground/apps/10_pse84_m33_clock_management/drivers/infineon_clock_consumer.c.obj
+[14/221] Building C object CMakeFiles/app.dir/workspaces/z_playground/apps/10_pse84_m33_clock_management/drivers/infineon_clock_mux.c.obj
+[15/221] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/printk.c.obj
+[16/221] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/cbprintf_packaged.c.obj
+[17/221] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/clock.c.obj
+[18/221] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/boot_banner.c.obj
+[19/221] Building C object zephyr/CMakeFiles/zephyr.dir/lib/libc/validate_libc.c.obj
+[20/221] Building C object CMakeFiles/app.dir/workspaces/z_playground/apps/10_pse84_m33_clock_management/drivers/infineon_clock_div.c.obj
+[21/221] Building C object CMakeFiles/app.dir/workspaces/z_playground/apps/10_pse84_m33_clock_management/drivers/infineon_clock_hf.c.obj
+[22/221] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/dec.c.obj
+[23/221] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/set.c.obj
+[24/221] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/hex.c.obj
+[25/221] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/bitmask.c.obj
+[26/221] Building C object CMakeFiles/app.dir/src/main.c.obj
+[27/221] Building C object CMakeFiles/app.dir/workspaces/z_playground/apps/10_pse84_m33_clock_management/drivers/infineon_clock_pll.c.obj
+[28/221] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/cbprintf_complete.c.obj
+[29/221] Building C object CMakeFiles/app.dir/workspaces/z_playground/apps/10_pse84_m33_clock_management/drivers/infineon_clock_root.c.obj
+[30/221] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/last_section_id.c.obj
+[31/221] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/timeutil.c.obj
+[32/221] Linking C static library app/libapp.a
+[33/221] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/ring_buffer.c.obj
+[34/221] Building C object zephyr/CMakeFiles/zephyr.dir/misc/generated/configs.c.obj
+[35/221] Building C object zephyr/CMakeFiles/zephyr.dir/lib/heap/heap.c.obj
+[36/221] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/assert.c.obj
+[37/221] Building C object zephyr/CMakeFiles/zephyr.dir/soc/infineon/edge/pse84/mpu_regions.c.obj
+[38/221] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/rb.c.obj
+[39/221] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/bitarray.c.obj
+[40/221] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/mem_mgmt/mem_attr.c.obj
+[41/221] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/getopt/getopt.c.obj
+[42/221] Building C object zephyr/arch/common/CMakeFiles/arch__common.dir/instr_mem.c.obj
+[43/221] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/getopt/getopt_common.c.obj
+[44/221] Building C object zephyr/arch/common/CMakeFiles/arch__common.dir/init.c.obj
+[45/221] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/testsuite/coverage/coverage.c.obj
+[46/221] Building C object zephyr/arch/common/CMakeFiles/arch__common.dir/sw_isr_common.c.obj
+[47/221] Building ASM object zephyr/arch/arch/arm/core/CMakeFiles/arch__arm__core.dir/nmi_on_reset.S.obj
+[48/221] Building ASM object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/fault_s.S.obj
+[49/221] Building C object zephyr/CMakeFiles/zephyr.dir/kernel/sys/sem.c.obj
+[50/221] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/tracing/tracing_none.c.obj
+[51/221] Building C object zephyr/CMakeFiles/zephyr.dir/kernel/sys/thread_entry.c.obj
+[52/221] Building ASM object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/reset.S.obj
+[53/221] Building C object zephyr/arch/common/CMakeFiles/arch__common.dir/dynamic_isr.c.obj
+[54/221] Building ASM object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/vector_table.S.obj
+[55/221] Building C object zephyr/arch/common/CMakeFiles/arch__common.dir/xip.c.obj
+[56/221] Building C object zephyr/CMakeFiles/zephyr.dir/soc/infineon/edge/pse84/soc_pse84_m55.c.obj
+[57/221] Building C object zephyr/arch/common/CMakeFiles/isr_tables.dir/isr_tables.c.obj
+[58/221] Building ASM object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/svc.S.obj
+[59/221] Linking C static library zephyr/arch/common/libisr_tables.a
+[60/221] Building C object zephyr/CMakeFiles/zephyr.dir/soc/infineon/edge/pse84/security_config/pse84_boot.c.obj
+[61/221] Linking C static library zephyr/arch/common/libarch__common.a
+[62/221] Linking C static library zephyr/libzephyr.a
+[63/221] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/fault.c.obj
+[64/221] Building C object zephyr/arch/arch/arm/core/CMakeFiles/arch__arm__core.dir/nmi.c.obj
+[65/221] Building C object zephyr/arch/arch/arm/core/CMakeFiles/arch__arm__core.dir/fatal.c.obj
+[66/221] Building ASM object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/__aeabi_read_tp.S.obj
+[67/221] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/fpu.c.obj
+[68/221] Building C object zephyr/arch/arch/arm/core/CMakeFiles/arch__arm__core.dir/tls.c.obj
+[69/221] Building ASM object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/swap_helper.S.obj
+[70/221] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/exc_exit.c.obj
+[71/221] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/scb.c.obj
+[72/221] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/cpu_idle.c.obj
+[73/221] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/thread.c.obj
+[74/221] Linking C static library zephyr/arch/arch/arm/core/libarch__arm__core.a
+[75/221] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/prep_c.c.obj
+[76/221] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/irq_manage.c.obj
+[77/221] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/irq_init.c.obj
+[78/221] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/assert.c.obj
+[79/221] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/cache.c.obj
+[80/221] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/thread_abort.c.obj
+[81/221] Building C object zephyr/lib/libc/common/CMakeFiles/lib__libc__common.dir/source/time/time.c.obj
+[82/221] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/isr_wrapper.c.obj
+[83/221] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/chk_fail.c.obj
+[84/221] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/exit.c.obj
+[85/221] Building C object zephyr/arch/arch/arm/core/mpu/CMakeFiles/arch__arm__core__mpu.dir/arm_core_mpu.c.obj
+[86/221] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/errno_wrap.c.obj
+[87/221] Building C object zephyr/subsys/portability/posix/c_lib_ext/CMakeFiles/subsys__portability__posix__c_lib_ext.dir/fnmatch.c.obj
+[88/221] Building C object zephyr/arch/arch/arm/core/cortex_m/cmse/CMakeFiles/arch__arm__core__cortex_m__cmse.dir/arm_core_cmse.c.obj
+[89/221] Linking C static library zephyr/arch/arch/arm/core/cortex_m/libarch__arm__core__cortex_m.a
+[90/221] Linking C static library zephyr/arch/arch/arm/core/cortex_m/cmse/libarch__arm__core__cortex_m__cmse.a
+[91/221] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/cbprintf.c.obj
+[92/221] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/stdio.c.obj
+[93/221] Building C object zephyr/arch/arch/arm/core/mpu/CMakeFiles/arch__arm__core__mpu.dir/arm_mpu.c.obj
+[94/221] Linking C static library zephyr/arch/arch/arm/core/mpu/libarch__arm__core__mpu.a
+[95/221] Building C object zephyr/subsys/testsuite/ztest/CMakeFiles/subsys__testsuite__ztest.dir/src/ztest_error_hook.c.obj
+[96/221] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/locks.c.obj
+[97/221] Building C object zephyr/lib/libc/common/CMakeFiles/lib__libc__common.dir/source/errno/errno.c.obj
+[98/221] Linking C static library zephyr/lib/libc/picolibc/liblib__libc__picolibc.a
+[99/221] Building C object zephyr/subsys/testsuite/ztest/CMakeFiles/subsys__testsuite__ztest.dir/src/ztest.c.obj
+[100/221] Building C object zephyr/lib/libc/common/CMakeFiles/lib__libc__common.dir/source/stdlib/abort.c.obj
+[101/221] Building C object zephyr/subsys/portability/posix/c_lib_ext/CMakeFiles/subsys__portability__posix__c_lib_ext.dir/getentropy.c.obj
+[102/221] Building C object zephyr/lib/libc/common/CMakeFiles/lib__libc__common.dir/source/stdlib/malloc.c.obj
+[103/221] Building C object zephyr/subsys/random/CMakeFiles/subsys__random.dir/random_entropy_device.c.obj
+[104/221] Linking C static library zephyr/subsys/random/libsubsys__random.a
+[105/221] Linking C static library zephyr/lib/libc/common/liblib__libc__common.a
+[106/221] Building C object zephyr/subsys/portability/posix/c_lib_ext/CMakeFiles/subsys__portability__posix__c_lib_ext.dir/getopt_shim.c.obj
+[107/221] Building C object zephyr/drivers/clock_management/CMakeFiles/drivers__clock_management.dir/fixed_factor_clock.c.obj
+[108/221] Linking C static library zephyr/subsys/portability/posix/c_lib_ext/libsubsys__portability__posix__c_lib_ext.a
+[109/221] Building C object zephyr/subsys/testsuite/ztest/CMakeFiles/subsys__testsuite__ztest.dir/src/ztest_defaults.c.obj
+[110/221] Building C object zephyr/subsys/testsuite/ztest/CMakeFiles/subsys__testsuite__ztest.dir/src/ztest_rules.c.obj
+[111/221] Linking C static library zephyr/subsys/testsuite/ztest/libsubsys__testsuite__ztest.a
+[112/221] Building C object zephyr/drivers/clock_control/CMakeFiles/drivers__clock_control.dir/clock_control_infineon_peri_clock.c.obj
+[113/221] Building C object zephyr/drivers/console/CMakeFiles/drivers__console.dir/uart_console.c.obj
+[114/221] Linking C static library zephyr/drivers/clock_control/libdrivers__clock_control.a
+[115/221] Linking C static library zephyr/drivers/console/libdrivers__console.a
+[116/221] Building C object zephyr/drivers/clock_management/CMakeFiles/drivers__clock_management.dir/common/mux.c.obj
+[117/221] Building C object zephyr/drivers/clock_management/CMakeFiles/drivers__clock_management.dir/clock_management_common.c.obj
+[118/221] Building C object zephyr/drivers/pinctrl/CMakeFiles/drivers__pinctrl.dir/common.c.obj
+[119/221] Linking C static library zephyr/drivers/clock_management/libdrivers__clock_management.a
+[120/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-template-pse8xxgp/files/system_edge.c.obj
+[121/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-srf/source/mtb_srf.c.obj
+[122/221] Building C object zephyr/drivers/entropy/CMakeFiles/drivers__entropy.dir/entropy_infineon_mxcrypto_trng.c.obj
+[123/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-template-pse8xxgp/files/COMPONENT_CM55/COMPONENT_NON_SECURE_DEVICE/ns_system_pse84.c.obj
+[124/221] Building ASM object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/TOOLCHAIN_GCC_ARM/cy_syslib_ext.S.obj
+[125/221] Linking C static library zephyr/drivers/entropy/libdrivers__entropy.a
+[126/221] Building C object zephyr/drivers/mfd/CMakeFiles/drivers__mfd.dir/mfd_infineon_mxcrypto.c.obj
+[127/221] Linking C static library zephyr/drivers/mfd/libdrivers__mfd.a
+[128/221] Building C object zephyr/drivers/timer/CMakeFiles/drivers__timer.dir/sys_clock_init.c.obj
+[129/221] Building C object zephyr/drivers/pinctrl/CMakeFiles/drivers__pinctrl.dir/pinctrl_infineon.c.obj
+[130/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/zephyr-ifx-cycfg/pse84/kit_pse84_ai/cycfg_qspi_memslot.c.obj
+[131/221] Linking C static library zephyr/drivers/pinctrl/libdrivers__pinctrl.a
+[132/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/zephyr-ifx-cycfg/pse84/ifx_cycfg_init.c.obj
+[133/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_crypto_core_hw_v1.c.obj
+[134/221] Building C object zephyr/drivers/timer/CMakeFiles/drivers__timer.dir/cortex_m_systick.c.obj
+[135/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_crypto_utils.c.obj
+[136/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_crypto.c.obj
+[137/221] Linking C static library zephyr/drivers/timer/libdrivers__timer.a
+[138/221] Building C object zephyr/drivers/crypto/CMakeFiles/drivers__crypto.dir/crypto_infineon_mxcrypto.c.obj
+[139/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/devices/source/cy_device.c.obj
+[140/221] Linking C static library zephyr/drivers/crypto/libdrivers__crypto.a
+[141/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_scb_uart.c.obj
+[142/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_crypto_core_hw.c.obj
+[143/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_crypto_core_mem_v2.c.obj
+[144/221] Building C object zephyr/drivers/serial/CMakeFiles/drivers__serial.dir/uart_infineon_pdl.c.obj
+[145/221] Linking C static library zephyr/drivers/serial/libdrivers__serial.a
+[146/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_crypto_core_cmac_v2.c.obj
+[147/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_crypto_core_sha_v2.c.obj
+[148/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_autanalog_ptc.c.obj
+[149/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_crypto_core_trng.c.obj
+[150/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_scb_common.c.obj
+[151/221] Building C object zephyr/drivers/gpio/CMakeFiles/drivers__gpio.dir/gpio_infineon.c.obj
+[152/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_syslib.c.obj
+[153/221] Linking C static library zephyr/drivers/gpio/libdrivers__gpio.a
+[154/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_crypto_core_aes_v2.c.obj
+[155/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_autanalog_sar.c.obj
+[156/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_autanalog_ac.c.obj
+[157/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_gpio.c.obj
+[158/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_autanalog_ctb.c.obj
+[159/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_autanalog_dac.c.obj
+[160/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_ipc_sema.c.obj
+[161/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_ppc.c.obj
+[162/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_autanalog.c.obj
+[163/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_mpc.c.obj
+[164/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_syspm_pdcm.c.obj
+[165/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_ipc_drv.c.obj
+[166/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_ipc_pipe.c.obj
+[167/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_syspm_v4.c.obj
+[168/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/version.c.obj
+[169/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/ppu_v1.c.obj
+[170/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_trigmux.c.obj
+[171/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_syspm_ppu.c.obj
+[172/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/main_weak.c.obj
+[173/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/busy_wait.c.obj
+[174/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mem_slab.c.obj
+[175/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/device.c.obj
+[176/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/init.c.obj
+[177/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/hal/source/mtb_hal_clock.c.obj
+[178/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/fatal.c.obj
+[179/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/float.c.obj
+[180/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/kheap.c.obj
+[181/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mutex.c.obj
+[182/221] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_sysclk_v2.c.obj
+[183/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/idle.c.obj
+[184/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/msg_q.c.obj
+[185/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mailbox.c.obj
+[186/221] Linking C static library modules/hal_infineon/libmodules_hal_infineon.a
+[187/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/stack.c.obj
+[188/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/queue.c.obj
+[189/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/system_work_q.c.obj
+[190/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/sem.c.obj
+[191/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/sleep.c.obj
+[192/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/condvar.c.obj
+[193/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/pipe.c.obj
+[194/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/work.c.obj
+[195/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/thread.c.obj
+[196/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/spinlock_validate.c.obj
+[197/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/scheduler.c.obj
+[198/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/timeslicing.c.obj
+[199/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/sched.c.obj
+[200/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/timeout.c.obj
+[201/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/dynamic_disabled.c.obj
+[202/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mempool.c.obj
+[203/221] Building C object zephyr/kernel/CMakeFiles/kernel.dir/timer.c.obj
+[204/221] Linking C static library zephyr/kernel/libkernel.a
+[205/221] Generating code_relocation.c, include/generated/linker_relocate.ld
+[206/221] Building C object zephyr/CMakeFiles/code_relocation_source_lib.dir/code_relocation.c.obj
+[207/221] Linking C static library zephyr/libcode_relocation_source_lib.a
+[208/221] Generating linker_zephyr_pre1.cmd
+[209/221] Generating linker_zephyr_pre0.cmd
+[210/221] Building C object zephyr/CMakeFiles/zephyr_pre0.dir/misc/empty_file.c.obj
+[211/221] Linking C executable zephyr/zephyr_pre0.elf
+[212/221] Generating clock_deps.c
+[213/221] Building C object zephyr/CMakeFiles/zephyr_pre1.dir/misc/empty_file.c.obj
+[214/221] Building C object zephyr/CMakeFiles/zephyr_pre1.dir/clock_deps.c.obj
+[215/221] Linking C executable zephyr/zephyr_pre1.elf
+[216/221] Generating linker.cmd
+[217/221] Generating isr_tables.c, isr_tables_vt.ld, isr_tables_swi.ld
+[218/221] Building C object zephyr/CMakeFiles/zephyr_final.dir/misc/empty_file.c.obj
+[219/221] Building C object zephyr/CMakeFiles/zephyr_final.dir/clock_deps.c.obj
+[220/221] Building C object zephyr/CMakeFiles/zephyr_final.dir/isr_tables.c.obj
+[221/221] Linking C executable zephyr/zephyr.elf
+Memory region         Used Size  Region Size  %age Used
+           FLASH:      486512 B         2 MB     23.20%
+             RAM:      189936 B       256 KB     72.45%
+            DTCM:           0 B       256 KB      0.00%
+            ITCM:       46720 B       256 KB     17.82%
+        M33SCODE:           0 B       212 KB      0.00%
+         M33CODE:           0 B       404 KB      0.00%
+       SECSHARED:           0 B         4 KB      0.00%
+       M33SHARED:           0 B         4 KB      0.00%
+       M55SHARED:          12 B         4 KB      0.29%
+        IDT_LIST:           0 B        32 KB      0.00%
+Generating files from /workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/integration_runtime/zephyr/zephyr.elf for board: kit_pse84_ai/pse846gps2dbzc4a/m55
+[10/16] No configure step for 'enable_cm55'
+[11/16] Performing build step for 'enable_cm55'
+[1/203] Preparing syscall dependency handling
+
+[2/203] Generating include/generated/zephyr/version.h
+-- Zephyr version: 4.4.99 (/home/ubuntu/zephyrproject/zephyr), build: 6eec41c6cb14
+[3/203] Generating misc/generated/syscalls_subdirs.trigger
+[4/203] Generating misc/generated/syscalls.json, misc/generated/struct_tags.json
+[5/203] Generating include/generated/device-api-sections.ld, include/generated/device-api-sections.cmake
+[6/203] Generating include/generated/zephyr/syscall_dispatch.c, include/generated/zephyr/syscall_exports_llext.c, syscall_weakdefs_llext.c, include/generated/zephyr/syscall_list.h
+[7/203] Generating include/generated/zephyr/kobj-types-enum.h, include/generated/zephyr/otype-to-str.h, include/generated/zephyr/otype-to-size.h
+[8/203] Generating include/generated/zephyr/driver-validation.h
+[9/203] Building C object zephyr/lib/heap/CMakeFiles/heap_constants.dir/heap_constants.c.obj
+[10/203] Generating ../../include/generated/zephyr/heap_constants.h
+[11/203] Building C object zephyr/CMakeFiles/offsets.dir/arch/arm/core/offsets/offsets.c.obj
+[12/203] Generating include/generated/zephyr/offsets.h
+[13/203] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/set.c.obj
+[14/203] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/hex.c.obj
+[15/203] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/timeutil.c.obj
+[16/203] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/dec.c.obj
+[17/203] Building C object zephyr/CMakeFiles/zephyr.dir/lib/libc/validate_libc.c.obj
+[18/203] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/bitmask.c.obj
+[19/203] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/last_section_id.c.obj
+[20/203] Building C object zephyr/CMakeFiles/zephyr.dir/misc/generated/configs.c.obj
+[21/203] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/printk.c.obj
+[22/203] Building C object CMakeFiles/app.dir/src/main.c.obj
+[23/203] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/boot_banner.c.obj
+[24/203] Linking C static library app/libapp.a
+[25/203] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/ring_buffer.c.obj
+[26/203] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/assert.c.obj
+[27/203] Building C object zephyr/CMakeFiles/zephyr.dir/lib/heap/heap.c.obj
+[28/203] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/getopt/getopt_common.c.obj
+[29/203] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/clock.c.obj
+[30/203] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/rb.c.obj
+[31/203] Building C object zephyr/CMakeFiles/zephyr.dir/soc/infineon/edge/pse84/security_config/pse84_s_mpc.c.obj
+[32/203] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/cbprintf_packaged.c.obj
+[33/203] Building C object zephyr/CMakeFiles/zephyr.dir/soc/infineon/edge/pse84/security_config/pse84_s_system.c.obj
+[34/203] Building C object zephyr/CMakeFiles/zephyr.dir/soc/infineon/edge/pse84/security_config/pse84_s_sau.c.obj
+[35/203] Building C object zephyr/CMakeFiles/zephyr.dir/soc/infineon/edge/pse84/security_config/pse84_s_protection.c.obj
+[36/203] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/bitarray.c.obj
+[37/203] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/getopt/getopt.c.obj
+[38/203] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/cbprintf_complete.c.obj
+[39/203] Building C object zephyr/CMakeFiles/zephyr.dir/soc/infineon/edge/pse84/mpu_regions.c.obj
+[40/203] Building C object zephyr/arch/common/CMakeFiles/arch__common.dir/instr_mem.c.obj
+[41/203] Building C object zephyr/arch/common/CMakeFiles/arch__common.dir/sw_isr_common.c.obj
+[42/203] Building C object zephyr/arch/common/CMakeFiles/arch__common.dir/init.c.obj
+[43/203] Building ASM object zephyr/arch/arch/arm/core/CMakeFiles/arch__arm__core.dir/nmi_on_reset.S.obj
+[44/203] Building C object zephyr/CMakeFiles/zephyr.dir/kernel/sys/sem.c.obj
+[45/203] Building ASM object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/fault_s.S.obj
+[46/203] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/tracing/tracing_none.c.obj
+[47/203] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/mem_mgmt/mem_attr.c.obj
+[48/203] Building C object zephyr/arch/common/CMakeFiles/arch__common.dir/dynamic_isr.c.obj
+[49/203] Building C object zephyr/CMakeFiles/zephyr.dir/kernel/sys/thread_entry.c.obj
+[50/203] Building ASM object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/vector_table.S.obj
+[51/203] Building ASM object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/reset.S.obj
+[52/203] Building C object zephyr/arch/common/CMakeFiles/isr_tables.dir/isr_tables.c.obj
+[53/203] Building C object zephyr/arch/common/CMakeFiles/arch__common.dir/xip.c.obj
+[54/203] Linking C static library zephyr/arch/common/libisr_tables.a
+[55/203] Building C object zephyr/CMakeFiles/zephyr.dir/soc/infineon/edge/pse84/soc_pse84_m33_s.c.obj
+[56/203] Building C object zephyr/arch/arch/arm/core/CMakeFiles/arch__arm__core.dir/nmi.c.obj
+[57/203] Building ASM object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/svc.S.obj
+[58/203] Linking C static library zephyr/arch/common/libarch__common.a
+[59/203] Building C object zephyr/arch/arch/arm/core/CMakeFiles/arch__arm__core.dir/tls.c.obj
+[60/203] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/fpu.c.obj
+[61/203] Building C object zephyr/arch/arch/arm/core/CMakeFiles/arch__arm__core.dir/fatal.c.obj
+[62/203] Building ASM object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/__aeabi_read_tp.S.obj
+[63/203] Building C object zephyr/CMakeFiles/zephyr.dir/soc/infineon/edge/pse84/security_config/pse84_boot.c.obj
+[64/203] Linking C static library zephyr/arch/arch/arm/core/libarch__arm__core.a
+[65/203] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/scb.c.obj
+[66/203] Building ASM object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/swap_helper.S.obj
+[67/203] Linking C static library zephyr/libzephyr.a
+[68/203] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/prep_c.c.obj
+[69/203] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/irq_init.c.obj
+[70/203] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/fault.c.obj
+[71/203] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/cpu_idle.c.obj
+[72/203] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/exc_exit.c.obj
+[73/203] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/thread.c.obj
+[74/203] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/isr_wrapper.c.obj
+[75/203] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/thread_abort.c.obj
+[76/203] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/irq_manage.c.obj
+[77/203] Building C object zephyr/arch/arch/arm/core/mpu/CMakeFiles/arch__arm__core__mpu.dir/arm_core_mpu.c.obj
+[78/203] Building C object zephyr/arch/arch/arm/core/cortex_m/cmse/CMakeFiles/arch__arm__core__cortex_m__cmse.dir/arm_core_cmse.c.obj
+[79/203] Linking C static library zephyr/arch/arch/arm/core/cortex_m/libarch__arm__core__cortex_m.a
+[80/203] Linking C static library zephyr/arch/arch/arm/core/cortex_m/cmse/libarch__arm__core__cortex_m__cmse.a
+[81/203] Building C object zephyr/lib/libc/common/CMakeFiles/lib__libc__common.dir/source/time/time.c.obj
+[82/203] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/assert.c.obj
+[83/203] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/cbprintf.c.obj
+[84/203] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/errno_wrap.c.obj
+[85/203] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/chk_fail.c.obj
+[86/203] Building C object zephyr/arch/arch/arm/core/mpu/CMakeFiles/arch__arm__core__mpu.dir/arm_mpu.c.obj
+[87/203] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/locks.c.obj
+[88/203] Building C object zephyr/subsys/portability/posix/c_lib_ext/CMakeFiles/subsys__portability__posix__c_lib_ext.dir/fnmatch.c.obj
+[89/203] Linking C static library zephyr/arch/arch/arm/core/mpu/libarch__arm__core__mpu.a
+[90/203] Building C object zephyr/lib/libc/common/CMakeFiles/lib__libc__common.dir/source/stdlib/abort.c.obj
+[91/203] Building C object zephyr/lib/libc/common/CMakeFiles/lib__libc__common.dir/source/stdlib/malloc.c.obj
+[92/203] Building C object zephyr/subsys/portability/posix/c_lib_ext/CMakeFiles/subsys__portability__posix__c_lib_ext.dir/getopt_shim.c.obj
+[93/203] Building C object zephyr/lib/libc/common/CMakeFiles/lib__libc__common.dir/source/errno/errno.c.obj
+[94/203] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/stdio.c.obj
+[95/203] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/exit.c.obj
+[96/203] Linking C static library zephyr/lib/libc/common/liblib__libc__common.a
+[97/203] Linking C static library zephyr/lib/libc/picolibc/liblib__libc__picolibc.a
+[98/203] Building C object zephyr/subsys/portability/posix/c_lib_ext/CMakeFiles/subsys__portability__posix__c_lib_ext.dir/getentropy.c.obj
+[99/203] Building C object zephyr/subsys/random/CMakeFiles/subsys__random.dir/random_entropy_device.c.obj
+[100/203] Linking C static library zephyr/subsys/random/libsubsys__random.a
+[101/203] Linking C static library zephyr/subsys/portability/posix/c_lib_ext/libsubsys__portability__posix__c_lib_ext.a
+[102/203] Building C object zephyr/drivers/clock_control/CMakeFiles/drivers__clock_control.dir/clock_control_infineon_peri_clock.c.obj
+[103/203] Building C object zephyr/drivers/clock_control/CMakeFiles/drivers__clock_control.dir/clock_control_infineon_fixed_clock.c.obj
+[104/203] Building C object zephyr/drivers/clock_control/CMakeFiles/drivers__clock_control.dir/clock_control_infineon_fixed_factor_clock.c.obj
+[105/203] Building C object zephyr/drivers/console/CMakeFiles/drivers__console.dir/uart_console.c.obj
+[106/203] Linking C static library zephyr/drivers/console/libdrivers__console.a
+[107/203] Building C object zephyr/drivers/pinctrl/CMakeFiles/drivers__pinctrl.dir/common.c.obj
+[108/203] Linking C static library zephyr/drivers/clock_control/libdrivers__clock_control.a
+[109/203] Building C object zephyr/drivers/entropy/CMakeFiles/drivers__entropy.dir/entropy_infineon_mxcrypto_trng.c.obj
+[110/203] Linking C static library zephyr/drivers/entropy/libdrivers__entropy.a
+[111/203] Building ASM object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/TOOLCHAIN_GCC_ARM/cy_syslib_ext.S.obj
+[112/203] Building C object zephyr/drivers/mfd/CMakeFiles/drivers__mfd.dir/mfd_infineon_mxcrypto.c.obj
+[113/203] Building C object zephyr/drivers/pinctrl/CMakeFiles/drivers__pinctrl.dir/pinctrl_infineon.c.obj
+[114/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-template-pse8xxgp/files/system_edge.c.obj
+[115/203] Linking C static library zephyr/drivers/pinctrl/libdrivers__pinctrl.a
+[116/203] Linking C static library zephyr/drivers/mfd/libdrivers__mfd.a
+[117/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/zephyr-ifx-cycfg/pse84/kit_pse84_ai/cycfg_qspi_memslot.c.obj
+[118/203] Building C object zephyr/drivers/timer/CMakeFiles/drivers__timer.dir/sys_clock_init.c.obj
+[119/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-template-pse8xxgp/files/COMPONENT_CM33/COMPONENT_SECURE_DEVICE/s_system_pse84.c.obj
+[120/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-srf/source/mtb_srf.c.obj
+[121/203] Building C object zephyr/drivers/timer/CMakeFiles/drivers__timer.dir/cortex_m_systick.c.obj
+[122/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/zephyr-ifx-cycfg/pse84/ifx_cycfg_init.c.obj
+[123/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_crypto_core_hw_v1.c.obj
+[124/203] Building C object zephyr/drivers/crypto/CMakeFiles/drivers__crypto.dir/crypto_infineon_mxcrypto.c.obj
+[125/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_crypto_utils.c.obj
+[126/203] Building C object zephyr/drivers/serial/CMakeFiles/drivers__serial.dir/uart_infineon_pdl.c.obj
+[127/203] Linking C static library zephyr/drivers/timer/libdrivers__timer.a
+[128/203] Linking C static library zephyr/drivers/crypto/libdrivers__crypto.a
+[129/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_crypto_core_hw.c.obj
+[130/203] Linking C static library zephyr/drivers/serial/libdrivers__serial.a
+[131/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/devices/source/cy_device.c.obj
+[132/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_crypto_core_mem_v2.c.obj
+[133/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_crypto_core_trng.c.obj
+[134/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_scb_common.c.obj
+[135/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_crypto.c.obj
+[136/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_syslib.c.obj
+[137/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_scb_uart.c.obj
+[138/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_crypto_core_cmac_v2.c.obj
+[139/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_autanalog_ctb.c.obj
+[140/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_autanalog_ptc.c.obj
+[141/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_autanalog_ac.c.obj
+[142/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_crypto_core_sha_v2.c.obj
+[143/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_autanalog_dac.c.obj
+[144/203] Building C object zephyr/drivers/gpio/CMakeFiles/drivers__gpio.dir/gpio_infineon.c.obj
+[145/203] Linking C static library zephyr/drivers/gpio/libdrivers__gpio.a
+[146/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_ipc_sema.c.obj
+[147/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_ipc_drv.c.obj
+[148/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_gpio.c.obj
+[149/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_autanalog.c.obj
+[150/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_ppc.c.obj
+[151/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_syspm_v4.c.obj
+[152/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_syspm_ppu.c.obj
+[153/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_ipc_pipe.c.obj
+[154/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_syspm_pdcm.c.obj
+[155/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_mpc.c.obj
+[156/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_trigmux.c.obj
+[157/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/version.c.obj
+[158/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_autanalog_sar.c.obj
+[159/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/ppu_v1.c.obj
+[160/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/device.c.obj
+[161/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/main_weak.c.obj
+[162/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/busy_wait.c.obj
+[163/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_crypto_core_aes_v2.c.obj
+[164/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/hal/source/mtb_hal_clock.c.obj
+[165/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/float.c.obj
+[166/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/init.c.obj
+[167/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/idle.c.obj
+[168/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/fatal.c.obj
+[169/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/kheap.c.obj
+[170/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mem_slab.c.obj
+[171/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mutex.c.obj
+[172/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mailbox.c.obj
+[173/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/sem.c.obj
+[174/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/msg_q.c.obj
+[175/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/queue.c.obj
+[176/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/stack.c.obj
+[177/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/system_work_q.c.obj
+[178/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/condvar.c.obj
+[179/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/sleep.c.obj
+[180/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/thread.c.obj
+[181/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/pipe.c.obj
+[182/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/dynamic_disabled.c.obj
+[183/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mempool.c.obj
+[184/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/timeslicing.c.obj
+[185/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/work.c.obj
+[186/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/scheduler.c.obj
+[187/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/timeout.c.obj
+[188/203] Building C object modules/hal_infineon/CMakeFiles/modules_hal_infineon.dir/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_sysclk_v2.c.obj
+[189/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/timer.c.obj
+[190/203] Linking C static library modules/hal_infineon/libmodules_hal_infineon.a
+[191/203] Building C object zephyr/kernel/CMakeFiles/kernel.dir/sched.c.obj
+[192/203] Linking C static library zephyr/kernel/libkernel.a
+[193/203] Generating code_relocation.c, include/generated/linker_relocate.ld
+[194/203] Building C object zephyr/CMakeFiles/code_relocation_source_lib.dir/code_relocation.c.obj
+[195/203] Linking C static library zephyr/libcode_relocation_source_lib.a
+[196/203] Generating linker_zephyr_pre0.cmd
+[197/203] Building C object zephyr/CMakeFiles/zephyr_pre0.dir/misc/empty_file.c.obj
+[198/203] Linking C executable zephyr/zephyr_pre0.elf
+[199/203] Generating linker.cmd
+[200/203] Generating isr_tables.c, isr_tables_vt.ld, isr_tables_swi.ld
+[201/203] Building C object zephyr/CMakeFiles/zephyr_final.dir/misc/empty_file.c.obj
+[202/203] Building C object zephyr/CMakeFiles/zephyr_final.dir/isr_tables.c.obj
+[203/203] Linking C executable zephyr/zephyr.elf
+Memory region         Used Size  Region Size  %age Used
+           FLASH:       56032 B      2047 KB      2.67%
+             RAM:       11056 B       132 KB      8.18%
+            DTCM:           0 B       256 KB      0.00%
+            ITCM:           0 B       256 KB      0.00%
+        M33SCODE:        5384 B       212 KB      2.48%
+         M33CODE:           0 B       404 KB      0.00%
+       SECSHARED:           0 B         4 KB      0.00%
+       M33SHARED:          12 B         4 KB      0.29%
+       M55SHARED:           0 B         4 KB      0.00%
+        IDT_LIST:           0 B        32 KB      0.00%
+Generating files from /workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/enable_cm55/zephyr/zephyr.elf for board: kit_pse84_ai/pse846gps2dbzc4a/m33
+[13/16] Completed 'integration_runtime'
+[15/16] No install step for 'enable_cm55'
+[16/16] Completed 'enable_cm55'

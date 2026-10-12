@@ -1,0 +1,24 @@
+cmake:
+  application:
+    source-dir: '/home/ubuntu/zephyrproject/zephyr/share/sysbuild'
+  board:
+    name: 'kit_pse84_ai'
+    path:
+     - '/home/ubuntu/zephyrproject/zephyr/boards/infineon/kit_pse84_ai'
+    qualifiers: 'pse846gps2dbzc4a/m55'
+    revision: ''
+  images:
+   - name: 'integration_runtime'
+     source-dir: '/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime'
+     type: 'MAIN'
+   - name: 'enable_cm55'
+     source-dir: ''
+  kconfig:
+    files:
+     - '/workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/_sysbuild/empty.conf'
+     - '/workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/_sysbuild/empty.conf'
+     - '/workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/zephyr/misc/generated/extra_kconfig_options.conf'
+    user-files:
+     - '/workspaces/z_playground/apps/10_pse84_m33_clock_management/twister-out/kit_pse84_ai_pse846gps2dbzc4a_m55/zephyr_gnu/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/dummy.testing.ztest/_sysbuild/empty.conf'
+  sysbuild: 'true'
+version: '0.1.0'

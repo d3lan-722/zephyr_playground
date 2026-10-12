@@ -1,0 +1,8 @@
+<testsuites>
+	<testsuite name="kit_pse84_ai/pse846gps2dbzc4a/m55" timestamp="2026-10-12T12:02:25.612872" time="52.9" tests="1" failures="0" errors="0" skipped="0">
+		<properties>
+			<property name="version" value="6eec41c6cb14" />
+		</properties>
+		<testcase classname="kit_pse84_ai/pse846gps2dbzc4a/m55:dummy.testing.ztest" name="dummy.testing.ztest" time="52.90" />
+	</testsuite>
+</testsuites>
