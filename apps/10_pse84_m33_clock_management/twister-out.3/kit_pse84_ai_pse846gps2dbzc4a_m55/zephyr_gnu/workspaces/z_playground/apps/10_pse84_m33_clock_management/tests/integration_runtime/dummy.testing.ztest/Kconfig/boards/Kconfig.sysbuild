@@ -1,2 +1,0 @@
-# Load Sysbuild board Kconfig descriptions.
-osource "/home/ubuntu/zephyrproject/zephyr/boards/infineon/kit_pse84_ai/Kconfig.sysbuild"

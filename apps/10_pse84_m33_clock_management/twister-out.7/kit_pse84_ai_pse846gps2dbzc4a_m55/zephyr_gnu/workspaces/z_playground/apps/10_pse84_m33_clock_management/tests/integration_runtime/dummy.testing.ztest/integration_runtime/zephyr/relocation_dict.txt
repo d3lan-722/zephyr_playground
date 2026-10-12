@@ -1,9 +1,0 @@
-
-ITCM:COPY:/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/TOOLCHAIN_GCC_ARM/cy_syslib_ext.S,
-ITCM:COPY:/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_syspm_v4.c,
-ITCM:COPY:/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_smif.c,
-ITCM:COPY:/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_smif_sfdp.c,
-ITCM:COPY:/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_smif_memslot.c,
-ITCM:COPY:/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_smif_hb_flash.c,
-ITCM:COPY:/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_smif_memnum.c,
-ITCM:COPY:/home/ubuntu/zephyrproject/modules/hal/infineon/mtb-dsl-pse8xxgp/pdl/drivers/source/cy_syslib.c,
