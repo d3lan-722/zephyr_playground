@@ -58,7 +58,7 @@
             "function_total": 13,
             "function_covered": 1,
             "function_percent": 7.7,
-            "branch_total": 162,
+            "branch_total": 98,
             "branch_covered": 0,
             "branch_percent": 0.0
         },
@@ -166,7 +166,7 @@
             "function_total": 3,
             "function_covered": 0,
             "function_percent": 0.0,
-            "branch_total": 24,
+            "branch_total": 8,
             "branch_covered": 0,
             "branch_percent": 0.0
         },
@@ -365,14 +365,14 @@
         {
             "filename": "drivers/clock_management/clock_management_common.c",
             "line_total": 396,
-            "line_covered": 297,
-            "line_percent": 75.0,
+            "line_covered": 318,
+            "line_percent": 80.3,
             "function_total": 22,
-            "function_covered": 19,
-            "function_percent": 86.4,
+            "function_covered": 21,
+            "function_percent": 95.5,
             "branch_total": 268,
-            "branch_covered": 171,
-            "branch_percent": 63.8
+            "branch_covered": 185,
+            "branch_percent": 69.0
         },
         {
             "filename": "drivers/clock_management/common/mux.c",
@@ -503,8 +503,8 @@
             "function_covered": 6,
             "function_percent": 66.7,
             "branch_total": 18,
-            "branch_covered": 9,
-            "branch_percent": 50.0
+            "branch_covered": 10,
+            "branch_percent": 55.6
         },
         {
             "filename": "drivers/timer/sys_clock_init.c",
@@ -615,6 +615,18 @@
             "branch_percent": 10.0
         },
         {
+            "filename": "include/zephyr/drivers/clock_management.h",
+            "line_total": 10,
+            "line_covered": 8,
+            "line_percent": 80.0,
+            "function_total": 1,
+            "function_covered": 1,
+            "function_percent": 100.0,
+            "branch_total": 4,
+            "branch_covered": 2,
+            "branch_percent": 50.0
+        },
+        {
             "filename": "include/zephyr/drivers/clock_management/clock.h",
             "line_total": 6,
             "line_covered": 6,
@@ -629,14 +641,14 @@
         {
             "filename": "include/zephyr/drivers/clock_management/clock_driver.h",
             "line_total": 76,
-            "line_covered": 62,
-            "line_percent": 81.6,
+            "line_covered": 63,
+            "line_percent": 82.9,
             "function_total": 12,
             "function_covered": 12,
             "function_percent": 100.0,
             "branch_total": 52,
-            "branch_covered": 26,
-            "branch_percent": 50.0
+            "branch_covered": 27,
+            "branch_percent": 51.9
         },
         {
             "filename": "include/zephyr/drivers/entropy.h",
@@ -719,18 +731,6 @@
             "function_covered": 0,
             "function_percent": 0.0,
             "branch_total": 16,
-            "branch_covered": 0,
-            "branch_percent": 0.0
-        },
-        {
-            "filename": "include/zephyr/logging/log_core.h",
-            "line_total": 12,
-            "line_covered": 0,
-            "line_percent": 0.0,
-            "function_total": 1,
-            "function_covered": 0,
-            "function_percent": 0.0,
-            "branch_total": 5,
             "branch_covered": 0,
             "branch_percent": 0.0
         },
@@ -970,7 +970,7 @@
             "function_total": 3,
             "function_covered": 0,
             "function_percent": 0.0,
-            "branch_total": 28,
+            "branch_total": 22,
             "branch_covered": 0,
             "branch_percent": 0.0
         },
@@ -1624,8 +1624,8 @@
         },
         {
             "filename": "lib/os/boot_banner.c",
-            "line_total": 3,
-            "line_covered": 3,
+            "line_total": 2,
+            "line_covered": 2,
             "line_percent": 100.0,
             "function_total": 1,
             "function_covered": 1,
@@ -1815,18 +1815,6 @@
             "branch_percent": null
         },
         {
-            "filename": "subsys/logging/log_minimal.c",
-            "line_total": 31,
-            "line_covered": 0,
-            "line_percent": 0.0,
-            "function_total": 4,
-            "function_covered": 0,
-            "function_percent": 0.0,
-            "branch_total": 14,
-            "branch_covered": 0,
-            "branch_percent": 0.0
-        },
-        {
             "filename": "subsys/mem_mgmt/mem_attr.c",
             "line_total": 16,
             "line_covered": 3,
@@ -1841,14 +1829,14 @@
         {
             "filename": "subsys/portability/posix/c_lib_ext/fnmatch.c",
             "line_total": 181,
-            "line_covered": 12,
-            "line_percent": 6.6,
+            "line_covered": 0,
+            "line_percent": 0.0,
             "function_total": 5,
-            "function_covered": 3,
-            "function_percent": 60.0,
+            "function_covered": 0,
+            "function_percent": 0.0,
             "branch_total": 167,
-            "branch_covered": 4,
-            "branch_percent": 2.4
+            "branch_covered": 0,
+            "branch_percent": 0.0
         },
         {
             "filename": "subsys/portability/posix/c_lib_ext/getentropy.c",
@@ -1888,14 +1876,14 @@
         },
         {
             "filename": "subsys/testsuite/coverage/coverage.c",
-            "line_total": 156,
-            "line_covered": 103,
+            "line_total": 153,
+            "line_covered": 101,
             "line_percent": 66.0,
             "function_total": 15,
             "function_covered": 11,
             "function_percent": 73.3,
-            "branch_total": 60,
-            "branch_covered": 29,
+            "branch_total": 58,
+            "branch_covered": 28,
             "branch_percent": 48.3
         },
         {
@@ -1925,8 +1913,8 @@
         {
             "filename": "subsys/testsuite/ztest/src/ztest.c",
             "line_total": 319,
-            "line_covered": 162,
-            "line_percent": 50.8,
+            "line_covered": 163,
+            "line_percent": 51.1,
             "function_total": 34,
             "function_covered": 18,
             "function_percent": 52.9,
@@ -1959,13 +1947,13 @@
             "branch_percent": null
         }
     ],
-    "line_total": 9008,
-    "line_covered": 2303,
-    "line_percent": 25.6,
-    "function_total": 1057,
+    "line_total": 8971,
+    "line_covered": 2319,
+    "line_percent": 25.8,
+    "function_total": 1053,
     "function_covered": 423,
-    "function_percent": 40.0,
-    "branch_total": 4121,
-    "branch_covered": 627,
-    "branch_percent": 15.2
+    "function_percent": 40.2,
+    "branch_total": 4018,
+    "branch_covered": 640,
+    "branch_percent": 15.9
 }

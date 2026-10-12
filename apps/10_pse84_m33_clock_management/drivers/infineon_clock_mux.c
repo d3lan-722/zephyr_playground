@@ -35,7 +35,11 @@ struct clock_mux_config {
 
 #if defined(CONFIG_CLOCK_MANAGEMENT_RUNTIME)
 static int configure_mux_recalc(const struct clk *clk_hw, const void *data){
+	const struct clock_mux_config *config = clk_hw->hw_data;
 	const uint32_t *mux_data = (uint32_t *)data;
+	if(*mux_data>=config->parent_cnt){
+		return -EINVAL;
+	}
 	return (int)*mux_data;
 }
 

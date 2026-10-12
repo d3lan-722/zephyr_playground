@@ -1174,11 +1174,11 @@
     "CONFIG_TEST_LOGGING_DEFAULTS",
     "y",
     "bool",
-    "y",
-    "default",
+    "n",
+    "assign",
     [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/testsuite/Kconfig",
-      52
+      "/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/prj.conf",
+      15
     ]
   ],
   [
@@ -1196,10 +1196,11 @@
     "CONFIG_LOG",
     "y",
     "bool",
-    "y",
-    "select",
+    "n",
+    "assign",
     [
-      "TEST_LOGGING_DEFAULTS && TEST"
+      "/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/prj.conf",
+      13
     ]
   ],
   [
@@ -1229,17 +1230,6 @@
     [
       "/home/ubuntu/zephyrproject/zephyr/arch/Kconfig",
       680
-    ]
-  ],
-  [
-    "CONFIG_LOG_DOMAIN_NAME",
-    "y",
-    "string",
-    "",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.misc",
-      124
     ]
   ],
   [
@@ -2054,68 +2044,6 @@
     null
   ],
   [
-    "CONFIG_SOC_LOG_LEVEL_OFF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_SOC_LOG_LEVEL_ERR",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_SOC_LOG_LEVEL_WRN",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_SOC_LOG_LEVEL_INF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_SOC_LOG_LEVEL_DBG",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_SOC_LOG_LEVEL_DEFAULT",
-    "y",
-    "bool",
-    "y",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      5
-    ]
-  ],
-  [
-    "CONFIG_SOC_LOG_LEVEL",
-    "n",
-    "int",
-    "3",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      36
-    ]
-  ],
-  [
     "CONFIG_ARCH",
     "n",
     "string",
@@ -2733,68 +2661,6 @@
     ]
   ],
   [
-    "CONFIG_ARCH_LOG_LEVEL_OFF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_ARCH_LOG_LEVEL_ERR",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_ARCH_LOG_LEVEL_WRN",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_ARCH_LOG_LEVEL_INF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_ARCH_LOG_LEVEL_DBG",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_ARCH_LOG_LEVEL_DEFAULT",
-    "y",
-    "bool",
-    "y",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      5
-    ]
-  ],
-  [
-    "CONFIG_ARCH_LOG_LEVEL",
-    "n",
-    "int",
-    "3",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      36
-    ]
-  ],
-  [
     "CONFIG_LITTLE_ENDIAN",
     "n",
     "bool",
@@ -3255,68 +3121,6 @@
     ]
   ],
   [
-    "CONFIG_MPU_LOG_LEVEL_OFF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_MPU_LOG_LEVEL_ERR",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_MPU_LOG_LEVEL_WRN",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_MPU_LOG_LEVEL_INF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_MPU_LOG_LEVEL_DBG",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_MPU_LOG_LEVEL_DEFAULT",
-    "y",
-    "bool",
-    "y",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      5
-    ]
-  ],
-  [
-    "CONFIG_MPU_LOG_LEVEL",
-    "n",
-    "int",
-    "3",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      36
-    ]
-  ],
-  [
     "CONFIG_MPU_REQUIRES_NON_OVERLAPPING_REGIONS",
     "n",
     "bool",
@@ -3419,68 +3223,6 @@
     "select",
     [
       "CPU_CORTEX_M && !USE_SWITCH && ARM"
-    ]
-  ],
-  [
-    "CONFIG_KERNEL_LOG_LEVEL_OFF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_KERNEL_LOG_LEVEL_ERR",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_KERNEL_LOG_LEVEL_WRN",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_KERNEL_LOG_LEVEL_INF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_KERNEL_LOG_LEVEL_DBG",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_KERNEL_LOG_LEVEL_DEFAULT",
-    "y",
-    "bool",
-    "y",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      5
-    ]
-  ],
-  [
-    "CONFIG_KERNEL_LOG_LEVEL",
-    "n",
-    "int",
-    "3",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      36
     ]
   ],
   [
@@ -4130,68 +3872,6 @@
     null
   ],
   [
-    "CONFIG_CACHE_LOG_LEVEL_OFF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_CACHE_LOG_LEVEL_ERR",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_CACHE_LOG_LEVEL_WRN",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_CACHE_LOG_LEVEL_INF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_CACHE_LOG_LEVEL_DBG",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_CACHE_LOG_LEVEL_DEFAULT",
-    "y",
-    "bool",
-    "y",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      5
-    ]
-  ],
-  [
-    "CONFIG_CACHE_LOG_LEVEL",
-    "n",
-    "int",
-    "3",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      36
-    ]
-  ],
-  [
     "CONFIG_CACHE_NRF_PATCH_LINEADDR",
     "y",
     "bool",
@@ -4214,68 +3894,6 @@
     null,
     "unset",
     null
-  ],
-  [
-    "CONFIG_CLOCK_CONTROL_LOG_LEVEL_OFF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_CLOCK_CONTROL_LOG_LEVEL_ERR",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_CLOCK_CONTROL_LOG_LEVEL_WRN",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_CLOCK_CONTROL_LOG_LEVEL_INF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_CLOCK_CONTROL_LOG_LEVEL_DBG",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_CLOCK_CONTROL_LOG_LEVEL_DEFAULT",
-    "y",
-    "bool",
-    "y",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      5
-    ]
-  ],
-  [
-    "CONFIG_CLOCK_CONTROL_LOG_LEVEL",
-    "n",
-    "int",
-    "3",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      36
-    ]
   ],
   [
     "CONFIG_CLOCK_CONTROL_FIXED_RATE_CLOCK",
@@ -4305,68 +3923,6 @@
     [
       "/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/prj.conf",
       3
-    ]
-  ],
-  [
-    "CONFIG_CLOCK_MANAGEMENT_LOG_LEVEL_OFF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_CLOCK_MANAGEMENT_LOG_LEVEL_ERR",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_CLOCK_MANAGEMENT_LOG_LEVEL_WRN",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_CLOCK_MANAGEMENT_LOG_LEVEL_INF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_CLOCK_MANAGEMENT_LOG_LEVEL_DBG",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_CLOCK_MANAGEMENT_LOG_LEVEL_DEFAULT",
-    "y",
-    "bool",
-    "y",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      5
-    ]
-  ],
-  [
-    "CONFIG_CLOCK_MANAGEMENT_LOG_LEVEL",
-    "n",
-    "int",
-    "3",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      36
     ]
   ],
   [
@@ -4525,68 +4081,6 @@
     null
   ],
   [
-    "CONFIG_UART_CONSOLE_LOG_LEVEL_OFF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_UART_CONSOLE_LOG_LEVEL_ERR",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_UART_CONSOLE_LOG_LEVEL_WRN",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_UART_CONSOLE_LOG_LEVEL_INF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_UART_CONSOLE_LOG_LEVEL_DBG",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_UART_CONSOLE_LOG_LEVEL_DEFAULT",
-    "y",
-    "bool",
-    "y",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      5
-    ]
-  ],
-  [
-    "CONFIG_UART_CONSOLE_LOG_LEVEL",
-    "n",
-    "int",
-    "3",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      36
-    ]
-  ],
-  [
     "CONFIG_EFI_CONSOLE",
     "y",
     "bool",
@@ -4630,68 +4124,6 @@
     [
       "/home/ubuntu/zephyrproject/zephyr/drivers/crypto/Kconfig",
       16
-    ]
-  ],
-  [
-    "CONFIG_CRYPTO_LOG_LEVEL_OFF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_CRYPTO_LOG_LEVEL_ERR",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_CRYPTO_LOG_LEVEL_WRN",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_CRYPTO_LOG_LEVEL_INF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_CRYPTO_LOG_LEVEL_DBG",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_CRYPTO_LOG_LEVEL_DEFAULT",
-    "y",
-    "bool",
-    "y",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      5
-    ]
-  ],
-  [
-    "CONFIG_CRYPTO_LOG_LEVEL",
-    "n",
-    "int",
-    "3",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      36
     ]
   ],
   [
@@ -4816,68 +4248,6 @@
     ]
   ],
   [
-    "CONFIG_ENTROPY_LOG_LEVEL_OFF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_ENTROPY_LOG_LEVEL_ERR",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_ENTROPY_LOG_LEVEL_WRN",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_ENTROPY_LOG_LEVEL_INF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_ENTROPY_LOG_LEVEL_DBG",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_ENTROPY_LOG_LEVEL_DEFAULT",
-    "y",
-    "bool",
-    "y",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      5
-    ]
-  ],
-  [
-    "CONFIG_ENTROPY_LOG_LEVEL",
-    "n",
-    "int",
-    "3",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      36
-    ]
-  ],
-  [
     "CONFIG_ENTROPY_INIT_PRIORITY",
     "y",
     "int",
@@ -4959,68 +4329,6 @@
     null,
     "unset",
     null
-  ],
-  [
-    "CONFIG_GPIO_LOG_LEVEL_OFF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_GPIO_LOG_LEVEL_ERR",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_GPIO_LOG_LEVEL_WRN",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_GPIO_LOG_LEVEL_INF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_GPIO_LOG_LEVEL_DBG",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_GPIO_LOG_LEVEL_DEFAULT",
-    "y",
-    "bool",
-    "y",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      5
-    ]
-  ],
-  [
-    "CONFIG_GPIO_LOG_LEVEL",
-    "n",
-    "int",
-    "3",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      36
-    ]
   ],
   [
     "CONFIG_GPIO_GET_DIRECTION",
@@ -5109,68 +4417,6 @@
     ]
   ],
   [
-    "CONFIG_INTC_LOG_LEVEL_OFF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_INTC_LOG_LEVEL_ERR",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_INTC_LOG_LEVEL_WRN",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_INTC_LOG_LEVEL_INF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_INTC_LOG_LEVEL_DBG",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_INTC_LOG_LEVEL_DEFAULT",
-    "y",
-    "bool",
-    "y",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      5
-    ]
-  ],
-  [
-    "CONFIG_INTC_LOG_LEVEL",
-    "n",
-    "int",
-    "3",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      36
-    ]
-  ],
-  [
     "CONFIG_IPM",
     "y",
     "bool",
@@ -5209,68 +4455,6 @@
     null,
     "unset",
     null
-  ],
-  [
-    "CONFIG_MFD_LOG_LEVEL_OFF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_MFD_LOG_LEVEL_ERR",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_MFD_LOG_LEVEL_WRN",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_MFD_LOG_LEVEL_INF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_MFD_LOG_LEVEL_DBG",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_MFD_LOG_LEVEL_DEFAULT",
-    "y",
-    "bool",
-    "y",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      5
-    ]
-  ],
-  [
-    "CONFIG_MFD_LOG_LEVEL",
-    "n",
-    "int",
-    "3",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      36
-    ]
   ],
   [
     "CONFIG_MFD_INIT_PRIORITY",
@@ -5377,68 +4561,6 @@
     "select",
     [
       "UART_INFINEON_CAT1_PDL && DT_HAS_INFINEON_UART_ENABLED && !USE_INFINEON_LEGACY_HAL && SERIAL"
-    ]
-  ],
-  [
-    "CONFIG_PINCTRL_LOG_LEVEL_OFF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_PINCTRL_LOG_LEVEL_ERR",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_PINCTRL_LOG_LEVEL_WRN",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_PINCTRL_LOG_LEVEL_INF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_PINCTRL_LOG_LEVEL_DBG",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_PINCTRL_LOG_LEVEL_DEFAULT",
-    "y",
-    "bool",
-    "y",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      5
-    ]
-  ],
-  [
-    "CONFIG_PINCTRL_LOG_LEVEL",
-    "n",
-    "int",
-    "3",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      36
     ]
   ],
   [
@@ -5594,68 +4716,6 @@
     "default",
     [
       "/home/ubuntu/zephyrproject/zephyr/drivers/serial/Kconfig",
-      36
-    ]
-  ],
-  [
-    "CONFIG_UART_LOG_LEVEL_OFF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_UART_LOG_LEVEL_ERR",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_UART_LOG_LEVEL_WRN",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_UART_LOG_LEVEL_INF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_UART_LOG_LEVEL_DBG",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_UART_LOG_LEVEL_DEFAULT",
-    "y",
-    "bool",
-    "y",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      5
-    ]
-  ],
-  [
-    "CONFIG_UART_LOG_LEVEL",
-    "n",
-    "int",
-    "3",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
       36
     ]
   ],
@@ -6352,68 +5412,6 @@
     null
   ],
   [
-    "CONFIG_SYS_HEAP_LOG_LEVEL_OFF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_SYS_HEAP_LOG_LEVEL_ERR",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_SYS_HEAP_LOG_LEVEL_WRN",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_SYS_HEAP_LOG_LEVEL_INF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_SYS_HEAP_LOG_LEVEL_DBG",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_SYS_HEAP_LOG_LEVEL_DEFAULT",
-    "y",
-    "bool",
-    "y",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      5
-    ]
-  ],
-  [
-    "CONFIG_SYS_HEAP_LOG_LEVEL",
-    "n",
-    "int",
-    "3",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      36
-    ]
-  ],
-  [
     "CONFIG_SYS_HEAP_SMALL_ONLY",
     "y",
     "bool",
@@ -6542,22 +5540,11 @@
     "CONFIG_BOOT_BANNER",
     "y",
     "bool",
-    "y",
-    "default",
+    "n",
+    "assign",
     [
-      "/home/ubuntu/zephyrproject/zephyr/lib/os/Kconfig",
-      154
-    ]
-  ],
-  [
-    "CONFIG_BOOT_BANNER_STRING",
-    "y",
-    "string",
-    "Booting Zephyr OS build",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/lib/os/Kconfig",
-      162
+      "/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/prj.conf",
+      14
     ]
   ],
   [
@@ -6661,68 +5648,6 @@
     null,
     "unset",
     null
-  ],
-  [
-    "CONFIG_CBPRINTF_PACKAGE_LOG_LEVEL_OFF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_CBPRINTF_PACKAGE_LOG_LEVEL_ERR",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_CBPRINTF_PACKAGE_LOG_LEVEL_WRN",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_CBPRINTF_PACKAGE_LOG_LEVEL_INF",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_CBPRINTF_PACKAGE_LOG_LEVEL_DBG",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_CBPRINTF_PACKAGE_LOG_LEVEL_DEFAULT",
-    "y",
-    "bool",
-    "y",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      5
-    ]
-  ],
-  [
-    "CONFIG_CBPRINTF_PACKAGE_LOG_LEVEL",
-    "n",
-    "int",
-    "3",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.template.log_config",
-      36
-    ]
   ],
   [
     "CONFIG_CBPRINTF_PACKAGE_LONGDOUBLE",
@@ -7014,10 +5939,10 @@
     "y",
     "bool",
     "y",
-    "select",
+    "default",
     [
-      "BOOT_BANNER",
-      "LOG_MODE_MINIMAL && <choice LOG_MODE>"
+      "/home/ubuntu/zephyrproject/zephyr/subsys/debug/Kconfig",
+      154
     ]
   ],
   [
@@ -7268,201 +6193,6 @@
     null,
     "unset",
     null
-  ],
-  [
-    "CONFIG_LOG_CORE_INIT_PRIORITY",
-    "y",
-    "int",
-    "0",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig",
-      18
-    ]
-  ],
-  [
-    "CONFIG_LOG_MODE_DEFERRED",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_LOG_MODE_IMMEDIATE",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_LOG_MODE_MINIMAL",
-    "y",
-    "bool",
-    "y",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.mode",
-      8
-    ]
-  ],
-  [
-    "CONFIG_LOG_FRONTEND",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_LOG_FRONTEND_OPT_API",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_LOG_CUSTOM_HEADER",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_LOG_DEFAULT_MINIMAL",
-    "n",
-    "bool",
-    "y",
-    "select",
-    [
-      "TEST_LOGGING_DEFAULTS && TEST"
-    ]
-  ],
-  [
-    "CONFIG_LOG_MULTIDOMAIN",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_LOG_DEFAULT_LEVEL",
-    "y",
-    "int",
-    "3",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.filtering",
-      39
-    ]
-  ],
-  [
-    "CONFIG_LOG_OVERRIDE_LEVEL",
-    "y",
-    "int",
-    "0",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.filtering",
-      54
-    ]
-  ],
-  [
-    "CONFIG_LOG_MAX_LEVEL",
-    "y",
-    "int",
-    "4",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.filtering",
-      71
-    ]
-  ],
-  [
-    "CONFIG_LOG_TEST_CLEAR_MESSAGE_SPACE",
-    "y",
-    "bool",
-    "y",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.misc",
-      13
-    ]
-  ],
-  [
-    "CONFIG_LOG_USE_VLA",
-    "y",
-    "bool",
-    "y",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.misc",
-      21
-    ]
-  ],
-  [
-    "CONFIG_LOG_SIMPLE_MSG_OPTIMIZE",
-    "y",
-    "bool",
-    "y",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.misc",
-      31
-    ]
-  ],
-  [
-    "CONFIG_LOG_ALWAYS_RUNTIME",
-    "y",
-    "bool",
-    "y",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig.misc",
-      40
-    ]
-  ],
-  [
-    "CONFIG_LOG_FMT_SECTION",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_LOG_FMT_STRING_VALIDATE",
-    "y",
-    "bool",
-    null,
-    "unset",
-    null
-  ],
-  [
-    "CONFIG_LOG_RATELIMIT",
-    "y",
-    "bool",
-    "y",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig",
-      54
-    ]
-  ],
-  [
-    "CONFIG_LOG_RATELIMIT_INTERVAL_MS",
-    "y",
-    "int",
-    "5000",
-    "default",
-    [
-      "/home/ubuntu/zephyrproject/zephyr/subsys/logging/Kconfig",
-      65
-    ]
   ],
   [
     "CONFIG_LOG_OUTPUT",
@@ -8196,11 +6926,11 @@
     "CONFIG_COVERAGE_DUMP_PATH_EXCLUDE",
     "y",
     "string",
-    "include/*",
-    "assign",
+    "",
+    "default",
     [
-      "/workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/prj.conf",
-      10
+      "/home/ubuntu/zephyrproject/zephyr/subsys/testsuite/Kconfig.coverage",
+      96
     ]
   ],
   [

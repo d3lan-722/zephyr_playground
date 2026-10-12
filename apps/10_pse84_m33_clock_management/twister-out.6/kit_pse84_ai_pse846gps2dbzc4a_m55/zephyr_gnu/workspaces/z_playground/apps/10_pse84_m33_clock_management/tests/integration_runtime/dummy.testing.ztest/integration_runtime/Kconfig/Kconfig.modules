@@ -1,0 +1,50 @@
+menu "cmsis (/home/ubuntu/zephyrproject/modules/hal/cmsis)"
+osource "$(ZEPHYR_CMSIS_KCONFIG)"
+config ZEPHYR_CMSIS_MODULE
+	bool
+	default y
+endmenu
+menu "cmsis_6 (/home/ubuntu/zephyrproject/modules/hal/cmsis_6)"
+osource "$(ZEPHYR_CMSIS_6_KCONFIG)"
+config ZEPHYR_CMSIS_6_MODULE
+	bool
+	default y
+endmenu
+menu "hal_infineon (/home/ubuntu/zephyrproject/modules/hal/infineon)"
+osource "$(ZEPHYR_HAL_INFINEON_KCONFIG)"
+config ZEPHYR_HAL_INFINEON_MODULE
+	bool
+	default y
+	select TAINT_BLOBS
+
+config ZEPHYR_HAL_INFINEON_MODULE_BLOBS
+	bool
+	default y
+endmenu
+menu "mbedtls (/home/ubuntu/zephyrproject/modules/crypto/mbedtls)"
+osource "$(ZEPHYR_MBEDTLS_KCONFIG)"
+config ZEPHYR_MBEDTLS_MODULE
+	bool
+	default y
+endmenu
+config ZEPHYR_MCUBOOT_MODULE
+	bool
+	default y
+menu "picolibc (/home/ubuntu/zephyrproject/modules/lib/picolibc)"
+osource "/home/ubuntu/zephyrproject/modules/lib/picolibc/zephyr/Kconfig"
+config ZEPHYR_PICOLIBC_MODULE
+	bool
+	default y
+endmenu
+config ZEPHYR_TF_M_TESTS_MODULE
+	bool
+	default y
+config ZEPHYR_TF_PSA_CRYPTO_MODULE
+	bool
+	default y
+menu "trusted-firmware-m (/home/ubuntu/zephyrproject/modules/tee/tf-m/trusted-firmware-m)"
+osource "$(ZEPHYR_TRUSTED_FIRMWARE_M_KCONFIG)"
+config ZEPHYR_TRUSTED_FIRMWARE_M_MODULE
+	bool
+	default y
+endmenu

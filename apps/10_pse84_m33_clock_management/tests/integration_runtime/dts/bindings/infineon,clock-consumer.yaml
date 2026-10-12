@@ -1,3 +1,14 @@
 compatible: "infineon,clock-consumer"
 
 include: [clock-device.yaml, base.yaml]
+
+properties:
+  instance:
+    type: int
+    description: |
+      Instance of a given clock type.
+      clk_hf0   : instance = <0>
+  allowable-frequencies-1:
+    type: array
+  allowable-frequencies-2:
+    type: array

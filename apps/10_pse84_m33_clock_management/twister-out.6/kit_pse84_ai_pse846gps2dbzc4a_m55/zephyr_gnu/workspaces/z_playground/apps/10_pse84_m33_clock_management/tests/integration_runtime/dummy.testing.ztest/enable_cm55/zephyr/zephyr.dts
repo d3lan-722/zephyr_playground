@@ -1,0 +1,2672 @@
+/dts-v1/;
+
+/* node '/' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:10 */
+/ {
+	#address-cells = < 0x1 >;    /* in zephyr/dts/common/skeleton.dtsi:10 */
+	#size-cells = < 0x1 >;       /* in zephyr/dts/common/skeleton.dtsi:11 */
+	model = "kit_pse84_ai";      /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:17 */
+	compatible = "kit_pse84_ai"; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:18 */
+
+	/* node '/sram0@34000000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:11 */
+	sram0: sram0@34000000 {
+		compatible = "mmio-sram";      /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:12 */
+		reg = < 0x34000000 0x100000 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:13 */
+	};
+
+	/* node '/dtcm' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:16 */
+	dtcm {
+		#address-cells = < 0x1 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:17 */
+		#size-cells = < 0x1 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:18 */
+
+		/* node '/dtcm/dtcm_m33s@58040000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:20 */
+		dtcm_m33s: dtcm_m33s@58040000 {
+			compatible = "zephyr,memory-region",
+			             "arm,dtcm";             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:21 */
+			reg = < 0x58040000 0x40000 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:22 */
+			zephyr,memory-region = "DTCM";       /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:23 */
+		};
+	};
+
+	/* node '/itcm' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:27 */
+	itcm {
+		#address-cells = < 0x1 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:28 */
+		#size-cells = < 0x1 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:29 */
+
+		/* node '/itcm/itcm_m33s@58000000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:31 */
+		itcm_m33s: itcm_m33s@58000000 {
+			compatible = "zephyr,memory-region",
+			             "arm,itcm";             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:32 */
+			reg = < 0x58000000 0x40000 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:33 */
+			zephyr,memory-region = "ITCM";       /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:34 */
+		};
+	};
+
+	/* node '/rram' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:38 */
+	rram {
+		#address-cells = < 0x1 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:39 */
+		#size-cells = < 0x1 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:40 */
+
+		/* node '/rram/rram@32000000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:42 */
+		rram: rram@32000000 {
+			compatible = "soc-nv-flash";  /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:43 */
+			reg = < 0x32000000 0x80000 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:44 */
+		};
+	};
+
+	/* node '/socmem' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:48 */
+	socmem {
+		#address-cells = < 0x1 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:49 */
+		#size-cells = < 0x1 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:50 */
+
+		/* node '/socmem/socmem@36000000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:52 */
+		socmem: socmem@36000000 {
+			reg = < 0x36000000 0x500000 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:53 */
+		};
+	};
+
+	/* node '/soc' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:57 */
+	soc {
+		#address-cells = < 0x1 >;     /* in zephyr/dts/arm/armv8-m.dtsi:7 */
+		#size-cells = < 0x1 >;        /* in zephyr/dts/arm/armv8-m.dtsi:8 */
+		compatible = "simple-bus";    /* in zephyr/dts/arm/armv8-m.dtsi:9 */
+		interrupt-parent = < &nvic >; /* in zephyr/dts/arm/armv8-m.dtsi:10 */
+		ranges;                       /* in zephyr/dts/arm/armv8-m.dtsi:11 */
+
+		/* node '/soc/pinctrl@52800000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:58 */
+		pinctrl: pinctrl@52800000 {
+			compatible = "infineon,pinctrl"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:59 */
+			reg = < 0x52800000 0x20000 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:60 */
+
+			/* node '/soc/pinctrl@52800000/p8_0_scb0_i2c_scl' defined in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:90 */
+			p8_0_scb0_i2c_scl: p8_0_scb0_i2c_scl {
+				pinmux = < 0xf0008 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:91 */
+				drive-open-drain;     /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common-pinctrl.dtsi:35 */
+				input-enable;         /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common-pinctrl.dtsi:36 */
+				phandle = < 0x3 >;    /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:91 */
+			};
+
+			/* node '/soc/pinctrl@52800000/p8_1_scb0_i2c_sda' defined in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:139 */
+			p8_1_scb0_i2c_sda: p8_1_scb0_i2c_sda {
+				pinmux = < 0xf0108 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:140 */
+				drive-open-drain;     /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common-pinctrl.dtsi:40 */
+				input-enable;         /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common-pinctrl.dtsi:41 */
+				phandle = < 0x4 >;    /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:91 */
+			};
+
+			/* node '/soc/pinctrl@52800000/p10_2_scb4_uart_cts' defined in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:682 */
+			p10_2_scb4_uart_cts: p10_2_scb4_uart_cts {
+				pinmux = < 0x14020a >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:683 */
+				input-enable;          /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common-pinctrl.dtsi:30 */
+				phandle = < 0xe >;     /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:213 */
+			};
+
+			/* node '/soc/pinctrl@52800000/p10_3_scb4_uart_rts' defined in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:727 */
+			p10_3_scb4_uart_rts: p10_3_scb4_uart_rts {
+				pinmux = < 0x14030a >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:728 */
+				drive-push-pull;       /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common-pinctrl.dtsi:26 */
+				phandle = < 0xd >;     /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:213 */
+			};
+
+			/* node '/soc/pinctrl@52800000/p6_5_scb2_uart_rx' defined in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:764 */
+			p6_5_scb2_uart_rx: p6_5_scb2_uart_rx {
+				pinmux = < 0x140506 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:765 */
+				input-enable;          /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common-pinctrl.dtsi:14 */
+				phandle = < 0x9 >;     /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:76 */
+			};
+
+			/* node '/soc/pinctrl@52800000/p10_0_scb4_uart_rx' defined in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:772 */
+			p10_0_scb4_uart_rx: p10_0_scb4_uart_rx {
+				pinmux = < 0x14000a >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:773 */
+				input-enable;          /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common-pinctrl.dtsi:22 */
+				phandle = < 0xc >;     /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:213 */
+			};
+
+			/* node '/soc/pinctrl@52800000/p6_7_scb2_uart_tx' defined in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:809 */
+			p6_7_scb2_uart_tx: p6_7_scb2_uart_tx {
+				pinmux = < 0x140706 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:810 */
+				drive-push-pull;       /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common-pinctrl.dtsi:10 */
+				phandle = < 0x8 >;     /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:76 */
+			};
+
+			/* node '/soc/pinctrl@52800000/p10_1_scb4_uart_tx' defined in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:817 */
+			p10_1_scb4_uart_tx: p10_1_scb4_uart_tx {
+				pinmux = < 0x14010a >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:818 */
+				drive-push-pull;       /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common-pinctrl.dtsi:18 */
+				phandle = < 0xb >;     /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:213 */
+			};
+
+			/* node '/soc/pinctrl@52800000/p1_0_smif0_data0' defined in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:2075 */
+			p1_0_smif0_data0: p1_0_smif0_data0 {
+				pinmux = < 0x1b0016 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:2076 */
+				drive-push-pull;       /* in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:2077 */
+				input-enable;          /* in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:2078 */
+				phandle = < 0x14 >;    /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:85 */
+			};
+
+			/* node '/soc/pinctrl@52800000/p1_1_smif0_data1' defined in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:2081 */
+			p1_1_smif0_data1: p1_1_smif0_data1 {
+				pinmux = < 0x1b0116 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:2082 */
+				drive-push-pull;       /* in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:2083 */
+				input-enable;          /* in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:2084 */
+				phandle = < 0x15 >;    /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:85 */
+			};
+
+			/* node '/soc/pinctrl@52800000/p1_2_smif0_data2' defined in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:2087 */
+			p1_2_smif0_data2: p1_2_smif0_data2 {
+				pinmux = < 0x1b0216 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:2088 */
+				drive-push-pull;       /* in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:2089 */
+				input-enable;          /* in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:2090 */
+				phandle = < 0x16 >;    /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:85 */
+			};
+
+			/* node '/soc/pinctrl@52800000/p1_3_smif0_data3' defined in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:2093 */
+			p1_3_smif0_data3: p1_3_smif0_data3 {
+				pinmux = < 0x1b0316 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:2094 */
+				drive-push-pull;       /* in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:2095 */
+				input-enable;          /* in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:2096 */
+				phandle = < 0x17 >;    /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:85 */
+			};
+
+			/* node '/soc/pinctrl@52800000/p2_0_smif0_select1' defined in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:2129 */
+			p2_0_smif0_select1: p2_0_smif0_select1 {
+				pinmux = < 0x80002 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:2130 */
+				drive-push-pull;      /* in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:2131 */
+				input-enable;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84.bga-220_s.dtsi:2132 */
+				phandle = < 0x18 >;   /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:85 */
+			};
+		};
+
+		/* node '/soc/hsiom@52800000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:63 */
+		hsiom: hsiom@52800000 {
+			compatible = "infineon,hsiom"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:64 */
+			reg = < 0x52800000 0x4000 >;   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:65 */
+			interrupts = < 0x2a 0x4 >,
+			             < 0x28 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:66 */
+			status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:67 */
+		};
+
+		/* node '/soc/gpio@52810000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:70 */
+		gpio_prt0: gpio@52810000 {
+			compatible = "infineon,gpio"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:71 */
+			reg = < 0x52810000 0x80 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:72 */
+			interrupts = < 0x14 0x4 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:73 */
+			gpio-controller;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:74 */
+			ngpios = < 0x2 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:75 */
+			wakeup-source;                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:77 */
+			#gpio-cells = < 0x2 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:78 */
+			status = "okay";              /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:121 */
+		};
+
+		/* node '/soc/gpio@52810080' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:81 */
+		gpio_prt1: gpio@52810080 {
+			compatible = "infineon,gpio"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:82 */
+			reg = < 0x52810080 0x80 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:83 */
+			gpio-controller;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:84 */
+			ngpios = < 0x8 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:85 */
+			status = "disabled";          /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:86 */
+			#gpio-cells = < 0x2 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:87 */
+		};
+
+		/* node '/soc/gpio@52810100' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:90 */
+		gpio_prt2: gpio@52810100 {
+			compatible = "infineon,gpio"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:91 */
+			reg = < 0x52810100 0x80 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:92 */
+			interrupts = < 0x15 0x4 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:93 */
+			gpio-controller;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:94 */
+			ngpios = < 0x1 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:95 */
+			wakeup-source;                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:97 */
+			#gpio-cells = < 0x2 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:98 */
+			status = "okay";              /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:125 */
+		};
+
+		/* node '/soc/gpio@52810180' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:101 */
+		gpio_prt3: gpio@52810180 {
+			compatible = "infineon,gpio"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:102 */
+			reg = < 0x52810180 0x80 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:103 */
+			interrupts = < 0x16 0x4 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:104 */
+			gpio-controller;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:105 */
+			ngpios = < 0x2 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:106 */
+			status = "disabled";          /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:107 */
+			wakeup-source;                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:108 */
+			#gpio-cells = < 0x2 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:109 */
+		};
+
+		/* node '/soc/gpio@52810200' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:112 */
+		gpio_prt4: gpio@52810200 {
+			compatible = "infineon,gpio"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:113 */
+			reg = < 0x52810200 0x80 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:114 */
+			gpio-controller;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:115 */
+			ngpios = < 0x8 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:116 */
+			status = "disabled";          /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:117 */
+			#gpio-cells = < 0x2 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:118 */
+		};
+
+		/* node '/soc/gpio@52810280' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:121 */
+		gpio_prt5: gpio@52810280 {
+			compatible = "infineon,gpio"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:122 */
+			reg = < 0x52810280 0x80 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:123 */
+			interrupts = < 0x17 0x4 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:124 */
+			gpio-controller;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:125 */
+			ngpios = < 0x1 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:126 */
+			status = "disabled";          /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:127 */
+			wakeup-source;                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:128 */
+			#gpio-cells = < 0x2 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:129 */
+		};
+
+		/* node '/soc/gpio@52810300' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:132 */
+		gpio_prt6: gpio@52810300 {
+			compatible = "infineon,gpio"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:133 */
+			reg = < 0x52810300 0x80 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:134 */
+			interrupts = < 0x18 0x4 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:135 */
+			gpio-controller;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:136 */
+			ngpios = < 0x8 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:137 */
+			wakeup-source;                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:139 */
+			#gpio-cells = < 0x2 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:140 */
+			status = "okay";              /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:129 */
+			phandle = < 0x6 >;            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:98 */
+		};
+
+		/* node '/soc/gpio@52810380' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:143 */
+		gpio_prt7: gpio@52810380 {
+			compatible = "infineon,gpio"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:144 */
+			reg = < 0x52810380 0x80 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:145 */
+			interrupts = < 0x19 0x4 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:146 */
+			gpio-controller;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:147 */
+			ngpios = < 0x8 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:148 */
+			wakeup-source;                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:150 */
+			#gpio-cells = < 0x2 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:151 */
+			status = "okay";              /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:133 */
+			phandle = < 0x5 >;            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:98 */
+		};
+
+		/* node '/soc/gpio@52810400' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:154 */
+		gpio_prt8: gpio@52810400 {
+			compatible = "infineon,gpio"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:155 */
+			reg = < 0x52810400 0x80 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:156 */
+			interrupts = < 0x1a 0x4 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:157 */
+			gpio-controller;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:158 */
+			ngpios = < 0x8 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:159 */
+			wakeup-source;                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:161 */
+			#gpio-cells = < 0x2 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:162 */
+			status = "okay";              /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:137 */
+		};
+
+		/* node '/soc/gpio@52810480' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:165 */
+		gpio_prt9: gpio@52810480 {
+			compatible = "infineon,gpio"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:166 */
+			reg = < 0x52810480 0x80 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:167 */
+			interrupts = < 0x1b 0x4 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:168 */
+			gpio-controller;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:169 */
+			ngpios = < 0x4 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:170 */
+			status = "disabled";          /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:171 */
+			wakeup-source;                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:172 */
+			#gpio-cells = < 0x2 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:173 */
+		};
+
+		/* node '/soc/gpio@52810500' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:176 */
+		gpio_prt10: gpio@52810500 {
+			compatible = "infineon,gpio"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:177 */
+			reg = < 0x52810500 0x80 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:178 */
+			interrupts = < 0x1c 0x4 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:179 */
+			gpio-controller;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:180 */
+			ngpios = < 0x8 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:181 */
+			wakeup-source;                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:183 */
+			#gpio-cells = < 0x2 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:184 */
+			status = "okay";              /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:141 */
+			phandle = < 0x12 >;           /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:26 */
+		};
+
+		/* node '/soc/gpio@52810580' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:187 */
+		gpio_prt11: gpio@52810580 {
+			compatible = "infineon,gpio"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:188 */
+			reg = < 0x52810580 0x80 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:189 */
+			interrupts = < 0x1d 0x4 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:190 */
+			gpio-controller;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:191 */
+			ngpios = < 0x8 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:192 */
+			wakeup-source;                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:194 */
+			#gpio-cells = < 0x2 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:195 */
+			status = "okay";              /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:145 */
+			phandle = < 0xf >;            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:226 */
+		};
+
+		/* node '/soc/gpio@52810600' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:198 */
+		gpio_prt12: gpio@52810600 {
+			compatible = "infineon,gpio"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:199 */
+			reg = < 0x52810600 0x80 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:200 */
+			interrupts = < 0x1e 0x4 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:201 */
+			gpio-controller;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:202 */
+			ngpios = < 0x6 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:203 */
+			status = "disabled";          /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:204 */
+			wakeup-source;                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:205 */
+			#gpio-cells = < 0x2 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:206 */
+		};
+
+		/* node '/soc/gpio@52810680' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:209 */
+		gpio_prt13: gpio@52810680 {
+			compatible = "infineon,gpio"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:210 */
+			reg = < 0x52810680 0x80 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:211 */
+			interrupts = < 0x1f 0x4 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:212 */
+			gpio-controller;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:213 */
+			ngpios = < 0x8 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:214 */
+			wakeup-source;                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:216 */
+			#gpio-cells = < 0x2 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:217 */
+			status = "okay";              /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:149 */
+		};
+
+		/* node '/soc/gpio@52810700' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:220 */
+		gpio_prt14: gpio@52810700 {
+			compatible = "infineon,gpio"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:221 */
+			reg = < 0x52810700 0x80 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:222 */
+			interrupts = < 0x20 0x4 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:223 */
+			gpio-controller;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:224 */
+			ngpios = < 0x8 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:225 */
+			wakeup-source;                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:227 */
+			#gpio-cells = < 0x2 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:228 */
+			status = "okay";              /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:153 */
+		};
+
+		/* node '/soc/gpio@52810780' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:231 */
+		gpio_prt15: gpio@52810780 {
+			compatible = "infineon,gpio"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:232 */
+			reg = < 0x52810780 0x80 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:233 */
+			interrupts = < 0x21 0x4 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:234 */
+			gpio-controller;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:235 */
+			ngpios = < 0x8 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:236 */
+			status = "disabled";          /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:237 */
+			wakeup-source;                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:238 */
+			#gpio-cells = < 0x2 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:239 */
+		};
+
+		/* node '/soc/gpio@52810800' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:242 */
+		gpio_prt16: gpio@52810800 {
+			compatible = "infineon,gpio"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:243 */
+			reg = < 0x52810800 0x80 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:244 */
+			interrupts = < 0x22 0x4 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:245 */
+			gpio-controller;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:246 */
+			ngpios = < 0x8 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:247 */
+			wakeup-source;                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:249 */
+			#gpio-cells = < 0x2 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:250 */
+			status = "okay";              /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:157 */
+		};
+
+		/* node '/soc/gpio@52810880' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:253 */
+		gpio_prt17: gpio@52810880 {
+			compatible = "infineon,gpio"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:254 */
+			reg = < 0x52810880 0x80 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:255 */
+			interrupts = < 0x23 0x4 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:256 */
+			gpio-controller;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:257 */
+			ngpios = < 0x8 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:258 */
+			status = "disabled";          /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:259 */
+			wakeup-source;                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:260 */
+			#gpio-cells = < 0x2 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:261 */
+		};
+
+		/* node '/soc/gpio@52810900' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:264 */
+		gpio_prt18: gpio@52810900 {
+			compatible = "infineon,gpio"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:265 */
+			reg = < 0x52810900 0x80 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:266 */
+			interrupts = < 0x24 0x4 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:267 */
+			gpio-controller;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:268 */
+			ngpios = < 0x2 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:269 */
+			status = "disabled";          /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:270 */
+			wakeup-source;                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:271 */
+			#gpio-cells = < 0x2 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:272 */
+		};
+
+		/* node '/soc/gpio@52810980' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:275 */
+		gpio_prt19: gpio@52810980 {
+			compatible = "infineon,gpio"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:276 */
+			reg = < 0x52810980 0x80 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:277 */
+			interrupts = < 0x25 0x4 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:278 */
+			gpio-controller;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:279 */
+			ngpios = < 0x2 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:280 */
+			status = "disabled";          /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:281 */
+			wakeup-source;                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:282 */
+			#gpio-cells = < 0x2 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:283 */
+		};
+
+		/* node '/soc/gpio@52810a00' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:286 */
+		gpio_prt20: gpio@52810a00 {
+			compatible = "infineon,gpio"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:287 */
+			reg = < 0x52810a00 0x80 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:288 */
+			interrupts = < 0x26 0x4 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:289 */
+			gpio-controller;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:290 */
+			ngpios = < 0x8 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:291 */
+			wakeup-source;                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:293 */
+			#gpio-cells = < 0x2 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:294 */
+			status = "okay";              /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:161 */
+			phandle = < 0x13 >;           /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:36 */
+		};
+
+		/* node '/soc/gpio@52810a80' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:297 */
+		gpio_prt21: gpio@52810a80 {
+			compatible = "infineon,gpio"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:298 */
+			reg = < 0x52810a80 0x80 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:299 */
+			interrupts = < 0x27 0x4 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:300 */
+			gpio-controller;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:301 */
+			ngpios = < 0x8 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:302 */
+			status = "disabled";          /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:303 */
+			wakeup-source;                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:304 */
+			#gpio-cells = < 0x2 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:305 */
+		};
+
+		/* node '/soc/comparator@52880000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:308 */
+		lpcomp0: comparator@52880000 {
+			compatible = "infineon,lp-comp"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:309 */
+			reg = < 0x52880000 0x10000 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:310 */
+			status = "disabled";             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:311 */
+			wakeup-source;                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:312 */
+			interrupts = < 0x2d 0x4 >;       /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:55 */
+
+			/* node '/soc/comparator@52880000/lpcomp0-0' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:314 */
+			lpcomp0_0: lpcomp0-0 {
+				compatible = "infineon,lp-comp-channel"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:315 */
+				channel = < 0x0 >;                       /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:316 */
+				status = "disabled";                     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:317 */
+			};
+
+			/* node '/soc/comparator@52880000/lpcomp0-1' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:320 */
+			lpcomp0_1: lpcomp0-1 {
+				compatible = "infineon,lp-comp-channel"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:321 */
+				channel = < 0x1 >;                       /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:322 */
+				status = "disabled";                     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:323 */
+			};
+		};
+
+		/* node '/soc/analog@52e00000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:327 */
+		autanalog: analog@52e00000 {
+			compatible = "infineon,autanalog";  /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:328 */
+			reg = < 0x52e00000 0x100000 >;      /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:329 */
+			wakeup-source;                      /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:330 */
+			interrupts = < 0x39 0x4 >,
+			             < 0x3a 0x4 >;          /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:331 */
+			interrupt-names = "autanalog",
+			                  "autanalog_fifo"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:332 */
+			status = "disabled";                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:333 */
+			#address-cells = < 0x1 >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:334 */
+			#size-cells = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:335 */
+			ranges;                             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:336 */
+
+			/* node '/soc/analog@52e00000/ctb0@0' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:338 */
+			ctb0: ctb0@0 {
+				compatible = "infineon,autanalog-ctb"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:339 */
+				reg = < 0x0 0x1000 >;                  /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:340 */
+				status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:341 */
+				#address-cells = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:342 */
+				#size-cells = < 0x0 >;                 /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:343 */
+			};
+
+			/* node '/soc/analog@52e00000/ctb1@10000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:346 */
+			ctb1: ctb1@10000 {
+				compatible = "infineon,autanalog-ctb"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:347 */
+				reg = < 0x10000 0x1000 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:348 */
+				status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:349 */
+				#address-cells = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:350 */
+				#size-cells = < 0x0 >;                 /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:351 */
+			};
+
+			/* node '/soc/analog@52e00000/ptcomp@e40000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:354 */
+			ptcomp0: ptcomp@e40000 {
+				compatible = "infineon,autanalog-ptcomp"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:355 */
+				reg = < 0xe40000 0xf00 >;                 /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:356 */
+				status = "disabled";                      /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:357 */
+				#address-cells = < 0x1 >;                 /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:358 */
+				#size-cells = < 0x0 >;                    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:359 */
+			};
+
+			/* node '/soc/analog@52e00000/dac0@60000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:362 */
+			dac0: dac0@60000 {
+				compatible = "infineon,autanalog-ctdac"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:363 */
+				reg = < 0x60000 0x1000 >;                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:364 */
+				clk-dst = < 0x200 >;                     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:365 */
+				status = "disabled";                     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:366 */
+				#io-channel-cells = < 0x1 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:367 */
+				#address-cells = < 0x1 >;                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:368 */
+				#size-cells = < 0x0 >;                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:369 */
+
+				/* node '/soc/analog@52e00000/dac0@60000/channel@f' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:372 */
+				channel@f {
+					reg = < 0xf >;               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:373 */
+					zephyr,resolution = < 0xc >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:374 */
+				};
+			};
+
+			/* node '/soc/analog@52e00000/dac1@70000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:378 */
+			dac1: dac1@70000 {
+				compatible = "infineon,autanalog-ctdac"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:379 */
+				reg = < 0x70000 0x1000 >;                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:380 */
+				clk-dst = < 0x201 >;                     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:381 */
+				status = "disabled";                     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:382 */
+				#io-channel-cells = < 0x1 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:383 */
+				#address-cells = < 0x1 >;                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:384 */
+				#size-cells = < 0x0 >;                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:385 */
+
+				/* node '/soc/analog@52e00000/dac1@70000/channel@f' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:388 */
+				channel@f {
+					reg = < 0xf >;               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:389 */
+					zephyr,resolution = < 0xc >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:390 */
+				};
+			};
+
+			/* node '/soc/analog@52e00000/adc0@80000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:394 */
+			adc0: adc0@80000 {
+				compatible = "infineon,autanalog-sar-adc"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:395 */
+				reg = < 0x80000 0xf20 >;                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:397 */
+				status = "disabled";                       /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:398 */
+				#io-channel-cells = < 0x1 >;               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:399 */
+			};
+
+			/* node '/soc/analog@52e00000/prb@e0300' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:402 */
+			prb0: prb@e0300 {
+				compatible = "infineon,autanalog-prb"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:403 */
+				reg = < 0xe0300 0x100 >;               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:404 */
+				status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:405 */
+				#address-cells = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:406 */
+				#size-cells = < 0x0 >;                 /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:407 */
+			};
+		};
+
+		/* node '/soc/ipc@522a0000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:411 */
+		ipc0: ipc@522a0000 {
+			compatible = "infineon,ipc"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:412 */
+			reg = < 0x522a0000 0x1200 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:413 */
+			status = "disabled";         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:414 */
+			#ipc-config-cells = < 0x3 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:415 */
+		};
+
+		/* node '/soc/ipc@541d0000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:418 */
+		ipc1: ipc@541d0000 {
+			compatible = "infineon,ipc"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:419 */
+			reg = < 0x541d0000 0x1200 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:420 */
+			status = "disabled";         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:421 */
+			#ipc-config-cells = < 0x3 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:422 */
+		};
+
+		/* node '/soc/scb@52990000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:425 */
+		scb0: i2c0: scb@52990000 {
+			reg = < 0x52990000 0xfd0 >;                            /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:427 */
+			interrupts = < 0x2b 0x4 >;                             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:428 */
+			clk-dst = < 0x100 >;                                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:429 */
+			wakeup-source;                                         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:431 */
+			#address-cells = < 0x1 >;                              /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:86 */
+			#size-cells = < 0x0 >;                                 /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:87 */
+			compatible = "infineon,i2c";                           /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:88 */
+			status = "okay";                                       /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:89 */
+			clocks = < &peri0_group1_16bit_3 >;                    /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:90 */
+			pinctrl-0 = < &p8_0_scb0_i2c_scl &p8_1_scb0_i2c_sda >; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:91 */
+			pinctrl-names = "default";                             /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:92 */
+
+			/* node '/soc/scb@52990000/bmi270@68' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:94 */
+			bosch_bmi270: bmi270@68 {
+				compatible = "bosch,bmi270";        /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:95 */
+				reg = < 0x68 >;                     /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:96 */
+				status = "okay";                    /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:97 */
+				irq-gpios = < &gpio_prt7 0x7 0x0 >,
+				            < &gpio_prt6 0x6 0x0 >; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:98 */
+			};
+
+			/* node '/soc/scb@52990000/dps368@77' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:101 */
+			dps368: dps368@77 {
+				compatible = "infineon,dps368",
+				             "infineon,dps310"; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:102 */
+				status = "okay";                /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:103 */
+				reg = < 0x77 >;                 /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:104 */
+			};
+
+			/* node '/soc/scb@52990000/sht4x@44' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:107 */
+			sht4x@44 {
+				status = "okay";                /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:108 */
+				compatible = "sensirion,sht4x"; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:109 */
+				reg = < 0x44 >;                 /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:110 */
+				repeatability = < 0x2 >;        /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:111 */
+			};
+		};
+
+		/* node '/soc/scb@529a0000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:434 */
+		scb2: uart2: scb@529a0000 {
+			reg = < 0x529a0000 0xfd0 >;                            /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:436 */
+			interrupts = < 0x8f 0x4 >;                             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:437 */
+			clk-dst = < 0x101 >;                                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:438 */
+			compatible = "infineon,uart";                          /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:70 */
+			status = "okay";                                       /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:71 */
+			current-speed = < 0x1c200 >;                           /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:72 */
+			clocks = < &peri0_group1_16bit_1 >;                    /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:74 */
+			pinctrl-0 = < &p6_7_scb2_uart_tx &p6_5_scb2_uart_rx >; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:76 */
+			pinctrl-names = "default";                             /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:77 */
+		};
+
+		/* node '/soc/scb@529b0000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:442 */
+		scb3: scb@529b0000 {
+			compatible = "infineon,scb"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:443 */
+			reg = < 0x529b0000 0xfd0 >;  /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:444 */
+			interrupts = < 0x90 0x4 >;   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:445 */
+			clk-dst = < 0x102 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:446 */
+			status = "disabled";         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:447 */
+		};
+
+		/* node '/soc/scb@529c0000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:450 */
+		scb4: uart4: scb@529c0000 {
+			reg = < 0x529c0000 0xfd0 >;                                                                        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:452 */
+			interrupts = < 0x91 0x4 >;                                                                         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:453 */
+			clk-dst = < 0x103 >;                                                                               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:454 */
+			compatible = "infineon,uart";                                                                      /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:205 */
+			status = "okay";                                                                                   /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:206 */
+			current-speed = < 0x1c200 >;                                                                       /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:208 */
+			clocks = < &peri0_group1_16_5bit_0 >;                                                              /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:210 */
+			pinctrl-0 = < &p10_1_scb4_uart_tx &p10_0_scb4_uart_rx &p10_3_scb4_uart_rts &p10_2_scb4_uart_cts >; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:213 */
+			pinctrl-names = "default";                                                                         /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:215 */
+			hw-flow-control;                                                                                   /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:218 */
+
+			/* node '/soc/scb@529c0000/bt_hci_uart' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:220 */
+			bt_hci_uart: bt_hci_uart {
+				compatible = "zephyr,bt-hci-uart"; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:221 */
+
+				/* node '/soc/scb@529c0000/bt_hci_uart/cyw55513' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:223 */
+				cyw55513 {
+					status = "okay";                           /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:224 */
+					compatible = "infineon,bt-hci-uart";       /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:225 */
+					bt-reg-on-gpios = < &gpio_prt11 0x0 0x0 >; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:226 */
+					fw-download-speed = < 0x1c200 >;           /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:227 */
+					hci-operation-speed = < 0x1c200 >;         /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:228 */
+				};
+			};
+		};
+
+		/* node '/soc/scb@529d0000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:458 */
+		scb5: scb@529d0000 {
+			compatible = "infineon,scb"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:459 */
+			reg = < 0x529d0000 0xfd0 >;  /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:460 */
+			interrupts = < 0x92 0x4 >;   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:461 */
+			clk-dst = < 0x104 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:462 */
+			status = "disabled";         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:463 */
+		};
+
+		/* node '/soc/scb@529e0000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:466 */
+		scb6: scb@529e0000 {
+			compatible = "infineon,scb"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:467 */
+			reg = < 0x529e0000 0xfd0 >;  /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:468 */
+			interrupts = < 0x93 0x4 >;   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:469 */
+			clk-dst = < 0x105 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:470 */
+			status = "disabled";         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:471 */
+		};
+
+		/* node '/soc/scb@529f0000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:474 */
+		scb7: scb@529f0000 {
+			compatible = "infineon,scb"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:475 */
+			reg = < 0x529f0000 0xfd0 >;  /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:476 */
+			interrupts = < 0x94 0x4 >;   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:477 */
+			clk-dst = < 0x106 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:478 */
+			status = "disabled";         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:479 */
+		};
+
+		/* node '/soc/scb@52a00000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:482 */
+		scb8: scb@52a00000 {
+			compatible = "infineon,scb"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:483 */
+			reg = < 0x52a00000 0xfd0 >;  /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:484 */
+			interrupts = < 0x95 0x4 >;   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:485 */
+			clk-dst = < 0x107 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:486 */
+			status = "disabled";         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:487 */
+		};
+
+		/* node '/soc/scb@52a10000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:490 */
+		scb9: scb@52a10000 {
+			compatible = "infineon,scb"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:491 */
+			reg = < 0x52a10000 0xfd0 >;  /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:492 */
+			interrupts = < 0x96 0x4 >;   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:493 */
+			clk-dst = < 0x108 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:494 */
+			status = "disabled";         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:495 */
+		};
+
+		/* node '/soc/scb@52a20000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:498 */
+		scb10: scb@52a20000 {
+			compatible = "infineon,scb"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:499 */
+			reg = < 0x52a20000 0xfd0 >;  /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:500 */
+			interrupts = < 0x97 0x4 >;   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:501 */
+			clk-dst = < 0x109 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:502 */
+			status = "disabled";         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:503 */
+		};
+
+		/* node '/soc/scb@52a30000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:506 */
+		scb11: scb@52a30000 {
+			compatible = "infineon,scb"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:507 */
+			reg = < 0x52a30000 0xfd0 >;  /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:508 */
+			interrupts = < 0x98 0x4 >;   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:509 */
+			clk-dst = < 0x10a >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:510 */
+			status = "disabled";         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:511 */
+		};
+
+		/* node '/soc/scb@52d00000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:514 */
+		scb1: scb@52d00000 {
+			compatible = "infineon,scb"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:515 */
+			reg = < 0x52d00000 0xfd0 >;  /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:516 */
+			interrupts = < 0x8e 0x4 >;   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:517 */
+			clk-dst = < 0x800 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:518 */
+			status = "disabled";         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:519 */
+		};
+
+		/* node '/soc/i3c@52a50000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:522 */
+		i3c0: i3c@52a50000 {
+			compatible = "infineon,i3c"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:523 */
+			reg = < 0x52a50000 0x438 >;  /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:524 */
+			interrupts = < 0xb0 0x4 >;   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:525 */
+			status = "disabled";         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:526 */
+		};
+
+		/* node '/soc/watchdog@5240c000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:529 */
+		watchdog0: watchdog@5240c000 {
+			compatible = "infineon,watchdog"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:530 */
+			reg = < 0x5240c000 0x180 >;       /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:531 */
+			interrupts = < 0x36 0x4 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:532 */
+			wakeup-source;                    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:534 */
+			status = "okay";                  /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:62 */
+		};
+
+		/* node '/soc/mcwdt@5240d000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:537 */
+		mcwdt0: mcwdt@5240d000 {
+			compatible = "infineon,lp-timer"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:538 */
+			reg = < 0x5240d000 0x40 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:539 */
+			interrupts = < 0x37 0x4 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:540 */
+			wakeup-source;                    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:542 */
+			status = "okay";                  /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:38 */
+		};
+
+		/* node '/soc/mcwdt@5240d040' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:545 */
+		mcwdt1: mcwdt@5240d040 {
+			compatible = "infineon,lp-timer"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:546 */
+			reg = < 0x5240d040 0x40 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:547 */
+			interrupts = < 0x0 0x4 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:548 */
+			status = "disabled";              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:549 */
+			wakeup-source;                    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:550 */
+		};
+
+		/* node '/soc/rtc@52420000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:553 */
+		rtc0: rtc@52420000 {
+			compatible = "infineon,rtc"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:554 */
+			reg = < 0x52420000 0x1140 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:555 */
+			interrupts = < 0x38 0x4 >;   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:556 */
+			alarms-count = < 0x2 >;      /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:557 */
+			status = "disabled";         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:558 */
+			wakeup-source;               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:559 */
+		};
+
+		/* node '/soc/canfd@52840000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:562 */
+		canfd0: canfd@52840000 {
+			compatible = "infineon,canfd-controller"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:563 */
+			reg = < 0x52840000 0x1088 >,
+			      < 0x52850000 0x2000 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:564 */
+			reg-names = "wrapper",
+			            "mram";                       /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:565 */
+			#address-cells = < 0x1 >;                 /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:566 */
+			#size-cells = < 0x1 >;                    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:567 */
+			ranges;                                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:568 */
+			status = "disabled";                      /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:569 */
+
+			/* node '/soc/canfd@52840000/can@52840000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:571 */
+			can0: can@52840000 {
+				compatible = "infineon,can";                           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:572 */
+				reg = < 0x52840000 0x200 >,
+				      < 0x52850000 0x1000 >;                           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:573 */
+				reg-names = "m_can",
+				            "message_ram";                             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:574 */
+				clk-dst = < 0x10b >;                                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:575 */
+				status = "disabled";                                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:576 */
+				bosch,mram-cfg = < 0x0 0xf 0xf 0x10 0x0 0x0 0xf 0xf >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:577 */
+				interrupts = < 0x6a 0x4 >,
+				             < 0x6b 0x4 >;                             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:578 */
+				interrupt-names = "int0",
+				                  "int1";                              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:579 */
+			};
+
+			/* node '/soc/canfd@52840000/can@52840200' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:582 */
+			can1: can@52840200 {
+				compatible = "infineon,can";                              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:583 */
+				reg = < 0x52840200 0x200 >,
+				      < 0x52850000 0x2000 >;                              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:584 */
+				reg-names = "m_can",
+				            "message_ram";                                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:585 */
+				clk-dst = < 0x10c >;                                      /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:586 */
+				status = "disabled";                                      /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:587 */
+				bosch,mram-cfg = < 0x1000 0xf 0xf 0x10 0x0 0x0 0xf 0xf >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:588 */
+				interrupts = < 0x6c 0x4 >,
+				             < 0x6d 0x4 >;                                /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:589 */
+				interrupt-names = "int0",
+				                  "int1";                                 /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:590 */
+			};
+		};
+
+		/* node '/soc/tcpwm0@52860000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:594 */
+		tcpwm0: tcpwm0@52860000 {
+			reg = < 0x52860000 0x8000 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:595 */
+			#address-cells = < 0x1 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:596 */
+			#size-cells = < 0x1 >;       /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:597 */
+
+			/* node '/soc/tcpwm0@52860000/tcpwm0_0@52860000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:599 */
+			tcpwm0_0: tcpwm0_0@52860000 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:600 */
+				reg = < 0x52860000 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:601 */
+				interrupts = < 0x6e 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:602 */
+				resolution = < 0x20 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:603 */
+				clk-dst = < 0x10d >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:604 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:605 */
+
+				/* node '/soc/tcpwm0@52860000/tcpwm0_0@52860000/pwm0_0' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:607 */
+				pwm0_0: pwm0_0 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:608 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:609 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:610 */
+				};
+
+				/* node '/soc/tcpwm0@52860000/tcpwm0_0@52860000/counter0_0' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:613 */
+				counter0_0: counter0_0 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:614 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:615 */
+				};
+			};
+
+			/* node '/soc/tcpwm0@52860000/tcpwm0_1@52860080' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:619 */
+			tcpwm0_1: tcpwm0_1@52860080 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:620 */
+				reg = < 0x52860080 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:621 */
+				interrupts = < 0x6f 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:622 */
+				resolution = < 0x20 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:623 */
+				clk-dst = < 0x10e >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:624 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:625 */
+
+				/* node '/soc/tcpwm0@52860000/tcpwm0_1@52860080/pwm0_1' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:627 */
+				pwm0_1: pwm0_1 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:628 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:629 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:630 */
+				};
+
+				/* node '/soc/tcpwm0@52860000/tcpwm0_1@52860080/counter0_1' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:633 */
+				counter0_1: counter0_1 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:634 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:635 */
+				};
+			};
+
+			/* node '/soc/tcpwm0@52860000/tcpwm0_2@52860100' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:639 */
+			tcpwm0_2: tcpwm0_2@52860100 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:640 */
+				reg = < 0x52860100 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:641 */
+				interrupts = < 0x70 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:642 */
+				resolution = < 0x20 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:643 */
+				clk-dst = < 0x10f >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:644 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:645 */
+
+				/* node '/soc/tcpwm0@52860000/tcpwm0_2@52860100/pwm0_2' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:647 */
+				pwm0_2: pwm0_2 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:648 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:649 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:650 */
+				};
+
+				/* node '/soc/tcpwm0@52860000/tcpwm0_2@52860100/counter0_2' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:653 */
+				counter0_2: counter0_2 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:654 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:655 */
+				};
+			};
+
+			/* node '/soc/tcpwm0@52860000/tcpwm0_3@52860180' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:659 */
+			tcpwm0_3: tcpwm0_3@52860180 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:660 */
+				reg = < 0x52860180 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:661 */
+				interrupts = < 0x71 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:662 */
+				resolution = < 0x20 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:663 */
+				clk-dst = < 0x110 >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:664 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:665 */
+
+				/* node '/soc/tcpwm0@52860000/tcpwm0_3@52860180/pwm0_3' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:667 */
+				pwm0_3: pwm0_3 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:668 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:669 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:670 */
+				};
+
+				/* node '/soc/tcpwm0@52860000/tcpwm0_3@52860180/counter0_3' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:673 */
+				counter0_3: counter0_3 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:674 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:675 */
+				};
+			};
+
+			/* node '/soc/tcpwm0@52860000/tcpwm0_4@52860200' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:679 */
+			tcpwm0_4: tcpwm0_4@52860200 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:680 */
+				reg = < 0x52860200 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:681 */
+				interrupts = < 0x72 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:682 */
+				resolution = < 0x20 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:683 */
+				clk-dst = < 0x111 >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:684 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:685 */
+
+				/* node '/soc/tcpwm0@52860000/tcpwm0_4@52860200/pwm0_4' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:687 */
+				pwm0_4: pwm0_4 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:688 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:689 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:690 */
+				};
+
+				/* node '/soc/tcpwm0@52860000/tcpwm0_4@52860200/counter0_4' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:693 */
+				counter0_4: counter0_4 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:694 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:695 */
+				};
+			};
+
+			/* node '/soc/tcpwm0@52860000/tcpwm0_5@52860280' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:699 */
+			tcpwm0_5: tcpwm0_5@52860280 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:700 */
+				reg = < 0x52860280 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:701 */
+				interrupts = < 0x73 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:702 */
+				resolution = < 0x20 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:703 */
+				clk-dst = < 0x112 >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:704 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:705 */
+
+				/* node '/soc/tcpwm0@52860000/tcpwm0_5@52860280/pwm0_5' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:707 */
+				pwm0_5: pwm0_5 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:708 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:709 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:710 */
+				};
+
+				/* node '/soc/tcpwm0@52860000/tcpwm0_5@52860280/counter0_5' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:713 */
+				counter0_5: counter0_5 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:714 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:715 */
+				};
+			};
+
+			/* node '/soc/tcpwm0@52860000/tcpwm0_6@52860300' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:719 */
+			tcpwm0_6: tcpwm0_6@52860300 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:720 */
+				reg = < 0x52860300 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:721 */
+				interrupts = < 0x74 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:722 */
+				resolution = < 0x20 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:723 */
+				clk-dst = < 0x113 >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:724 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:725 */
+
+				/* node '/soc/tcpwm0@52860000/tcpwm0_6@52860300/pwm0_6' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:727 */
+				pwm0_6: pwm0_6 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:728 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:729 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:730 */
+				};
+
+				/* node '/soc/tcpwm0@52860000/tcpwm0_6@52860300/counter0_6' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:733 */
+				counter0_6: counter0_6 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:734 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:735 */
+				};
+			};
+
+			/* node '/soc/tcpwm0@52860000/tcpwm0_7@52860380' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:739 */
+			tcpwm0_7: tcpwm0_7@52860380 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:740 */
+				reg = < 0x52860380 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:741 */
+				interrupts = < 0x75 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:742 */
+				resolution = < 0x20 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:743 */
+				clk-dst = < 0x114 >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:744 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:745 */
+
+				/* node '/soc/tcpwm0@52860000/tcpwm0_7@52860380/pwm0_7' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:747 */
+				pwm0_7: pwm0_7 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:748 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:749 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:750 */
+				};
+
+				/* node '/soc/tcpwm0@52860000/tcpwm0_7@52860380/counter0_7' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:753 */
+				counter0_7: counter0_7 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:754 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:755 */
+				};
+			};
+		};
+
+		/* node '/soc/tcpwm1@52868000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:760 */
+		tcpwm1: tcpwm1@52868000 {
+			reg = < 0x52868000 0x8000 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:761 */
+			#address-cells = < 0x1 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:762 */
+			#size-cells = < 0x1 >;       /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:763 */
+
+			/* node '/soc/tcpwm1@52868000/tcpwm1_0@52868000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:765 */
+			tcpwm1_0: tcpwm1_0@52868000 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:766 */
+				reg = < 0x52868000 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:767 */
+				interrupts = < 0x76 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:768 */
+				resolution = < 0x10 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:769 */
+				clk-dst = < 0x115 >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:770 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:771 */
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_0@52868000/pwm1_0' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:773 */
+				pwm1_0: pwm1_0 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:774 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:775 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:776 */
+				};
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_0@52868000/counter1_0' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:779 */
+				counter1_0: counter1_0 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:780 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:781 */
+				};
+			};
+
+			/* node '/soc/tcpwm1@52868000/tcpwm1_1@52868080' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:785 */
+			tcpwm1_1: tcpwm1_1@52868080 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:786 */
+				reg = < 0x52868080 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:787 */
+				interrupts = < 0x77 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:788 */
+				resolution = < 0x10 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:789 */
+				clk-dst = < 0x116 >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:790 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:791 */
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_1@52868080/pwm1_1' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:793 */
+				pwm1_1: pwm1_1 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:794 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:795 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:796 */
+				};
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_1@52868080/counter1_1' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:799 */
+				counter1_1: counter1_1 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:800 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:801 */
+				};
+			};
+
+			/* node '/soc/tcpwm1@52868000/tcpwm1_2@52868100' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:805 */
+			tcpwm1_2: tcpwm1_2@52868100 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:806 */
+				reg = < 0x52868100 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:807 */
+				interrupts = < 0x78 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:808 */
+				resolution = < 0x10 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:809 */
+				clk-dst = < 0x117 >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:810 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:811 */
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_2@52868100/pwm1_2' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:813 */
+				pwm1_2: pwm1_2 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:814 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:815 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:816 */
+				};
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_2@52868100/counter1_2' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:819 */
+				counter1_2: counter1_2 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:820 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:821 */
+				};
+			};
+
+			/* node '/soc/tcpwm1@52868000/tcpwm1_3@52868180' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:825 */
+			tcpwm1_3: tcpwm1_3@52868180 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:826 */
+				reg = < 0x52868180 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:827 */
+				interrupts = < 0x79 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:828 */
+				resolution = < 0x10 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:829 */
+				clk-dst = < 0x118 >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:830 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:831 */
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_3@52868180/pwm1_3' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:833 */
+				pwm1_3: pwm1_3 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:834 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:835 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:836 */
+				};
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_3@52868180/counter1_3' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:839 */
+				counter1_3: counter1_3 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:840 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:841 */
+				};
+			};
+
+			/* node '/soc/tcpwm1@52868000/tcpwm1_4@52868200' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:845 */
+			tcpwm1_4: tcpwm1_4@52868200 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:846 */
+				reg = < 0x52868200 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:847 */
+				interrupts = < 0x7a 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:848 */
+				resolution = < 0x10 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:849 */
+				clk-dst = < 0x119 >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:850 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:851 */
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_4@52868200/pwm1_4' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:853 */
+				pwm1_4: pwm1_4 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:854 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:855 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:856 */
+				};
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_4@52868200/counter1_4' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:859 */
+				counter1_4: counter1_4 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:860 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:861 */
+				};
+			};
+
+			/* node '/soc/tcpwm1@52868000/tcpwm1_5@52868280' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:865 */
+			tcpwm1_5: tcpwm1_5@52868280 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:866 */
+				reg = < 0x52868280 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:867 */
+				interrupts = < 0x7b 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:868 */
+				resolution = < 0x10 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:869 */
+				clk-dst = < 0x11a >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:870 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:871 */
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_5@52868280/pwm1_5' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:873 */
+				pwm1_5: pwm1_5 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:874 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:875 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:876 */
+				};
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_5@52868280/counter1_5' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:879 */
+				counter1_5: counter1_5 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:880 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:881 */
+				};
+			};
+
+			/* node '/soc/tcpwm1@52868000/tcpwm1_6@52868300' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:885 */
+			tcpwm1_6: tcpwm1_6@52868300 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:886 */
+				reg = < 0x52868300 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:887 */
+				interrupts = < 0x7c 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:888 */
+				resolution = < 0x10 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:889 */
+				clk-dst = < 0x11b >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:890 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:891 */
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_6@52868300/pwm1_6' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:893 */
+				pwm1_6: pwm1_6 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:894 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:895 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:896 */
+				};
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_6@52868300/counter1_6' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:899 */
+				counter1_6: counter1_6 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:900 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:901 */
+				};
+			};
+
+			/* node '/soc/tcpwm1@52868000/tcpwm1_7@52868380' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:905 */
+			tcpwm1_7: tcpwm1_7@52868380 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:906 */
+				reg = < 0x52868380 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:907 */
+				interrupts = < 0x7d 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:908 */
+				resolution = < 0x10 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:909 */
+				clk-dst = < 0x11c >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:910 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:911 */
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_7@52868380/pwm1_7' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:913 */
+				pwm1_7: pwm1_7 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:914 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:915 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:916 */
+				};
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_7@52868380/counter1_7' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:919 */
+				counter1_7: counter1_7 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:920 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:921 */
+				};
+			};
+
+			/* node '/soc/tcpwm1@52868000/tcpwm1_8@52868400' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:925 */
+			tcpwm1_8: tcpwm1_8@52868400 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:926 */
+				reg = < 0x52868400 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:927 */
+				interrupts = < 0x7e 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:928 */
+				resolution = < 0x10 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:929 */
+				clk-dst = < 0x11d >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:930 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:931 */
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_8@52868400/pwm1_8' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:933 */
+				pwm1_8: pwm1_8 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:934 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:935 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:936 */
+				};
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_8@52868400/counter1_8' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:939 */
+				counter1_8: counter1_8 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:940 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:941 */
+				};
+			};
+
+			/* node '/soc/tcpwm1@52868000/tcpwm1_9@52868480' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:945 */
+			tcpwm1_9: tcpwm1_9@52868480 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:946 */
+				reg = < 0x52868480 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:947 */
+				interrupts = < 0x7f 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:948 */
+				resolution = < 0x10 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:949 */
+				clk-dst = < 0x11e >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:950 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:951 */
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_9@52868480/pwm1_9' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:953 */
+				pwm1_9: pwm1_9 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:954 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:955 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:956 */
+				};
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_9@52868480/counter1_9' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:959 */
+				counter1_9: counter1_9 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:960 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:961 */
+				};
+			};
+
+			/* node '/soc/tcpwm1@52868000/tcpwm1_10@52868500' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:965 */
+			tcpwm1_10: tcpwm1_10@52868500 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:966 */
+				reg = < 0x52868500 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:967 */
+				interrupts = < 0x80 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:968 */
+				resolution = < 0x10 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:969 */
+				clk-dst = < 0x11f >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:970 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:971 */
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_10@52868500/pwm1_10' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:973 */
+				pwm1_10: pwm1_10 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:974 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:975 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:976 */
+				};
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_10@52868500/counter1_10' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:979 */
+				counter1_10: counter1_10 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:980 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:981 */
+				};
+			};
+
+			/* node '/soc/tcpwm1@52868000/tcpwm1_11@52868580' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:985 */
+			tcpwm1_11: tcpwm1_11@52868580 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:986 */
+				reg = < 0x52868580 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:987 */
+				interrupts = < 0x81 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:988 */
+				resolution = < 0x10 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:989 */
+				clk-dst = < 0x120 >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:990 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:991 */
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_11@52868580/pwm1_11' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:993 */
+				pwm1_11: pwm1_11 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:994 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:995 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:996 */
+				};
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_11@52868580/counter1_11' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:999 */
+				counter1_11: counter1_11 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1000 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1001 */
+				};
+			};
+
+			/* node '/soc/tcpwm1@52868000/tcpwm1_12@52868600' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1005 */
+			tcpwm1_12: tcpwm1_12@52868600 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1006 */
+				reg = < 0x52868600 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1007 */
+				interrupts = < 0x82 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1008 */
+				resolution = < 0x10 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1009 */
+				clk-dst = < 0x121 >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1010 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1011 */
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_12@52868600/pwm1_12' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1013 */
+				pwm1_12: pwm1_12 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1014 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1015 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1016 */
+				};
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_12@52868600/counter1_12' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1019 */
+				counter1_12: counter1_12 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1020 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1021 */
+				};
+			};
+
+			/* node '/soc/tcpwm1@52868000/tcpwm1_13@52868680' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1025 */
+			tcpwm1_13: tcpwm1_13@52868680 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1026 */
+				reg = < 0x52868680 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1027 */
+				interrupts = < 0x83 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1028 */
+				resolution = < 0x10 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1029 */
+				clk-dst = < 0x122 >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1030 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1031 */
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_13@52868680/pwm1_13' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1033 */
+				pwm1_13: pwm1_13 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1034 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1035 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1036 */
+				};
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_13@52868680/counter1_13' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1039 */
+				counter1_13: counter1_13 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1040 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1041 */
+				};
+			};
+
+			/* node '/soc/tcpwm1@52868000/tcpwm1_14@52868700' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1045 */
+			tcpwm1_14: tcpwm1_14@52868700 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1046 */
+				reg = < 0x52868700 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1047 */
+				interrupts = < 0x84 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1048 */
+				resolution = < 0x10 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1049 */
+				clk-dst = < 0x123 >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1050 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1051 */
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_14@52868700/pwm1_14' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1053 */
+				pwm1_14: pwm1_14 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1054 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1055 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1056 */
+				};
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_14@52868700/counter1_14' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1059 */
+				counter1_14: counter1_14 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1060 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1061 */
+				};
+			};
+
+			/* node '/soc/tcpwm1@52868000/tcpwm1_15@52868780' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1065 */
+			tcpwm1_15: tcpwm1_15@52868780 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1066 */
+				reg = < 0x52868780 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1067 */
+				interrupts = < 0x85 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1068 */
+				resolution = < 0x10 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1069 */
+				clk-dst = < 0x124 >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1070 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1071 */
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_15@52868780/pwm1_15' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1073 */
+				pwm1_15: pwm1_15 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1074 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1075 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1076 */
+				};
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_15@52868780/counter1_15' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1079 */
+				counter1_15: counter1_15 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1080 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1081 */
+				};
+			};
+
+			/* node '/soc/tcpwm1@52868000/tcpwm1_16@52868800' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1085 */
+			tcpwm1_16: tcpwm1_16@52868800 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1086 */
+				reg = < 0x52868800 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1087 */
+				interrupts = < 0x86 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1088 */
+				resolution = < 0x10 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1089 */
+				clk-dst = < 0x125 >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1090 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1091 */
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_16@52868800/pwm1_16' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1093 */
+				pwm1_16: pwm1_16 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1094 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1095 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1096 */
+				};
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_16@52868800/counter1_16' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1099 */
+				counter1_16: counter1_16 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1100 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1101 */
+				};
+			};
+
+			/* node '/soc/tcpwm1@52868000/tcpwm1_17@52868880' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1105 */
+			tcpwm1_17: tcpwm1_17@52868880 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1106 */
+				reg = < 0x52868880 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1107 */
+				interrupts = < 0x87 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1108 */
+				resolution = < 0x10 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1109 */
+				clk-dst = < 0x126 >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1110 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1111 */
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_17@52868880/pwm1_17' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1113 */
+				pwm1_17: pwm1_17 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1114 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1115 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1116 */
+				};
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_17@52868880/counter1_17' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1119 */
+				counter1_17: counter1_17 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1120 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1121 */
+				};
+			};
+
+			/* node '/soc/tcpwm1@52868000/tcpwm1_18@52868900' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1125 */
+			tcpwm1_18: tcpwm1_18@52868900 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1126 */
+				reg = < 0x52868900 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1127 */
+				interrupts = < 0x88 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1128 */
+				resolution = < 0x10 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1129 */
+				clk-dst = < 0x127 >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1130 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1131 */
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_18@52868900/pwm1_18' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1133 */
+				pwm1_18: pwm1_18 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1134 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1135 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1136 */
+				};
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_18@52868900/counter1_18' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1139 */
+				counter1_18: counter1_18 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1140 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1141 */
+				};
+			};
+
+			/* node '/soc/tcpwm1@52868000/tcpwm1_19@52868980' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1145 */
+			tcpwm1_19: tcpwm1_19@52868980 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1146 */
+				reg = < 0x52868980 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1147 */
+				interrupts = < 0x89 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1148 */
+				resolution = < 0x10 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1149 */
+				clk-dst = < 0x128 >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1150 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1151 */
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_19@52868980/pwm1_19' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1153 */
+				pwm1_19: pwm1_19 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1154 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1155 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1156 */
+				};
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_19@52868980/counter1_19' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1159 */
+				counter1_19: counter1_19 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1160 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1161 */
+				};
+			};
+
+			/* node '/soc/tcpwm1@52868000/tcpwm1_20@52868a00' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1165 */
+			tcpwm1_20: tcpwm1_20@52868a00 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1166 */
+				reg = < 0x52868a00 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1167 */
+				interrupts = < 0x8a 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1168 */
+				resolution = < 0x10 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1169 */
+				clk-dst = < 0x129 >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1170 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1171 */
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_20@52868a00/pwm1_20' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1173 */
+				pwm1_20: pwm1_20 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1174 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1175 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1176 */
+				};
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_20@52868a00/counter1_20' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1179 */
+				counter1_20: counter1_20 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1180 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1181 */
+				};
+			};
+
+			/* node '/soc/tcpwm1@52868000/tcpwm1_21@52868a80' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1185 */
+			tcpwm1_21: tcpwm1_21@52868a80 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1186 */
+				reg = < 0x52868a80 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1187 */
+				interrupts = < 0x8b 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1188 */
+				resolution = < 0x10 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1189 */
+				clk-dst = < 0x12a >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1190 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1191 */
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_21@52868a80/pwm1_21' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1193 */
+				pwm1_21: pwm1_21 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1194 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1195 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1196 */
+				};
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_21@52868a80/counter1_21' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1199 */
+				counter1_21: counter1_21 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1200 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1201 */
+				};
+			};
+
+			/* node '/soc/tcpwm1@52868000/tcpwm1_22@52868b00' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1205 */
+			tcpwm1_22: tcpwm1_22@52868b00 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1206 */
+				reg = < 0x52868b00 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1207 */
+				interrupts = < 0x8c 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1208 */
+				resolution = < 0x10 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1209 */
+				clk-dst = < 0x12b >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1210 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1211 */
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_22@52868b00/pwm1_22' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1213 */
+				pwm1_22: pwm1_22 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1214 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1215 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1216 */
+				};
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_22@52868b00/counter1_22' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1219 */
+				counter1_22: counter1_22 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1220 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1221 */
+				};
+			};
+
+			/* node '/soc/tcpwm1@52868000/tcpwm1_23@52868b80' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1225 */
+			tcpwm1_23: tcpwm1_23@52868b80 {
+				compatible = "infineon,tcpwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1226 */
+				reg = < 0x52868b80 0x80 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1227 */
+				interrupts = < 0x8d 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1228 */
+				resolution = < 0x10 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1229 */
+				clk-dst = < 0x12c >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1230 */
+				status = "disabled";           /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1231 */
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_23@52868b80/pwm1_23' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1233 */
+				pwm1_23: pwm1_23 {
+					compatible = "infineon,tcpwm-pwm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1234 */
+					#pwm-cells = < 0x3 >;              /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1235 */
+					status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1236 */
+				};
+
+				/* node '/soc/tcpwm1@52868000/tcpwm1_23@52868b80/counter1_23' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1239 */
+				counter1_23: counter1_23 {
+					compatible = "infineon,tcpwm-counter"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1240 */
+					status = "disabled";                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1241 */
+				};
+			};
+		};
+
+		/* node '/soc/axidmac@541a0000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1246 */
+		axidmac: axidmac@541a0000 {
+			#dma-cells = < 0x1 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1247 */
+			compatible = "infineon,mdma"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1248 */
+			reg = < 0x541a0000 0x1800 >;  /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1249 */
+			dma-channels = < 0x4 >;       /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1250 */
+			interrupts = < 0x62 0x4 >,
+			             < 0x63 0x4 >,
+			             < 0x64 0x4 >,
+			             < 0x65 0x4 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1251 */
+			status = "disabled";          /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1255 */
+		};
+
+		/* node '/soc/dw@52270000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1258 */
+		dma0: dw@52270000 {
+			#dma-cells = < 0x1 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1259 */
+			compatible = "infineon,dma";  /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1260 */
+			reg = < 0x52270000 0x10000 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1261 */
+			dma-channels = < 0x10 >;      /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1262 */
+			interrupts = < 0x52 0x4 >,
+			             < 0x53 0x4 >,
+			             < 0x54 0x4 >,
+			             < 0x55 0x4 >,
+			             < 0x56 0x4 >,
+			             < 0x57 0x4 >,
+			             < 0x58 0x4 >,
+			             < 0x59 0x4 >,
+			             < 0x5a 0x4 >,
+			             < 0x5b 0x4 >,
+			             < 0x5c 0x4 >,
+			             < 0x5d 0x4 >,
+			             < 0x5e 0x4 >,
+			             < 0x5f 0x4 >,
+			             < 0x60 0x4 >,
+			             < 0x61 0x4 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1263 */
+			status = "disabled";          /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1279 */
+		};
+
+		/* node '/soc/dw@52280000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1282 */
+		dma1: dw@52280000 {
+			#dma-cells = < 0x1 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1283 */
+			compatible = "infineon,dma";  /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1284 */
+			reg = < 0x52280000 0x10000 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1285 */
+			dma-channels = < 0x10 >;      /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1286 */
+			interrupts = < 0xb5 0x4 >,
+			             < 0xb6 0x4 >,
+			             < 0xb7 0x4 >,
+			             < 0xb8 0x4 >,
+			             < 0xb9 0x4 >,
+			             < 0xba 0x4 >,
+			             < 0xbb 0x4 >,
+			             < 0xbc 0x4 >,
+			             < 0xbd 0x4 >,
+			             < 0xbe 0x4 >,
+			             < 0xbf 0x4 >,
+			             < 0xc0 0x4 >,
+			             < 0xc1 0x4 >,
+			             < 0xc2 0x4 >,
+			             < 0xc3 0x4 >,
+			             < 0xc4 0x4 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1287 */
+			status = "disabled";          /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1303 */
+		};
+
+		/* node '/soc/sdhc@54810000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1306 */
+		sdhc0: sdhc@54810000 {
+			compatible = "infineon,sdhc-sdio"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1307 */
+			reg = < 0x54810000 0x2000 >;       /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1308 */
+			interrupts = < 0x9b 0x4 >,
+			             < 0x9a 0x6 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1309 */
+			clk-dst = < 0x10200 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1311 */
+			status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1312 */
+		};
+
+		/* node '/soc/sdhc@54820000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1315 */
+		sdhc1: sdhc@54820000 {
+			compatible = "infineon,sdhc-sdio"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1316 */
+			reg = < 0x54820000 0x2000 >;       /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1317 */
+			interrupts = < 0x9d 0x4 >,
+			             < 0x9c 0x6 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1318 */
+			clk-dst = < 0x10300 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1320 */
+			status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1321 */
+		};
+
+		/* node '/soc/tdm@54418000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1324 */
+		i2s0: tdm@54418000 {
+			#address-cells = < 0x1 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1325 */
+			#size-cells = < 0x0 >;       /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1326 */
+			compatible = "infineon,i2s"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1327 */
+			reg = < 0x54418000 0x200 >;  /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1328 */
+			interrupts = < 0x9e 0x4 >,
+			             < 0x9f 0x4 >;   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1329 */
+			clk-dst = < 0x10100 >;       /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1331 */
+			status = "disabled";         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1332 */
+		};
+
+		/* node '/soc/tdm@54418200' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1335 */
+		i2s1: tdm@54418200 {
+			#address-cells = < 0x1 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1336 */
+			#size-cells = < 0x0 >;       /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1337 */
+			compatible = "infineon,i2s"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1338 */
+			reg = < 0x54418200 0x200 >;  /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1339 */
+			interrupts = < 0xa0 0x4 >,
+			             < 0xa1 0x4 >;   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1340 */
+			clk-dst = < 0x10101 >;       /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1342 */
+			status = "disabled";         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1343 */
+		};
+
+		/* node '/soc/crypto@52440000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1346 */
+		crypto0: crypto@52440000 {
+			compatible = "infineon,mxcrypto"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1347 */
+			reg = < 0x52440000 0x10000 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1348 */
+
+			/* node '/soc/crypto@52440000/mxcrypto_trng' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1350 */
+			mxcrypto_trng: mxcrypto_trng {
+				compatible = "infineon,mxcrypto-trng"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1351 */
+				status = "okay";                       /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:234 */
+			};
+
+			/* node '/soc/crypto@52440000/mxcrypto_crypto' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1355 */
+			mxcrypto_crypto: mxcrypto_crypto {
+				compatible = "infineon,mxcrypto-crypto"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1356 */
+				status = "okay";                         /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:238 */
+			};
+		};
+
+		/* node '/soc/pdm@54400000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1361 */
+		dmic0: pdm@54400000 {
+			#address-cells = < 0x1 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1362 */
+			#size-cells = < 0x0 >;       /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1363 */
+			compatible = "infineon,pdm"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1364 */
+			reg = < 0x54400000 0x8800 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1365 */
+			interrupts = < 0xa5 0x4 >,
+			             < 0xa6 0x4 >,
+			             < 0xa7 0x4 >,
+			             < 0xa8 0x4 >,
+			             < 0xa9 0x4 >,
+			             < 0xaa 0x4 >;   /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1366 */
+			clk-dst = < 0x10102 >;       /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1372 */
+			status = "disabled";         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1373 */
+
+			/* node '/soc/pdm@54400000/channel@54408000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1375 */
+			dmic0_ch0: channel@54408000 {
+				reg = < 0x54408000 0x100 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1376 */
+				channel = < 0x0 >;          /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1377 */
+				status = "disabled";        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1378 */
+			};
+
+			/* node '/soc/pdm@54400000/channel@54408100' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1381 */
+			dmic0_ch1: channel@54408100 {
+				reg = < 0x54408100 0x100 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1382 */
+				channel = < 0x1 >;          /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1383 */
+				status = "disabled";        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1384 */
+			};
+
+			/* node '/soc/pdm@54400000/channel@54408200' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1387 */
+			dmic0_ch2: channel@54408200 {
+				reg = < 0x54408200 0x100 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1388 */
+				channel = < 0x2 >;          /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1389 */
+				status = "disabled";        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1390 */
+			};
+
+			/* node '/soc/pdm@54400000/channel@54408300' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1393 */
+			dmic0_ch3: channel@54408300 {
+				reg = < 0x54408300 0x100 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1394 */
+				channel = < 0x3 >;          /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1395 */
+				status = "disabled";        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1396 */
+			};
+
+			/* node '/soc/pdm@54400000/channel@54408400' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1399 */
+			dmic0_ch4: channel@54408400 {
+				reg = < 0x54408400 0x100 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1400 */
+				channel = < 0x4 >;          /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1401 */
+				status = "disabled";        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1402 */
+			};
+
+			/* node '/soc/pdm@54400000/channel@54408500' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1405 */
+			dmic0_ch5: channel@54408500 {
+				reg = < 0x54408500 0x100 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1406 */
+				channel = < 0x5 >;          /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1407 */
+				status = "disabled";        /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1408 */
+			};
+		};
+
+		/* node '/soc/usbhs@54900000' defined in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1412 */
+		usbhs: zephyr_udc0: usbhs@54900000 {
+			compatible = "infineon,usbhs",
+			             "snps,dwc2";      /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1413 */
+			reg = < 0x54900000 0x40100 >;  /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1414 */
+			interrupts = < 0xae 0x4 >,
+			             < 0xaf 0x4 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1415 */
+			num-in-eps = < 0x9 >;          /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1417 */
+			num-out-eps = < 0x9 >;         /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1418 */
+			ghwcfg1 = < 0x0 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1419 */
+			ghwcfg2 = < 0x228fe052 >;      /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1420 */
+			ghwcfg4 = < 0xe2103a20 >;      /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1421 */
+			mmio-peri-inst = < 0x1 >;      /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1423 */
+			mmio-peri-group = < 0x3 >;     /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1424 */
+			mmio-reg-bit-pos = < 0x5 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1425 */
+			mmio-peri-hf-src = < 0x1 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1426 */
+			mmio-peri-div = < 0x3 >;       /* in zephyr/dts/arm/infineon/edge/pse84/pse84_s.dtsi:1427 */
+			status = "okay";               /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:66 */
+		};
+
+		/* node '/soc/interrupt-controller@e000e100' defined in zephyr/dts/arm/armv8-m.dtsi:13 */
+		nvic: interrupt-controller@e000e100 {
+			#address-cells = < 0x1 >;            /* in zephyr/dts/arm/armv8-m.dtsi:14 */
+			compatible = "arm,v8m-nvic";         /* in zephyr/dts/arm/armv8-m.dtsi:15 */
+			reg = < 0xe000e100 0xc00 >;          /* in zephyr/dts/arm/armv8-m.dtsi:16 */
+			interrupt-controller;                /* in zephyr/dts/arm/armv8-m.dtsi:17 */
+			#interrupt-cells = < 0x2 >;          /* in zephyr/dts/arm/armv8-m.dtsi:18 */
+			arm,num-irq-priority-bits = < 0x3 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:59 */
+			phandle = < 0x1 >;                   /* in zephyr/dts/arm/armv8-m.dtsi:10 */
+		};
+
+		/* node '/soc/timer@e000e010' defined in zephyr/dts/arm/armv8-m.dtsi:21 */
+		systick: timer@e000e010 {
+			compatible = "arm,armv8m-systick"; /* in zephyr/dts/arm/armv8-m.dtsi:22 */
+			reg = < 0xe000e010 0x10 >;         /* in zephyr/dts/arm/armv8-m.dtsi:23 */
+		};
+	};
+
+	/* node '/chosen' defined in zephyr/dts/common/skeleton.dtsi:13 */
+	chosen {
+		zephyr,flash = &flash0_s;          /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:27 */
+		zephyr,sram = &m33s_data;          /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:28 */
+		zephyr,code-partition = &m33s_xip; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:29 */
+		zephyr,console = &uart2;           /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:30 */
+		zephyr,shell-uart = &uart2;        /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:31 */
+		zephyr,bt-hci = &bt_hci_uart;      /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:32 */
+		zephyr,entropy = &mxcrypto_trng;   /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:33 */
+	};
+
+	/* node '/aliases' defined in zephyr/dts/common/skeleton.dtsi:15 */
+	aliases {
+		sw0 = &user_bt;            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:13 */
+		watchdog0 = &watchdog0;    /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:14 */
+		pressure-sensor = &dps368; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:17 */
+		accel0 = &bosch_bmi270;    /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:18 */
+		led0 = &led_0;             /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:21 */
+		led1 = &led_1;             /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:22 */
+		led2 = &led_red;           /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:23 */
+	};
+
+	/* node '/cpus' defined in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:11 */
+	cpus {
+		#address-cells = < 0x1 >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:12 */
+		#size-cells = < 0x0 >;    /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:13 */
+
+		/* node '/cpus/cpu@0' defined in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:15 */
+		cpu0: cpu@0 {
+			device_type = "cpu";                      /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:16 */
+			compatible = "arm,cortex-m33";            /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:17 */
+			reg = < 0x0 >;                            /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:18 */
+			clock-frequency = < 0xbebc200 >;          /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:19 */
+			cpu-power-states = < &sleep &deepsleep >; /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:20 */
+		};
+	};
+
+	/* node '/power-states' defined in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:24 */
+	power-states {
+
+		/* node '/power-states/sleep' defined in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:25 */
+		sleep: sleep {
+			compatible = "zephyr,power-state"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:26 */
+			power-state-name = "runtime-idle"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:27 */
+			min-residency-us = < 0x0 >;        /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:28 */
+			phandle = < 0x10 >;                /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:20 */
+		};
+
+		/* node '/power-states/deepsleep' defined in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:31 */
+		deepsleep: deepsleep {
+			compatible = "zephyr,power-state";    /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:32 */
+			power-state-name = "suspend-to-idle"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:33 */
+			min-residency-us = < 0x64 >;          /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:34 */
+			exit-latency-us = < 0x14 >;           /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:35 */
+			phandle = < 0x11 >;                   /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:20 */
+		};
+
+		/* node '/power-states/deepsleep_off' defined in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:38 */
+		deepsleep_off: deepsleep_off {
+			compatible = "zephyr,power-state"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:39 */
+			power-state-name = "soft-off";     /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:40 */
+			substate-id = < 0x1 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:41 */
+			status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:42 */
+		};
+
+		/* node '/power-states/hibernate' defined in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:45 */
+		hibernate: hibernate {
+			compatible = "zephyr,power-state"; /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:46 */
+			power-state-name = "soft-off";     /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:47 */
+			substate-id = < 0x0 >;             /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:48 */
+			status = "disabled";               /* in zephyr/dts/arm/infineon/edge/pse84/pse84.cm33.dtsi:49 */
+		};
+	};
+
+	/* node '/clk_iho' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:18 */
+	clk_iho: clk_iho {
+		#clock-cells = < 0x0 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:19 */
+		compatible = "infineon,fixed-clock"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:20 */
+		clock-frequency = < 0x2faf080 >;     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:21 */
+		system-clock = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:22 */
+		status = "okay";                     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:23 */
+	};
+
+	/* node '/clk_pilo' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:27 */
+	clk_pilo: clk_pilo {
+		#clock-cells = < 0x0 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:28 */
+		compatible = "infineon,fixed-clock"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:29 */
+		clock-frequency = < 0x8000 >;        /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:30 */
+		system-clock = < 0x8 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:31 */
+		status = "okay";                     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:32 */
+	};
+
+	/* node '/dpll_hp' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:35 */
+	dpll_hp: dpll_hp {
+		#clock-cells = < 0x0 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:36 */
+		compatible = "infineon,fixed-clock"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:37 */
+		system-clock = < 0x19 >;             /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:39 */
+		status = "okay";                     /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:84 */
+		clock-frequency = < 0x11e1a300 >;    /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:85 */
+		div-p = < 0x0 >;                     /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:87 */
+		div-n = < 0xb >;                     /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:88 */
+		div-k = < 0x1 >;                     /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:89 */
+		fraction-div = < 0x0 >;              /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:90 */
+		freq-mode-sel = < 0x7 >;             /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:91 */
+		flock-enable-threshold = < 0x3 >;    /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:92 */
+		lf-beta-value = < 0x14 >;            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:93 */
+	};
+
+	/* node '/dpll_lp0' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:43 */
+	dpll_lp0: dpll_lp0 {
+		#clock-cells = < 0x0 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:44 */
+		compatible = "infineon,fixed-clock"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:45 */
+		system-clock = < 0x17 >;             /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:47 */
+		status = "okay";                     /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:55 */
+		clock-frequency = < 0x17d78400 >;    /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:56 */
+		feedback-div = < 0x38 >;             /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:58 */
+		reference-div = < 0x7 >;             /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:59 */
+		output-div = < 0x1 >;                /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:60 */
+		fraction-div = < 0x0 >;              /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:61 */
+		dco-mode-enable;                     /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:62 */
+	};
+
+	/* node '/dpll_lp1' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:51 */
+	dpll_lp1: dpll_lp1 {
+		#clock-cells = < 0x0 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:52 */
+		compatible = "infineon,fixed-clock"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:53 */
+		system-clock = < 0x18 >;             /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:55 */
+		status = "okay";                     /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:70 */
+		clock-frequency = < 0x2ee0000 >;     /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:71 */
+		feedback-div = < 0x1b >;             /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:73 */
+		reference-div = < 0x7 >;             /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:74 */
+		output-div = < 0x4 >;                /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:75 */
+		fraction-div = < 0x866e43 >;         /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:76 */
+	};
+
+	/* node '/path_mux0' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:59 */
+	path_mux0: path_mux0 {
+		#clock-cells = < 0x0 >;                     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:60 */
+		compatible = "infineon,fixed-factor-clock"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:61 */
+		system-clock = < 0xb >;                     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:62 */
+		instance = < 0x0 >;                         /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:63 */
+		source-path = < 0x0 >;                      /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:64 */
+		status = "okay";                            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:97 */
+	};
+
+	/* node '/path_mux1' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:68 */
+	path_mux1: path_mux1 {
+		#clock-cells = < 0x0 >;            /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:69 */
+		compatible = "infineon,clock-mux"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:70 */
+		system-clock = < 0xb >;            /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:71 */
+		instance = < 0x1 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:72 */
+		status = "okay";                   /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:101 */
+	};
+
+	/* node '/path_mux2' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:76 */
+	path_mux2: path_mux2 {
+		#clock-cells = < 0x0 >;                     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:77 */
+		compatible = "infineon,fixed-factor-clock"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:78 */
+		system-clock = < 0xb >;                     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:79 */
+		instance = < 0x2 >;                         /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:80 */
+		source-path = < 0x0 >;                      /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:81 */
+		status = "okay";                            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:105 */
+	};
+
+	/* node '/path_mux3' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:85 */
+	path_mux3: path_mux3 {
+		#clock-cells = < 0x0 >;                     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:86 */
+		compatible = "infineon,fixed-factor-clock"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:87 */
+		system-clock = < 0xb >;                     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:88 */
+		instance = < 0x3 >;                         /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:89 */
+		source-path = < 0x0 >;                      /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:90 */
+		status = "okay";                            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:109 */
+	};
+
+	/* node '/path_mux4' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:94 */
+	path_mux4: path_mux4 {
+		#clock-cells = < 0x0 >;                     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:95 */
+		compatible = "infineon,fixed-factor-clock"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:96 */
+		system-clock = < 0xb >;                     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:97 */
+		instance = < 0x4 >;                         /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:98 */
+		source-path = < 0x0 >;                      /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:99 */
+		status = "okay";                            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:113 */
+	};
+
+	/* node '/path_mux5' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:103 */
+	path_mux5: path_mux5 {
+		#clock-cells = < 0x0 >;                     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:104 */
+		compatible = "infineon,fixed-factor-clock"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:105 */
+		system-clock = < 0xb >;                     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:106 */
+		instance = < 0x5 >;                         /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:107 */
+		source-path = < 0x0 >;                      /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:108 */
+		status = "okay";                            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:117 */
+	};
+
+	/* node '/clk_hf0' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:112 */
+	clk_hf0: clk_hf0 {
+		#clock-cells = < 0x0 >;                     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:113 */
+		compatible = "infineon,fixed-factor-clock"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:114 */
+		system-clock = < 0x12 >;                    /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:116 */
+		instance = < 0x0 >;                         /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:117 */
+		source-path = < 0x0 >;                      /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:121 */
+		clock-div = < 0x1 >;                        /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:122 */
+		status = "okay";                            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:123 */
+	};
+
+	/* node '/clk_hf1' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:122 */
+	clk_hf1: clk_hf1 {
+		#clock-cells = < 0x0 >;                     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:123 */
+		compatible = "infineon,fixed-factor-clock"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:124 */
+		clock-div = < 0x0 >;                        /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:125 */
+		system-clock = < 0x12 >;                    /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:126 */
+		instance = < 0x1 >;                         /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:127 */
+		source-path = < 0x0 >;                      /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:127 */
+		status = "okay";                            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:128 */
+	};
+
+	/* node '/clk_hf2' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:132 */
+	clk_hf2: clk_hf2 {
+		#clock-cells = < 0x0 >;                     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:133 */
+		compatible = "infineon,fixed-factor-clock"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:134 */
+		clock-div = < 0x0 >;                        /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:135 */
+		system-clock = < 0x12 >;                    /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:136 */
+		instance = < 0x2 >;                         /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:137 */
+		source-path = < 0x2 >;                      /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:132 */
+		status = "okay";                            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:133 */
+	};
+
+	/* node '/clk_hf3' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:142 */
+	clk_hf3: clk_hf3 {
+		#clock-cells = < 0x0 >;                     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:143 */
+		compatible = "infineon,fixed-factor-clock"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:144 */
+		system-clock = < 0x12 >;                    /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:146 */
+		instance = < 0x3 >;                         /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:147 */
+		source-path = < 0x0 >;                      /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:137 */
+		clock-div = < 0x1 >;                        /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:138 */
+		status = "okay";                            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:139 */
+	};
+
+	/* node '/clk_hf4' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:152 */
+	clk_hf4: clk_hf4 {
+		#clock-cells = < 0x0 >;                     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:153 */
+		compatible = "infineon,fixed-factor-clock"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:154 */
+		clock-div = < 0x0 >;                        /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:155 */
+		system-clock = < 0x12 >;                    /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:156 */
+		instance = < 0x4 >;                         /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:157 */
+		source-path = < 0x0 >;                      /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:143 */
+		status = "okay";                            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:144 */
+	};
+
+	/* node '/clk_hf5' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:162 */
+	clk_hf5: clk_hf5 {
+		#clock-cells = < 0x0 >;                     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:163 */
+		compatible = "infineon,fixed-factor-clock"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:164 */
+		system-clock = < 0x12 >;                    /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:166 */
+		instance = < 0x5 >;                         /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:167 */
+		source-path = < 0x0 >;                      /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:148 */
+		clock-div = < 0x1 >;                        /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:149 */
+		status = "okay";                            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:150 */
+	};
+
+	/* node '/clk_hf6' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:172 */
+	clk_hf6: clk_hf6 {
+		#clock-cells = < 0x0 >;                     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:173 */
+		compatible = "infineon,fixed-factor-clock"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:174 */
+		system-clock = < 0x12 >;                    /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:176 */
+		instance = < 0x6 >;                         /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:177 */
+		source-path = < 0x0 >;                      /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:154 */
+		clock-div = < 0x1 >;                        /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:155 */
+		status = "okay";                            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:156 */
+	};
+
+	/* node '/clk_hf7' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:182 */
+	clk_hf7: clk_hf7 {
+		#clock-cells = < 0x0 >;                     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:183 */
+		compatible = "infineon,fixed-factor-clock"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:184 */
+		clock-div = < 0x0 >;                        /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:185 */
+		system-clock = < 0x12 >;                    /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:186 */
+		instance = < 0x7 >;                         /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:187 */
+		source-path = < 0x1 >;                      /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:160 */
+		status = "okay";                            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:161 */
+	};
+
+	/* node '/clk_hf8' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:192 */
+	clk_hf8: clk_hf8 {
+		#clock-cells = < 0x0 >;                     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:193 */
+		compatible = "infineon,fixed-factor-clock"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:194 */
+		system-clock = < 0x12 >;                    /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:196 */
+		instance = < 0x8 >;                         /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:197 */
+		source-path = < 0x0 >;                      /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:165 */
+		clock-div = < 0x7 >;                        /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:166 */
+		status = "okay";                            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:167 */
+	};
+
+	/* node '/clk_hf9' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:202 */
+	clk_hf9: clk_hf9 {
+		#clock-cells = < 0x0 >;                     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:203 */
+		compatible = "infineon,fixed-factor-clock"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:204 */
+		system-clock = < 0x12 >;                    /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:206 */
+		instance = < 0x9 >;                         /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:207 */
+		source-path = < 0x0 >;                      /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:171 */
+		clock-div = < 0x4 >;                        /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:172 */
+		status = "okay";                            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:173 */
+	};
+
+	/* node '/clk_hf10' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:212 */
+	clk_hf10: clk_hf10 {
+		#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:213 */
+		compatible = "infineon,clock-hf"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:214 */
+		system-clock = < 0x12 >;          /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:216 */
+		instance = < 0xa >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:217 */
+		source-path = < 0x0 >;            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:177 */
+		clock-div = < 0x3 >;              /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:178 */
+		status = "okay";                  /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:179 */
+	};
+
+	/* node '/clk_hf11' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:221 */
+	clk_hf11: clk_hf11 {
+		#clock-cells = < 0x0 >;                     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:222 */
+		compatible = "infineon,fixed-factor-clock"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:223 */
+		system-clock = < 0x12 >;                    /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:225 */
+		instance = < 0xb >;                         /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:226 */
+		source-path = < 0x0 >;                      /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:183 */
+		clock-div = < 0x1 >;                        /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:184 */
+		status = "okay";                            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:185 */
+	};
+
+	/* node '/clk_hf12' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:231 */
+	clk_hf12: clk_hf12 {
+		#clock-cells = < 0x0 >;                     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:232 */
+		compatible = "infineon,fixed-factor-clock"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:233 */
+		clock-div = < 0x0 >;                        /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:234 */
+		system-clock = < 0x12 >;                    /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:235 */
+		instance = < 0xc >;                         /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:236 */
+		source-path = < 0x4 >;                      /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:189 */
+		status = "okay";                            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:190 */
+	};
+
+	/* node '/clk_hf13' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:241 */
+	clk_hf13: clk_hf13 {
+		#clock-cells = < 0x0 >;                     /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:242 */
+		compatible = "infineon,fixed-factor-clock"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:243 */
+		system-clock = < 0x12 >;                    /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:245 */
+		instance = < 0xd >;                         /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:246 */
+		source-path = < 0x0 >;                      /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:194 */
+		clock-div = < 0x3 >;                        /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:195 */
+		status = "okay";                            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:196 */
+	};
+
+	/* node '/peri0' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:251 */
+	peri0: peri0 {
+
+		/* node '/peri0/peri0_group1_8bit_0' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:254 */
+		peri0_group1_8bit_0: peri0_group1_8bit_0 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:255 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:256 */
+			peri-group = [ 00 01 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:257 */
+			div-type = < 0x0 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:258 */
+			channel = < 0x0 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:259 */
+			clock-div = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:260 */
+			status = "disabled";              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:261 */
+		};
+
+		/* node '/peri0/peri0_group1_8bit_1' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:264 */
+		peri0_group1_8bit_1: peri0_group1_8bit_1 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:265 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:266 */
+			peri-group = [ 00 01 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:267 */
+			div-type = < 0x0 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:268 */
+			channel = < 0x1 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:269 */
+			clock-div = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:270 */
+			status = "disabled";              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:271 */
+		};
+
+		/* node '/peri0/peri0_group1_8bit_2' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:274 */
+		peri0_group1_8bit_2: peri0_group1_8bit_2 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:275 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:276 */
+			peri-group = [ 00 01 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:277 */
+			div-type = < 0x0 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:278 */
+			channel = < 0x2 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:279 */
+			clock-div = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:280 */
+			status = "disabled";              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:281 */
+		};
+
+		/* node '/peri0/peri0_group1_8bit_3' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:284 */
+		peri0_group1_8bit_3: peri0_group1_8bit_3 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:285 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:286 */
+			peri-group = [ 00 01 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:287 */
+			div-type = < 0x0 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:288 */
+			channel = < 0x3 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:289 */
+			clock-div = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:290 */
+			status = "disabled";              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:291 */
+		};
+
+		/* node '/peri0/peri0_group1_8bit_4' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:294 */
+		peri0_group1_8bit_4: peri0_group1_8bit_4 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:295 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:296 */
+			peri-group = [ 00 01 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:297 */
+			div-type = < 0x0 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:298 */
+			channel = < 0x4 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:299 */
+			clock-div = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:300 */
+			status = "disabled";              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:301 */
+		};
+
+		/* node '/peri0/peri0_group1_16bit_0' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:305 */
+		peri0_group1_16bit_0: peri0_group1_16bit_0 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:306 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:307 */
+			peri-group = [ 00 01 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:308 */
+			div-type = < 0x1 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:309 */
+			channel = < 0x0 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:310 */
+			clock-div = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:311 */
+			status = "disabled";              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:312 */
+		};
+
+		/* node '/peri0/peri0_group1_16bit_1' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:315 */
+		peri0_group1_16bit_1: peri0_group1_16bit_1 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:316 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:317 */
+			peri-group = [ 00 01 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:318 */
+			div-type = < 0x1 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:319 */
+			channel = < 0x1 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:320 */
+			status = "okay";                  /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:81 */
+			clock-div = < 0x1 >;              /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:82 */
+			phandle = < 0x7 >;                /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:74 */
+		};
+
+		/* node '/peri0/peri0_group1_16bit_2' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:325 */
+		peri0_group1_16bit_2: peri0_group1_16bit_2 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:326 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:327 */
+			peri-group = [ 00 01 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:328 */
+			div-type = < 0x1 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:329 */
+			channel = < 0x2 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:330 */
+			clock-div = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:331 */
+			status = "disabled";              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:332 */
+		};
+
+		/* node '/peri0/peri0_group1_16bit_3' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:335 */
+		peri0_group1_16bit_3: peri0_group1_16bit_3 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:336 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:337 */
+			peri-group = [ 00 01 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:338 */
+			div-type = < 0x1 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:339 */
+			channel = < 0x3 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:340 */
+			status = "okay";                  /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:116 */
+			clock-div = < 0x3e8 >;            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:117 */
+			phandle = < 0x2 >;                /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:90 */
+		};
+
+		/* node '/peri0/peri0_group1_16_5bit_0' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:346 */
+		peri0_group1_16_5bit_0: peri0_group1_16_5bit_0 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:347 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:348 */
+			peri-group = [ 00 01 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:349 */
+			div-type = < 0x2 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:350 */
+			channel = < 0x0 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:351 */
+			status = "okay";                  /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:200 */
+			clock-div = < 0x1 >;              /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:201 */
+			phandle = < 0xa >;                /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_m33.dts:210 */
+		};
+
+		/* node '/peri0/peri0_group1_16_5bit_1' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:356 */
+		peri0_group1_16_5bit_1: peri0_group1_16_5bit_1 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:357 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:358 */
+			peri-group = [ 00 01 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:359 */
+			div-type = < 0x2 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:360 */
+			channel = < 0x1 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:361 */
+			clock-div = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:362 */
+			status = "disabled";              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:363 */
+		};
+
+		/* node '/peri0/peri0_group1_24_5bit_0' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:367 */
+		peri0_group1_24_5bit_0: peri0_group1_24_5bit_0 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:368 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:369 */
+			peri-group = [ 00 01 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:370 */
+			div-type = < 0x3 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:371 */
+			channel = < 0x0 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:372 */
+			clock-div = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:373 */
+			status = "disabled";              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:374 */
+		};
+
+		/* node '/peri0/peri0_group2_8bit_0' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:379 */
+		peri0_group2_8bit_0: peri0_group2_8bit_0 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:380 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:381 */
+			peri-group = [ 00 02 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:382 */
+			div-type = < 0x0 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:383 */
+			channel = < 0x0 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:384 */
+			clock-div = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:385 */
+			status = "disabled";              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:386 */
+		};
+
+		/* node '/peri0/peri0_group2_8bit_1' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:389 */
+		peri0_group2_8bit_1: peri0_group2_8bit_1 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:390 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:391 */
+			peri-group = [ 00 02 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:392 */
+			div-type = < 0x0 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:393 */
+			channel = < 0x1 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:394 */
+			clock-div = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:395 */
+			status = "disabled";              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:396 */
+		};
+
+		/* node '/peri0/peri0_group2_8bit_2' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:399 */
+		peri0_group2_8bit_2: peri0_group2_8bit_2 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:400 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:401 */
+			peri-group = [ 00 02 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:402 */
+			div-type = < 0x0 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:403 */
+			channel = < 0x2 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:404 */
+			clock-div = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:405 */
+			status = "disabled";              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:406 */
+		};
+
+		/* node '/peri0/peri0_group2_8bit_3' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:409 */
+		peri0_group2_8bit_3: peri0_group2_8bit_3 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:410 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:411 */
+			peri-group = [ 00 02 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:412 */
+			div-type = < 0x0 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:413 */
+			channel = < 0x3 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:414 */
+			clock-div = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:415 */
+			status = "disabled";              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:416 */
+		};
+
+		/* node '/peri0/peri0_group3_8bit_0' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:421 */
+		peri0_group3_8bit_0: peri0_group3_8bit_0 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:422 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:423 */
+			peri-group = [ 00 03 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:424 */
+			div-type = < 0x0 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:425 */
+			channel = < 0x0 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:426 */
+			clock-div = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:427 */
+			status = "disabled";              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:428 */
+		};
+
+		/* node '/peri0/peri0_group4_8bit_0' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:433 */
+		peri0_group4_8bit_0: peri0_group4_8bit_0 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:434 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:435 */
+			peri-group = [ 00 04 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:436 */
+			div-type = < 0x0 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:437 */
+			channel = < 0x0 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:438 */
+			clock-div = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:439 */
+			status = "disabled";              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:440 */
+		};
+
+		/* node '/peri0/peri0_group7_16_5bit_0' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:445 */
+		peri0_group7_16_5bit_0: peri0_group7_16_5bit_0 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:446 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:447 */
+			peri-group = [ 00 07 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:448 */
+			div-type = < 0x2 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:449 */
+			channel = < 0x0 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:450 */
+			clock-div = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:451 */
+			status = "disabled";              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:452 */
+		};
+
+		/* node '/peri0/peri0_group8_16bit_0' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:457 */
+		peri0_group8_16bit_0: peri0_group8_16bit_0 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:458 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:459 */
+			peri-group = [ 00 08 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:460 */
+			div-type = < 0x1 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:461 */
+			channel = < 0x0 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:462 */
+			clock-div = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:463 */
+			status = "disabled";              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:464 */
+		};
+
+		/* node '/peri0/peri0_group9_8bit_0' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:469 */
+		peri0_group9_8bit_0: peri0_group9_8bit_0 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:470 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:471 */
+			peri-group = [ 00 09 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:472 */
+			div-type = < 0x0 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:473 */
+			channel = < 0x0 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:474 */
+			clock-div = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:475 */
+			status = "disabled";              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:476 */
+		};
+	};
+
+	/* node '/peri1' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:480 */
+	peri1: peri1 {
+
+		/* node '/peri1/peri1_group1_16_5bit_0' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:483 */
+		peri1_group1_16_5bit_0: peri1_group1_16_5bit_0 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:484 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:485 */
+			peri-group = [ 01 01 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:486 */
+			div-type = < 0x2 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:487 */
+			channel = < 0x0 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:488 */
+			clock-div = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:489 */
+			status = "disabled";              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:490 */
+		};
+
+		/* node '/peri1/peri1_group1_16_5bit_1' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:493 */
+		peri1_group1_16_5bit_1: peri1_group1_16_5bit_1 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:494 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:495 */
+			peri-group = [ 01 01 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:496 */
+			div-type = < 0x2 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:497 */
+			channel = < 0x1 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:498 */
+			clock-div = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:499 */
+			status = "disabled";              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:500 */
+		};
+
+		/* node '/peri1/peri1_group1_16_5bit_2' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:503 */
+		peri1_group1_16_5bit_2: peri1_group1_16_5bit_2 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:504 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:505 */
+			peri-group = [ 01 01 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:506 */
+			div-type = < 0x2 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:507 */
+			channel = < 0x2 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:508 */
+			clock-div = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:509 */
+			status = "disabled";              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:510 */
+		};
+
+		/* node '/peri1/peri1_group2_8bit_0' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:515 */
+		peri1_group2_8bit_0: peri1_group2_8bit_0 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:516 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:517 */
+			peri-group = [ 01 02 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:518 */
+			div-type = < 0x0 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:519 */
+			channel = < 0x0 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:520 */
+			clock-div = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:521 */
+			status = "disabled";              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:522 */
+		};
+
+		/* node '/peri1/peri1_group3_8bit_0' defined in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:527 */
+		peri1_group3_8bit_0: peri1_group3_8bit_0 {
+			#clock-cells = < 0x0 >;           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:528 */
+			compatible = "infineon,peri-div"; /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:529 */
+			peri-group = [ 01 03 ];           /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:530 */
+			div-type = < 0x0 >;               /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:531 */
+			channel = < 0x0 >;                /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:532 */
+			clock-div = < 0x1 >;              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:533 */
+			status = "disabled";              /* in zephyr/dts/arm/infineon/edge/pse84/system_clocks.dtsi:534 */
+		};
+	};
+
+	/* node '/leds' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:21 */
+	leds {
+		compatible = "gpio-leds"; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:22 */
+
+		/* node '/leds/led_0' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:24 */
+		led_0: led_0 {
+			label = "LED_0";                 /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:25 */
+			gpios = < &gpio_prt10 0x7 0x0 >; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:26 */
+		};
+
+		/* node '/leds/led_1' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:29 */
+		led_1: led_1 {
+			label = "LED_1";                 /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:30 */
+			gpios = < &gpio_prt10 0x5 0x0 >; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:31 */
+		};
+
+		/* node '/leds/led_red' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:34 */
+		led_red: led_red {
+			label = "LED_RED";               /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:35 */
+			gpios = < &gpio_prt20 0x6 0x0 >; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:36 */
+		};
+
+		/* node '/leds/led_green' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:39 */
+		led_green: led_green {
+			label = "LED_GREEN";             /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:40 */
+			gpios = < &gpio_prt20 0x4 0x0 >; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:41 */
+		};
+
+		/* node '/leds/led_blue' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:44 */
+		led_blue: led_blue {
+			label = "LED_BLUE";              /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:45 */
+			gpios = < &gpio_prt20 0x5 0x0 >; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:46 */
+		};
+	};
+
+	/* node '/gpio_keys' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:50 */
+	gpio_keys {
+		compatible = "gpio-keys"; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:51 */
+
+		/* node '/gpio_keys/button_0' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:53 */
+		user_bt: button_0 {
+			label = "SW_1";                  /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:54 */
+			gpios = < &gpio_prt7 0x0 0x11 >; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:55 */
+			zephyr,code = < 0xb >;           /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_common.dtsi:56 */
+		};
+	};
+
+	/* node '/reserved-memory' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:18 */
+	reserved-memory {
+		#address-cells = < 0x1 >; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:19 */
+		#size-cells = < 0x1 >;    /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:20 */
+		ranges;                   /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:21 */
+
+		/* node '/reserved-memory/memory@34000000' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:23 */
+		extended_boot_sram_reserved: memory@34000000 {
+			reg = < 0x34000000 0x1000 >; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:24 */
+		};
+
+		/* node '/reserved-memory/memory@34001000' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:27 */
+		m33s_shared: memory@34001000 {
+			reg = < 0x34001000 0x1000 >; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:28 */
+		};
+
+		/* node '/reserved-memory/memory@34002000' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:31 */
+		m33s_code: memory@34002000 {
+			compatible = "zephyr,memory-region",
+			             "mmio-sram";            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:32 */
+			zephyr,memory-region = "M33SCODE";   /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:33 */
+			reg = < 0x34002000 0x35000 >;        /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:34 */
+		};
+
+		/* node '/reserved-memory/memory@34037000' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:37 */
+		m33s_data: memory@34037000 {
+			reg = < 0x34037000 0x21000 >; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:38 */
+		};
+
+		/* node '/reserved-memory/memory@24058000' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:41 */
+		m33_code: memory@24058000 {
+			compatible = "zephyr,memory-region",
+			             "mmio-sram";            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:42 */
+			zephyr,memory-region = "M33CODE";    /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:43 */
+			reg = < 0x24058000 0x65000 >;        /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:44 */
+		};
+
+		/* node '/reserved-memory/memory@240bd000' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:47 */
+		m33_data: memory@240bd000 {
+			reg = < 0x240bd000 0x40000 >; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:48 */
+		};
+
+		/* node '/reserved-memory/memory@340fd000' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:51 */
+		m33s_allocatable_shared: memory@340fd000 {
+			compatible = "zephyr,memory-region",
+			             "mmio-sram";            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:52 */
+			zephyr,memory-region = "SECSHARED";  /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:53 */
+			reg = < 0x340fd000 0x1000 >;         /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:54 */
+		};
+
+		/* node '/reserved-memory/memory@240fe000' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:57 */
+		m33_allocatable_shared: memory@240fe000 {
+			compatible = "zephyr,memory-region",
+			             "mmio-sram";            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:58 */
+			zephyr,memory-region = "M33SHARED";  /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:59 */
+			reg = < 0x240fe000 0x1000 >;         /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:60 */
+		};
+
+		/* node '/reserved-memory/memory@240ff000' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:63 */
+		m55_allocatable_shared: memory@240ff000 {
+			compatible = "zephyr,memory-region",
+			             "mmio-sram";            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:64 */
+			zephyr,memory-region = "M55SHARED";  /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:65 */
+			reg = < 0x240ff000 0x1000 >;         /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:66 */
+		};
+
+		/* node '/reserved-memory/memory@26100000' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:69 */
+		m55_data: memory@26100000 {
+			reg = < 0x26100000 0x40000 >; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:70 */
+		};
+	};
+
+	/* node '/flash_controller@44460000' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:78 */
+	flash_controller: flash_controller@44460000 {
+		compatible = "infineon,qspi-flash";                                                                          /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:79 */
+		reg = < 0x44460000 0x20000 >;                                                                                /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:80 */
+		#address-cells = < 0x1 >;                                                                                    /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:81 */
+		#size-cells = < 0x1 >;                                                                                       /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:82 */
+		ranges;                                                                                                      /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:83 */
+		pinctrl-0 = < &p1_0_smif0_data0 &p1_1_smif0_data1 &p1_2_smif0_data2 &p1_3_smif0_data3 &p2_0_smif0_select1 >; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:85 */
+		pinctrl-names = "default";                                                                                   /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:88 */
+
+		/* node '/flash_controller@44460000/flash0@8000000' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:94 */
+		flash0: flash0@8000000 {
+			compatible = "soc-nv-flash",
+			             "infineon,s25hs512t";    /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:95 */
+			reg = < 0x8000000 0x4000000 >;        /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:96 */
+			#address-cells = < 0x1 >;             /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:97 */
+			#size-cells = < 0x1 >;                /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:98 */
+			ranges = < 0x0 0x8000000 0x4000000 >; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:99 */
+			write-block-size = < 0x10 >;          /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:100 */
+			erase-block-size = < 0x40000 >;       /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:101 */
+
+			/* node '/flash_controller@44460000/flash0@8000000/partitions' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:103 */
+			partitions {
+				#address-cells = < 0x1 >; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:104 */
+				#size-cells = < 0x1 >;    /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:105 */
+				ranges;                   /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:106 */
+
+				/* node '/flash_controller@44460000/flash0@8000000/partitions/storage@0' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:108 */
+				storage_partition: storage@0 {
+					compatible = "zephyr,mapped-partition"; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:109 */
+					label = "storage";                      /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:110 */
+					reg = < 0x0 0x100000 >;                 /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:111 */
+				};
+
+				/* node '/flash_controller@44460000/flash0@8000000/partitions/m33_xip@340400' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:114 */
+				m33_xip: m33_xip@340400 {
+					compatible = "zephyr,mapped-partition"; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:115 */
+					label = "m33-xip";                      /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:116 */
+					reg = < 0x340400 0x200000 >;            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:117 */
+				};
+			};
+		};
+
+		/* node '/flash_controller@44460000/flash0_s@18000000' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:129 */
+		flash0_s: flash0_s@18000000 {
+			compatible = "soc-nv-flash";           /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:130 */
+			reg = < 0x18000000 0x4000000 >;        /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:131 */
+			#address-cells = < 0x1 >;              /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:132 */
+			#size-cells = < 0x1 >;                 /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:133 */
+			ranges = < 0x0 0x18000000 0x4000000 >; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:134 */
+			write-block-size = < 0x10 >;           /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:135 */
+			erase-block-size = < 0x10000 >;        /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:136 */
+
+			/* node '/flash_controller@44460000/flash0_s@18000000/partitions' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:138 */
+			partitions {
+				#address-cells = < 0x1 >; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:139 */
+				#size-cells = < 0x1 >;    /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:140 */
+				ranges;                   /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:141 */
+
+				/* node '/flash_controller@44460000/flash0_s@18000000/partitions/m33s_header@100000' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:143 */
+				m33s_header: m33s_header@100000 {
+					compatible = "zephyr,mapped-partition"; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:144 */
+					label = "m33s-header";                  /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:145 */
+					reg = < 0x100000 0x400 >;               /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:146 */
+				};
+
+				/* node '/flash_controller@44460000/flash0_s@18000000/partitions/m33s_xip@100400' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:149 */
+				m33s_xip: m33s_xip@100400 {
+					compatible = "zephyr,mapped-partition"; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:150 */
+					label = "m33s-xip";                     /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:151 */
+					reg = < 0x100400 0x1ffc00 >;            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:152 */
+				};
+			};
+		};
+
+		/* node '/flash_controller@44460000/flash0_sahb@60000000' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:164 */
+		flash0_sahb: flash0_sahb@60000000 {
+			compatible = "soc-nv-flash";           /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:165 */
+			reg = < 0x60000000 0x4000000 >;        /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:166 */
+			#address-cells = < 0x1 >;              /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:167 */
+			#size-cells = < 0x1 >;                 /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:168 */
+			ranges = < 0x0 0x60000000 0x4000000 >; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:169 */
+			write-block-size = < 0x10 >;           /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:170 */
+			erase-block-size = < 0x10000 >;        /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:171 */
+
+			/* node '/flash_controller@44460000/flash0_sahb@60000000/partitions' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:173 */
+			partitions {
+				#address-cells = < 0x1 >; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:174 */
+				#size-cells = < 0x1 >;    /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:175 */
+				ranges;                   /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:176 */
+
+				/* node '/flash_controller@44460000/flash0_sahb@60000000/partitions/m55_xip@580000' defined in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:178 */
+				m55_xip: m55_xip@580000 {
+					compatible = "zephyr,mapped-partition"; /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:179 */
+					label = "m55-xip";                      /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:180 */
+					reg = < 0x580000 0x200000 >;            /* in zephyr/boards/infineon/kit_pse84_ai/kit_pse84_ai_memory_map.dtsi:181 */
+				};
+			};
+		};
+	};
+};

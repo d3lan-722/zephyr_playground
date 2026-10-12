@@ -1,5 +1,5 @@
 <testsuites>
-	<testsuite name="dummy.testing.ztest" timestamp="2026-10-04T17:49:58.862167" time="52.48" tests="6" failures="0" errors="0" skipped="0">
+	<testsuite name="dummy.testing.ztest" timestamp="2026-10-12T11:14:56.642866" time="53.95" tests="6" failures="0" errors="0" skipped="0">
 		<properties>
 			<property name="version" value="6eec41c6cb14" />
 			<property name="platform" value="kit_pse84_ai/pse846gps2dbzc4a/m55" />
@@ -10,6 +10,6 @@
 		<testcase classname="dummy.testing.ztest" name="dummy.testing.ztest.clk_runtime_tests.shared_producer" time="0.01" />
 		<testcase classname="dummy.testing.ztest" name="dummy.testing.ztest.clk_runtime_tests.request_rate" time="0.01" />
 		<testcase classname="dummy.testing.ztest" name="dummy.testing.ztest.clk_runtime_tests.clock_gating" time="0.00" />
-		<testcase classname="dummy.testing.ztest" name="dummy.testing.ztest.clk_runtime_tests.locking_clocks" time="0.00" />
+		<testcase classname="dummy.testing.ztest" name="dummy.testing.ztest.clk_runtime_tests.locking_clocks" time="0.01" />
 	</testsuite>
 </testsuites>

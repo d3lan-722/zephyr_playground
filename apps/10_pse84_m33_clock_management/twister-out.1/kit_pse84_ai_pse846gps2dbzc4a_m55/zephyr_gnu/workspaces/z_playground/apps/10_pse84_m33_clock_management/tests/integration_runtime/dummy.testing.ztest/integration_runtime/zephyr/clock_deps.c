@@ -8,44 +8,52 @@ const clock_handle_t __clock_children_clk_dts_ord_14[] =
 	CLOCK_LIST_END};
 
 const clock_handle_t __clock_children_clk_dts_ord_5[] = 
-	{11,
-	12,
+	{12,
 	13,
 	14,
 	15,
 	16,
+	17,
 	CLOCK_LIST_END};
 
 const clock_handle_t __clock_children_clk_dts_ord_15[] = 
-	{17,
-	18,
+	{18,
+	19,
+	20,
 	CLOCK_LIST_END};
 
 const clock_handle_t __clock_children_clk_dts_ord_17[] = 
-	{17,
-	18,
+	{18,
+	19,
+	20,
 	CLOCK_LIST_END};
 
 const clock_handle_t __clock_children_clk_dts_ord_8[] = 
-	{11,
-	12,
+	{12,
 	13,
 	14,
 	15,
 	16,
+	17,
 	CLOCK_LIST_END};
 
 const clock_handle_t __clock_children_clk_dts_ord_18[] = 
-	{17,
-	18,
+	{18,
+	19,
+	20,
+	CLOCK_LIST_END};
+
+const clock_handle_t __clock_children_clk_dts_ord_35[] = 
+	{23,
 	CLOCK_LIST_END};
 
 const clock_handle_t __clock_children_clk_dts_ord_21[] = 
 	{CLOCK_LIST_END};
 
 const clock_handle_t __clock_children_clk_dts_ord_16[] = 
-	{17,
-	18,
+	{18,
+	19,
+	20,
 	CLOCK_LIST_END};
 
 const clock_handle_t __clock_children_clk_dts_ord_19[] = 
@@ -53,12 +61,12 @@ const clock_handle_t __clock_children_clk_dts_ord_19[] =
 	CLOCK_LIST_END};
 
 const clock_handle_t __clock_children_clk_dts_ord_9[] = 
-	{11,
-	12,
+	{12,
 	13,
 	14,
 	15,
 	16,
+	17,
 	CLOCK_LIST_END};
 
 const clock_handle_t __clock_children_clk_dts_ord_25[] = 
@@ -66,39 +74,48 @@ const clock_handle_t __clock_children_clk_dts_ord_25[] =
 	CLOCK_LIST_END};
 
 const clock_handle_t __clock_children_clk_dts_ord_26[] = 
-	{20,
+	{22,
 	CLOCK_LIST_END};
 
 const clock_handle_t __clock_children_clk_dts_ord_6[] = 
-	{11,
-	12,
+	{12,
 	13,
 	14,
 	15,
 	16,
+	17,
 	CLOCK_LIST_END};
 
 const clock_handle_t __clock_children_clk_dts_ord_7[] = 
-	{11,
-	12,
+	{12,
 	13,
 	14,
 	15,
 	16,
+	17,
 	CLOCK_LIST_END};
 
 const clock_handle_t __clock_children_clk_dts_ord_11[] = 
-	{17,
-	18,
+	{18,
+	19,
+	20,
 	CLOCK_LIST_END};
 
+const clock_handle_t __clock_children_clk_dts_ord_36[] = 
+	{CLOCK_LIST_END};
+
 const clock_handle_t __clock_children_clk_dts_ord_20[] = 
-	{19,
+	{21,
+	CLOCK_LIST_END};
+
+const clock_handle_t __clock_children_clk_dts_ord_34[] = 
+	{11,
 	CLOCK_LIST_END};
 
 const clock_handle_t __clock_children_clk_dts_ord_13[] = 
-	{17,
-	18,
+	{18,
+	19,
+	20,
 	CLOCK_LIST_END};
 
 const clock_handle_t __clock_children_clk_dts_ord_12[] = 

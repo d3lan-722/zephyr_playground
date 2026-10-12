@@ -1,0 +1,27 @@
+config ZEPHYR_CMSIS_MODULE
+   bool
+   default y
+config ZEPHYR_CMSIS_6_MODULE
+   bool
+   default y
+config ZEPHYR_HAL_INFINEON_MODULE
+   bool
+   default y
+config ZEPHYR_MBEDTLS_MODULE
+   bool
+   default y
+config ZEPHYR_MCUBOOT_MODULE
+   bool
+   default y
+config ZEPHYR_PICOLIBC_MODULE
+   bool
+   default y
+config ZEPHYR_TF_M_TESTS_MODULE
+   bool
+   default y
+config ZEPHYR_TF_PSA_CRYPTO_MODULE
+   bool
+   default y
+config ZEPHYR_TRUSTED_FIRMWARE_M_MODULE
+   bool
+   default y

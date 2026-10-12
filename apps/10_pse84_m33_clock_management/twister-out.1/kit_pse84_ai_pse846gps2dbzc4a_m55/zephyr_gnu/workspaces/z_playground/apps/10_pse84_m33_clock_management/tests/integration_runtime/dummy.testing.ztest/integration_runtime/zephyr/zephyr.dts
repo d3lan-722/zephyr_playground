@@ -2900,6 +2900,26 @@
 			instance = < 0xa >;                /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:504 */
 			clock-div = < 0x3 >;               /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:505 */
 			status = "okay";                   /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:506 */
+			phandle = < 0x39 >;                /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:680 */
+
+			/* node '/clocks/div-hf10/clk_output_hf10' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:675 */
+			clk_output_hf10: clk_output_hf10 {
+				#clock-cells = < 0x0 >;      /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:676 */
+				compatible = "clock-output"; /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:677 */
+				phandle = < 0x48 >;          /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:610 */
+
+				/* node '/clocks/div-hf10/clk_output_hf10/clk-output-hf10-default-state' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:678 */
+				clk_output_hf10_default_state: clk-output-hf10-default-state {
+					compatible = "clock-state";      /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:679 */
+					clocks = < &clk_iho 0x1 >,
+					         < &path_mux0 0x0 >,
+					         < &mux_hf10 0x0 >,
+					         < &div_hf10 0x2 >;      /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:680 */
+					clock-frequency = < 0xd693a40 >; /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:681 */
+					rank = < 0x0 >;                  /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:682 */
+					phandle = < 0x49 >;              /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:612 */
+				};
+			};
 		};
 
 		/* node '/clocks/mux-hf11' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:509 */
@@ -2911,7 +2931,7 @@
 			source-selects = < 0x0 0x1 0x2 0x3 0x4 0x5 >;                                      /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:514 */
 			instance = < 0xb >;                                                                /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:517 */
 			status = "okay";                                                                   /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:518 */
-			phandle = < 0x39 >;                                                                /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:524 */
+			phandle = < 0x3a >;                                                                /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:524 */
 		};
 
 		/* node '/clocks/div-hf11' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:521 */
@@ -2922,50 +2942,62 @@
 			instance = < 0xb >;                /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:525 */
 			clock-div = < 0x0 >;               /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:526 */
 			status = "okay";                   /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:527 */
-			phandle = < 0x3a >;                /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:607 */
+			phandle = < 0x3b >;                /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:623 */
 
-			/* node '/clocks/div-hf11/clk_output_hf11' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:602 */
+			/* node '/clocks/div-hf11/clk_output_hf11' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:618 */
 			clk_output_hf11: clk_output_hf11 {
-				#clock-cells = < 0x0 >;      /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:603 */
-				compatible = "clock-output"; /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:604 */
-				phandle = < 0x3e >;          /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:578 */
+				#clock-cells = < 0x0 >;      /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:619 */
+				compatible = "clock-output"; /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:620 */
+				phandle = < 0x3f >;          /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:581 */
 
-				/* node '/clocks/div-hf11/clk_output_hf11/clk-output-hf11-default-state' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:605 */
+				/* node '/clocks/div-hf11/clk_output_hf11/clk-output-hf11-default-state' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:621 */
 				clk_output_hf11_default_state: clk-output-hf11-default-state {
-					compatible = "clock-state";                              /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:606 */
+					compatible = "clock-state";                              /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:622 */
 					clocks = < &clk_iho 0x1 >,
 					         < &path_mux1 0x0 >,
 					         < &dpll_lp1 0x1 0x0 0x1 0x1 0x7 0x38 0x0 0x0 >,
 					         < &mux_hf11 0x1 >,
-					         < &div_hf11 0x3 >;                              /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:607 */
-					clock-frequency = < 0x7f28152 >;                         /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:608 */
-					rank = < 0x2 >;                                          /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:609 */
-					phandle = < 0x40 >;                                      /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:580 */
+					         < &div_hf11 0x3 >;                              /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:623 */
+					clock-frequency = < 0x7f28152 >;                         /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:624 */
+					rank = < 0x2 >;                                          /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:625 */
+					phandle = < 0x41 >;                                      /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:583 */
 				};
 
-				/* node '/clocks/div-hf11/clk_output_hf11/clk-output-hf11-fast-state' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:611 */
+				/* node '/clocks/div-hf11/clk_output_hf11/clk-output-hf11-fast-state' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:627 */
 				clk_output_hf11_fast_state: clk-output-hf11-fast-state {
-					compatible = "clock-state";                             /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:612 */
+					compatible = "clock-state";                             /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:628 */
 					clocks = < &clk_iho 0x1 >,
 					         < &path_mux2 0x0 >,
 					         < &dpll_hp 0x1 0x0 0x1 0x1 0x7 0x38 0x0 0x0 >,
 					         < &mux_hf11 0x2 >,
-					         < &div_hf11 0x1 >;                             /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:613 */
-					clock-frequency = < 0x1ad27480 >;                       /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:614 */
-					rank = < 0x0 >;                                         /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:615 */
-					phandle = < 0x44 >;                                     /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:582 */
+					         < &div_hf11 0x1 >;                             /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:629 */
+					clock-frequency = < 0x1ad27480 >;                       /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:630 */
+					rank = < 0x0 >;                                         /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:631 */
+					phandle = < 0x45 >;                                     /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:585 */
 				};
 
-				/* node '/clocks/div-hf11/clk_output_hf11/clk-output-hf11-shared-state' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:617 */
+				/* node '/clocks/div-hf11/clk_output_hf11/clk-output-hf11-shared-state' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:633 */
 				clk_output_hf11_shared_state: clk-output-hf11-shared-state {
-					compatible = "clock-state";   /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:618 */
+					compatible = "clock-state";   /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:634 */
 					clocks = < &clk_pilo 0x1 >,
 					         < &path_mux3 0x4 >,
 					         < &mux_hf11 0x3 >,
-					         < &div_hf11 0x2 >;   /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:619 */
-					clock-frequency = < 0x4000 >; /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:620 */
-					rank = < 0x1 >;               /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:621 */
-					phandle = < 0x42 >;           /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:581 */
+					         < &div_hf11 0x2 >;   /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:635 */
+					clock-frequency = < 0x4000 >; /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:636 */
+					rank = < 0x1 >;               /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:637 */
+					phandle = < 0x43 >;           /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:584 */
+				};
+
+				/* node '/clocks/div-hf11/clk_output_hf11/clk-output-hf11-failed-state' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:640 */
+				clk_output_hf11_failed_state: clk-output-hf11-failed-state {
+					compatible = "clock-state";   /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:641 */
+					clocks = < &clk_pilo 0x1 >,
+					         < &div_hf11 0x2 >,
+					         < &path_mux3 0x7 >,
+					         < &mux_hf11 0x8 >;   /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:642 */
+					clock-frequency = < 0x4000 >; /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:643 */
+					rank = < 0x1 >;               /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:644 */
+					phandle = < 0x47 >;           /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:603 */
 				};
 			};
 		};
@@ -2979,7 +3011,7 @@
 			source-selects = < 0x0 0x1 0x2 0x3 0x4 0x5 >;                                      /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:535 */
 			instance = < 0xc >;                                                                /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:538 */
 			status = "okay";                                                                   /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:539 */
-			phandle = < 0x3b >;                                                                /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:545 */
+			phandle = < 0x3c >;                                                                /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:545 */
 		};
 
 		/* node '/clocks/div-hf12' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:542 */
@@ -3001,7 +3033,7 @@
 			source-selects = < 0x0 0x1 0x2 0x3 0x4 0x5 >;                                      /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:556 */
 			instance = < 0xd >;                                                                /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:559 */
 			status = "okay";                                                                   /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:560 */
-			phandle = < 0x3c >;                                                                /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:566 */
+			phandle = < 0x3d >;                                                                /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:566 */
 		};
 
 		/* node '/clocks/div-hf13' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:563 */
@@ -3012,49 +3044,49 @@
 			instance = < 0xd >;                /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:567 */
 			clock-div = < 0x0 >;               /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:568 */
 			status = "okay";                   /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:569 */
-			phandle = < 0x3d >;                /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:632 */
+			phandle = < 0x3e >;                /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:655 */
 
-			/* node '/clocks/div-hf13/clk_output_hf13' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:627 */
+			/* node '/clocks/div-hf13/clk_output_hf13' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:650 */
 			clk_output_hf13: clk_output_hf13 {
-				#clock-cells = < 0x0 >;      /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:628 */
-				compatible = "clock-output"; /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:629 */
-				phandle = < 0x3f >;          /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:578 */
+				#clock-cells = < 0x0 >;      /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:651 */
+				compatible = "clock-output"; /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:652 */
+				phandle = < 0x40 >;          /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:581 */
 
-				/* node '/clocks/div-hf13/clk_output_hf13/clk-output-hf13-default-state' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:630 */
+				/* node '/clocks/div-hf13/clk_output_hf13/clk-output-hf13-default-state' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:653 */
 				clk_output_hf13_default_state: clk-output-hf13-default-state {
-					compatible = "clock-state";                             /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:631 */
+					compatible = "clock-state";                             /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:654 */
 					clocks = < &clk_iho 0x1 >,
 					         < &path_mux2 0x0 >,
 					         < &dpll_hp 0x1 0x0 0x1 0x2 0x1 0x12 0x1 0x0 >,
 					         < &mux_hf13 0x2 >,
-					         < &div_hf13 0x2 >;                             /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:632 */
-					clock-frequency = < 0xd693a40 >;                        /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:633 */
-					rank = < 0x0 >;                                         /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:634 */
-					phandle = < 0x41 >;                                     /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:580 */
+					         < &div_hf13 0x2 >;                             /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:655 */
+					clock-frequency = < 0xd693a40 >;                        /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:656 */
+					rank = < 0x0 >;                                         /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:657 */
+					phandle = < 0x42 >;                                     /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:583 */
 				};
 
-				/* node '/clocks/div-hf13/clk_output_hf13/clk-output-hf13-shared-state' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:636 */
+				/* node '/clocks/div-hf13/clk_output_hf13/clk-output-hf13-shared-state' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:659 */
 				clk_output_hf13_shared_state: clk-output-hf13-shared-state {
-					compatible = "clock-state";   /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:637 */
+					compatible = "clock-state";   /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:660 */
 					clocks = < &clk_pilo 0x1 >,
 					         < &path_mux3 0x4 >,
 					         < &mux_hf13 0x3 >,
-					         < &div_hf13 0x1 >;   /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:638 */
-					clock-frequency = < 0x8000 >; /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:639 */
-					rank = < 0x0 >;               /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:640 */
-					phandle = < 0x43 >;           /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:581 */
+					         < &div_hf13 0x1 >;   /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:661 */
+					clock-frequency = < 0x8000 >; /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:662 */
+					rank = < 0x0 >;               /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:663 */
+					phandle = < 0x44 >;           /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:584 */
 				};
 
-				/* node '/clocks/div-hf13/clk_output_hf13/clk-output-hf13-iho-state' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:642 */
+				/* node '/clocks/div-hf13/clk_output_hf13/clk-output-hf13-iho-state' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:665 */
 				clk_output_hf13_iho_state: clk-output-hf13-iho-state {
-					compatible = "clock-state";      /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:643 */
+					compatible = "clock-state";      /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:666 */
 					clocks = < &clk_iho 0x1 >,
 					         < &path_mux3 0x0 >,
 					         < &mux_hf13 0x3 >,
-					         < &div_hf13 0x1 >;      /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:644 */
-					clock-frequency = < 0x2faf080 >; /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:645 */
-					rank = < 0x0 >;                  /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:646 */
-					phandle = < 0x45 >;              /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:583 */
+					         < &div_hf13 0x1 >;      /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:667 */
+					clock-frequency = < 0x2faf080 >; /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:668 */
+					rank = < 0x0 >;                  /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:669 */
+					phandle = < 0x46 >;              /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:586 */
 				};
 			};
 		};
@@ -3063,34 +3095,51 @@
 	/* node '/dummy-clock-consumer-1' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:576 */
 	dummy_clock_consumer_1: dummy-clock-consumer-1 {
 		compatible = "infineon,clock-consumer";                                                                         /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:577 */
-		clock-outputs = < &clk_output_hf11 &clk_output_hf13 >;                                                          /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:578 */
+		instance = < 0x0 >;                                                                                             /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:578 */
+		allowable-frequencies-1 = < 0x7f28152 0x1ad27480 0x4000 >;                                                      /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:579 */
+		allowable-frequencies-2 = < 0xd693a40 0x2faf080 0x8000 >;                                                       /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:580 */
+		clock-outputs = < &clk_output_hf11 &clk_output_hf13 >;                                                          /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:581 */
 		clock-output-names = "clock_output_1_dummy_1",
-		                     "clock_output_2_dummy_1";                                                                  /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:579 */
-		clock-request-0 = < &clk_output_hf11_default_state &clk_output_hf13_default_state >;                            /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:580 */
-		clock-request-1 = < &clk_output_hf11_shared_state &clk_output_hf13_shared_state >;                              /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:581 */
-		clock-request-2 = < &clk_output_hf11_fast_state &clk_output_hf13_default_state >;                               /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:582 */
-		clock-request-3 = < &clk_output_hf13_iho_state >;                                                               /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:583 */
-		clock-request-4 = < &clk_output_hf11_default_state &clk_output_hf11_shared_state &clk_output_hf11_fast_state >; /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:584 */
+		                     "clock_output_2_dummy_1";                                                                  /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:582 */
+		clock-request-0 = < &clk_output_hf11_default_state &clk_output_hf13_default_state >;                            /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:583 */
+		clock-request-1 = < &clk_output_hf11_shared_state &clk_output_hf13_shared_state >;                              /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:584 */
+		clock-request-2 = < &clk_output_hf11_fast_state &clk_output_hf13_default_state >;                               /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:585 */
+		clock-request-3 = < &clk_output_hf13_iho_state >;                                                               /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:586 */
+		clock-request-4 = < &clk_output_hf11_default_state &clk_output_hf11_shared_state &clk_output_hf11_fast_state >; /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:587 */
 		clock-request-names = "default",
 		                      "shared",
 		                      "fast",
 		                      "iho",
-		                      "all";                                                                                    /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:585 */
+		                      "all";                                                                                    /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:588 */
 	};
 
-	/* node '/dummy-clock-consumer-2' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:588 */
+	/* node '/dummy-clock-consumer-2' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:592 */
 	dummy_clock_consumer_2: dummy-clock-consumer-2 {
-		compatible = "infineon,clock-consumer";                                          /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:589 */
-		clock-outputs = < &clk_output_hf11 >;                                            /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:590 */
-		clock-output-names = "clock_output_1_dummy_2";                                   /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:591 */
-		clock-request-0 = < &clk_output_hf11_default_state >;                            /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:592 */
-		clock-request-1 = < &clk_output_hf11_fast_state >;                               /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:593 */
-		clock-request-2 = < &clk_output_hf11_shared_state >;                             /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:594 */
-		clock-request-3 = < &clk_output_hf11_fast_state &clk_output_hf11_shared_state >; /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:595 */
-		clock-request-3-locking;                                                         /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:596 */
+		compatible = "infineon,clock-consumer";                                          /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:593 */
+		instance = < 0x1 >;                                                              /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:594 */
+		allowable-frequencies-1 = < 0x7f28152 0x1ad27480 0x4000 >;                       /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:595 */
+		clock-outputs = < &clk_output_hf11 >;                                            /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:596 */
+		clock-output-names = "clock_output_1_dummy_2";                                   /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:597 */
+		clock-request-0 = < &clk_output_hf11_default_state >;                            /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:598 */
+		clock-request-1 = < &clk_output_hf11_fast_state >;                               /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:599 */
+		clock-request-2 = < &clk_output_hf11_shared_state >;                             /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:600 */
+		clock-request-3 = < &clk_output_hf11_fast_state &clk_output_hf11_shared_state >; /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:601 */
+		clock-request-3-locking;                                                         /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:602 */
+		clock-request-4 = < &clk_output_hf11_failed_state >;                             /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:603 */
 		clock-request-names = "default",
 		                      "fast",
 		                      "shared",
-		                      "locking";                                                 /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:597 */
+		                      "locking",
+		                      "failed";                                                  /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:604 */
+	};
+
+	/* node '/dummy-clock-consumer-3' defined in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:607 */
+	dummy_clock_consumer_3: dummy-clock-consumer-3 {
+		compatible = "infineon,clock-consumer";               /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:608 */
+		instance = < 0x2 >;                                   /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:609 */
+		clock-outputs = < &clk_output_hf10 >;                 /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:610 */
+		clock-output-names = "uart_clk";                      /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:611 */
+		clock-request-0 = < &clk_output_hf10_default_state >; /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:612 */
+		clock-request-names = "default";                      /* in ../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime/boards/kit_pse84_ai_pse846gps2dbzc4a_m55.overlay:613 */
 	};
 };

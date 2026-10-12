@@ -6,9 +6,12 @@
 
 #define DUMMY_CONSUMER_1 DT_NODELABEL(dummy_clock_consumer_1)
 #define DUMMY_CONSUMER_2 DT_NODELABEL(dummy_clock_consumer_2)
+#define UART_CONSUMER DT_NODELABEL(dummy_clock_consumer_3)
 
 static const struct device *dummy_device_1 = DEVICE_DT_GET(DUMMY_CONSUMER_1);
 static const struct device *dummy_device_2 = DEVICE_DT_GET(DUMMY_CONSUMER_2);
+static const struct device *uart_device = DEVICE_DT_GET(UART_CONSUMER);
+
 static const struct clk *iho_producer = CLOCK_DT_GET(DT_NODELABEL(clk_iho));
 static const struct clk *pll_hp = CLOCK_DT_GET(DT_NODELABEL(dpll_hp));
 static const struct clk *pll_lp1 = CLOCK_DT_GET(DT_NODELABEL(dpll_lp1));
@@ -20,6 +23,10 @@ static const struct clk *p_mux1 = CLOCK_DT_GET(DT_NODELABEL(path_mux1));
 
 static const clock_request_t default_req_dummy_1 = CLOCK_MANAGEMENT_DT_GET_REQUEST(DUMMY_CONSUMER_1, default);
 static const clock_request_t default_req_dummy_2 = CLOCK_MANAGEMENT_DT_GET_REQUEST(DUMMY_CONSUMER_2, default);
+static const clock_request_t default_req_uart = CLOCK_MANAGEMENT_DT_GET_REQUEST(UART_CONSUMER, default);
+//static const clock_output_t uart_clock = CLOCK_MANAGEMENT_DT_GET_OUTPUT_BY_NAME(UART_CONSUMER, uart_clk);
+
+static const clock_request_t failed_req_dummy_2 = CLOCK_MANAGEMENT_DT_GET_REQUEST(DUMMY_CONSUMER_2, failed);
 
 static const clock_request_t fast_req_dummy_2 = CLOCK_MANAGEMENT_DT_GET_REQUEST(DUMMY_CONSUMER_2, fast);
 
@@ -36,18 +43,27 @@ static const clock_output_t dummy_2_clk_1 = CLOCK_MANAGEMENT_DT_GET_OUTPUT_BY_NA
 
 
 
+struct freq_group {
+	const uint32_t *freqs;
+	size_t len;
+};
 
 struct ifx_clock_consumer_config {
+	const uint32_t instance;
 	const struct clock_management_data *clk_mgmt;
+	const struct freq_group *freq_groups;
+	const size_t num_groups;
 };
 
 int main(void){
 	int ret = -1;
 	const struct ifx_clock_consumer_config *config_dummy_1 = dummy_device_1->config;
 	const struct ifx_clock_consumer_config *config_dummy_2 = dummy_device_2->config;
+	const struct ifx_clock_consumer_config *config_uart = uart_device->config;
 	uint8_t activeRequest_dummy_1;
 	uint8_t activeRequest_dummy_2;
-
+	ret = clock_management_request_state(config_uart->clk_mgmt, default_req_uart);
+	clock_freq_t rate_iho = iho_producer->subsys_data->rate;
 	/*LOCKING TEST
 	*/
 	/*
@@ -82,21 +98,25 @@ int main(void){
 	if (ret<0){
 		return 0;
 	}
+	
 	ret = clock_management_request_state(config_dummy_2->clk_mgmt,default_req_dummy_2);
 	if (ret<0){
 		return 0;
 	}
+	
 	ret = clock_management_on(config_dummy_1->clk_mgmt, dummy_1_clk_1);
 	ret = clock_management_on(config_dummy_1->clk_mgmt, dummy_1_clk_2);
+	
 	ret = clock_management_on(config_dummy_2->clk_mgmt, dummy_2_clk_1);
 
-	
+	ret = clock_management_request_state(config_dummy_2->clk_mgmt,failed_req_dummy_2);
+	/*
 	clock_freq_t freq = 100000000;
 	ret = clock_management_req_rate(config_dummy_1->clk_mgmt, dummy_1_clk_2, freq);
 	if (ret<0){
 		return 0;
 	}
-
+	*/
 
 /*SHARED_TEST
 

@@ -4,7 +4,7 @@
         "zephyr_version":"6eec41c6cb14",
         "toolchain":"zephyr/gnu",
         "commit_date":"2026-08-31T22:47:00+00:00",
-        "run_date":"2026-10-04T17:49:57+00:00",
+        "run_date":"2026-10-12T11:14:55+00:00",
         "options":{
             "help":null,
             "zephyr_base":null,
@@ -23,7 +23,7 @@
             ],
             "enable_coverage":true,
             "coverage":true,
-            "gcov_tool":"/usr/local/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcov",
+            "gcov_tool":"/usr/local/zephyr-sdk-1.0.1/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcov",
             "coverage_platform":[
                 "kit_pse84_ai/pse846gps2dbzc4a/m55"
             ]
@@ -35,14 +35,14 @@
             "arch":"arm",
             "platform":"kit_pse84_ai/pse846gps2dbzc4a/m55",
             "path":"../../../../workspaces/z_playground/apps/10_pse84_m33_clock_management/tests/integration_runtime",
-            "run_id":"523a84297b0d5483be2b7712cf1c59ca",
+            "run_id":"fa6725832d5b298ca179da4e0944ef43",
             "runnable":true,
             "retries":0,
             "toolchain":"zephyr/gnu",
             "dut":"None",
             "status":"passed",
-            "execution_time":"52.48",
-            "build_time":"53.62",
+            "execution_time":"53.95",
+            "build_time":"54.44",
             "testcases":[
                 {
                     "identifier":"dummy.testing.ztest.clk_runtime_tests.clock_default",
@@ -71,7 +71,7 @@
                 },
                 {
                     "identifier":"dummy.testing.ztest.clk_runtime_tests.locking_clocks",
-                    "execution_time":"0.00",
+                    "execution_time":"0.01",
                     "status":"passed"
                 }
             ]

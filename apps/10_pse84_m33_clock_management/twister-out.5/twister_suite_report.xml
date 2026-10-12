@@ -1,0 +1,441 @@
+<testsuites>
+	<testsuite name="dummy.testing.ztest" timestamp="2026-10-12T11:47:43.851958" time="13.08" tests="6" failures="6" errors="0" skipped="0">
+		<properties>
+			<property name="version" value="6eec41c6cb14" />
+			<property name="platform" value="kit_pse84_ai/pse846gps2dbzc4a/m55" />
+			<property name="architecture" value="arm" />
+		</properties>
+		<testcase classname="dummy.testing.ztest" name="dummy.testing.ztest.clk_runtime_tests.locking_clocks" time="0.01">
+			<failure type="failure" message="Testsuite failed">*** Booting Zephyr OS build 6eec41c6cb14 ***
+Running TESTSUITE clk_runtime_tests
+===================================================================
+START - test_clock_default
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_clock_default in 0.014 seconds
+===================================================================
+START - test_clock_gating
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_clock_gating in 0.014 seconds
+========================*** Booting Zephyr OS build 6eec41c6cb14 ***
+Running TESTSUITE clk_runtime_tests
+===================================================================
+START - test_clock_default
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_clock_default in 0.014 seconds
+===================================================================
+START - test_clock_gating
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_clock_gating in 0.014 seconds
+===================================================================
+START - test_locking_clocks
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_locking_clocks in 0.014 seconds
+===================================================================
+START - test_not_shared_state
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_not_shared_state in 0.014 seconds
+===================================================================
+START - test_request_rate
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_request_rate in 0.014 seconds
+===================================================================
+START - test_shared_producer
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_shared_producer in 0.014 seconds
+===================================================================
+TESTSUITE clk_runtime_tests failed.
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE FAIL -   0.00% [clk_runtime_tests]: pass = 0, fail = 6, skip = 0, total = 6 duration = 0.084 seconds
+ - FAIL - [clk_runtime_tests.test_clock_default] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_clock_gating] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_locking_clocks] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_not_shared_state] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_request_rate] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_shared_producer] duration = 0.014 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION FAILED
+</failure>
+		</testcase>
+		<testcase classname="dummy.testing.ztest" name="dummy.testing.ztest.clk_runtime_tests.clock_gating" time="0.01">
+			<failure type="failure" message="Testsuite failed">*** Booting Zephyr OS build 6eec41c6cb14 ***
+Running TESTSUITE clk_runtime_tests
+===================================================================
+START - test_clock_default
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_clock_default in 0.014 seconds
+===================================================================
+START - test_clock_gating
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_clock_gating in 0.014 seconds
+========================*** Booting Zephyr OS build 6eec41c6cb14 ***
+Running TESTSUITE clk_runtime_tests
+===================================================================
+START - test_clock_default
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_clock_default in 0.014 seconds
+===================================================================
+START - test_clock_gating
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_clock_gating in 0.014 seconds
+===================================================================
+START - test_locking_clocks
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_locking_clocks in 0.014 seconds
+===================================================================
+START - test_not_shared_state
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_not_shared_state in 0.014 seconds
+===================================================================
+START - test_request_rate
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_request_rate in 0.014 seconds
+===================================================================
+START - test_shared_producer
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_shared_producer in 0.014 seconds
+===================================================================
+TESTSUITE clk_runtime_tests failed.
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE FAIL -   0.00% [clk_runtime_tests]: pass = 0, fail = 6, skip = 0, total = 6 duration = 0.084 seconds
+ - FAIL - [clk_runtime_tests.test_clock_default] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_clock_gating] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_locking_clocks] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_not_shared_state] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_request_rate] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_shared_producer] duration = 0.014 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION FAILED
+</failure>
+		</testcase>
+		<testcase classname="dummy.testing.ztest" name="dummy.testing.ztest.clk_runtime_tests.request_rate" time="0.01">
+			<failure type="failure" message="Testsuite failed">*** Booting Zephyr OS build 6eec41c6cb14 ***
+Running TESTSUITE clk_runtime_tests
+===================================================================
+START - test_clock_default
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_clock_default in 0.014 seconds
+===================================================================
+START - test_clock_gating
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_clock_gating in 0.014 seconds
+========================*** Booting Zephyr OS build 6eec41c6cb14 ***
+Running TESTSUITE clk_runtime_tests
+===================================================================
+START - test_clock_default
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_clock_default in 0.014 seconds
+===================================================================
+START - test_clock_gating
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_clock_gating in 0.014 seconds
+===================================================================
+START - test_locking_clocks
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_locking_clocks in 0.014 seconds
+===================================================================
+START - test_not_shared_state
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_not_shared_state in 0.014 seconds
+===================================================================
+START - test_request_rate
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_request_rate in 0.014 seconds
+===================================================================
+START - test_shared_producer
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_shared_producer in 0.014 seconds
+===================================================================
+TESTSUITE clk_runtime_tests failed.
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE FAIL -   0.00% [clk_runtime_tests]: pass = 0, fail = 6, skip = 0, total = 6 duration = 0.084 seconds
+ - FAIL - [clk_runtime_tests.test_clock_default] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_clock_gating] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_locking_clocks] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_not_shared_state] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_request_rate] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_shared_producer] duration = 0.014 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION FAILED
+</failure>
+		</testcase>
+		<testcase classname="dummy.testing.ztest" name="dummy.testing.ztest.clk_runtime_tests.shared_producer" time="0.01">
+			<failure type="failure" message="Testsuite failed">*** Booting Zephyr OS build 6eec41c6cb14 ***
+Running TESTSUITE clk_runtime_tests
+===================================================================
+START - test_clock_default
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_clock_default in 0.014 seconds
+===================================================================
+START - test_clock_gating
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_clock_gating in 0.014 seconds
+========================*** Booting Zephyr OS build 6eec41c6cb14 ***
+Running TESTSUITE clk_runtime_tests
+===================================================================
+START - test_clock_default
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_clock_default in 0.014 seconds
+===================================================================
+START - test_clock_gating
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_clock_gating in 0.014 seconds
+===================================================================
+START - test_locking_clocks
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_locking_clocks in 0.014 seconds
+===================================================================
+START - test_not_shared_state
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_not_shared_state in 0.014 seconds
+===================================================================
+START - test_request_rate
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_request_rate in 0.014 seconds
+===================================================================
+START - test_shared_producer
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_shared_producer in 0.014 seconds
+===================================================================
+TESTSUITE clk_runtime_tests failed.
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE FAIL -   0.00% [clk_runtime_tests]: pass = 0, fail = 6, skip = 0, total = 6 duration = 0.084 seconds
+ - FAIL - [clk_runtime_tests.test_clock_default] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_clock_gating] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_locking_clocks] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_not_shared_state] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_request_rate] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_shared_producer] duration = 0.014 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION FAILED
+</failure>
+		</testcase>
+		<testcase classname="dummy.testing.ztest" name="dummy.testing.ztest.clk_runtime_tests.not_shared_state" time="0.01">
+			<failure type="failure" message="Testsuite failed">*** Booting Zephyr OS build 6eec41c6cb14 ***
+Running TESTSUITE clk_runtime_tests
+===================================================================
+START - test_clock_default
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_clock_default in 0.014 seconds
+===================================================================
+START - test_clock_gating
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_clock_gating in 0.014 seconds
+========================*** Booting Zephyr OS build 6eec41c6cb14 ***
+Running TESTSUITE clk_runtime_tests
+===================================================================
+START - test_clock_default
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_clock_default in 0.014 seconds
+===================================================================
+START - test_clock_gating
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_clock_gating in 0.014 seconds
+===================================================================
+START - test_locking_clocks
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_locking_clocks in 0.014 seconds
+===================================================================
+START - test_not_shared_state
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_not_shared_state in 0.014 seconds
+===================================================================
+START - test_request_rate
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_request_rate in 0.014 seconds
+===================================================================
+START - test_shared_producer
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_shared_producer in 0.014 seconds
+===================================================================
+TESTSUITE clk_runtime_tests failed.
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE FAIL -   0.00% [clk_runtime_tests]: pass = 0, fail = 6, skip = 0, total = 6 duration = 0.084 seconds
+ - FAIL - [clk_runtime_tests.test_clock_default] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_clock_gating] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_locking_clocks] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_not_shared_state] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_request_rate] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_shared_producer] duration = 0.014 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION FAILED
+</failure>
+		</testcase>
+		<testcase classname="dummy.testing.ztest" name="dummy.testing.ztest.clk_runtime_tests.clock_default" time="0.01">
+			<failure type="failure" message="Testsuite failed">*** Booting Zephyr OS build 6eec41c6cb14 ***
+Running TESTSUITE clk_runtime_tests
+===================================================================
+START - test_clock_default
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_clock_default in 0.014 seconds
+===================================================================
+START - test_clock_gating
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_clock_gating in 0.014 seconds
+========================*** Booting Zephyr OS build 6eec41c6cb14 ***
+Running TESTSUITE clk_runtime_tests
+===================================================================
+START - test_clock_default
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_clock_default in 0.014 seconds
+===================================================================
+START - test_clock_gating
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_clock_gating in 0.014 seconds
+===================================================================
+START - test_locking_clocks
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_locking_clocks in 0.014 seconds
+===================================================================
+START - test_not_shared_state
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_not_shared_state in 0.014 seconds
+===================================================================
+START - test_request_rate
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_request_rate in 0.014 seconds
+===================================================================
+START - test_shared_producer
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:109: prepare_clock_states: (ret not equal to 0)
+Failed to power on ouput1 from dummy_2, ret=50000000
+ FAIL - test_shared_producer in 0.014 seconds
+===================================================================
+TESTSUITE clk_runtime_tests failed.
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE FAIL -   0.00% [clk_runtime_tests]: pass = 0, fail = 6, skip = 0, total = 6 duration = 0.084 seconds
+ - FAIL - [clk_runtime_tests.test_clock_default] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_clock_gating] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_locking_clocks] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_not_shared_state] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_request_rate] duration = 0.014 seconds
+ - FAIL - [clk_runtime_tests.test_shared_producer] duration = 0.014 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION FAILED
+</failure>
+		</testcase>
+	</testsuite>
+</testsuites>

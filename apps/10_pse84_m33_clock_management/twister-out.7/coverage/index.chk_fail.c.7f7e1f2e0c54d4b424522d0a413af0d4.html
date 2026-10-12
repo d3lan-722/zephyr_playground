@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html class="theme-green">
+
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>lib/libc/picolibc/chk_fail.c - GCC Code Coverage Report</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="stylesheet" href="index.css"/>
+    <script src="index.js"></script>
+  </head>
+
+  <body>
+    <div class="Layout-main">
+      <div class="Layout-main-centered-lg" style="max-width: 1280px;">
+        <div class="d-flex flex-justify-center">
+          <h1>GCC Code Coverage Report</h1>
+        </div>
+        <hr class="block-separator"/>
+        <header>
+<div id="summary-index.chk_fail.c.7f7e1f2e0c54d4b424522d0a413af0d4.html" class="summary">
+  <div>
+    <table class="legend">
+      <tr>
+        <th scope="row">Directory:</th>
+        <td>./</td>
+      </tr>
+      <tr>
+        <th scope="row">Coverage:</th>
+        <td class="legend">
+          <span class="coverage-low">low: &ge; 0%</span>
+          <span class="coverage-medium">medium: &ge; 75.0%</span>
+          <span class="coverage-high">high: &ge; 90.0%</span>
+        </td>
+      </tr>
+    </table>
+  </div>
+  <div>
+    <table class="coverage">
+      <tr>
+        <th></th>
+        <th scope="col">Coverage</th>
+        <th scope="col">Exec / Excl / Total</th>
+      </tr>
+      <tr>
+        <th scope="row">Lines:</th>
+        <td class="coverage-unknown">-%</td>
+        <td class="coverage-unknown">0 / 0 / 0</td>
+      </tr>
+      <tr>
+        <th scope="row">Functions:</th>
+        <td class="coverage-unknown">-%</td>
+        <td class="coverage-unknown">0 / 0 / 0</td>
+      </tr>
+      <tr>
+        <th scope="row">Branches:</th>
+        <td class="coverage-unknown">-%</td>
+        <td class="coverage-unknown">0 / 0 / 0</td>
+      </tr>
+    </table>
+  </div>
+</div>
+        </header>
+        <hr/>
+        <nav>
+
+        </nav>
+        <main>
+<div class="Box m-3 file-source">
+  <div class="Box-header d-flex flex-space-between sticky">
+    lib/libc/picolibc/chk_fail.c
+    <div class="toggle-buttons">
+      <button type="button" class="button_toggle_coveredLine show_coveredLine" value="coveredLine" title="Toggle covered lines">0 covered</button>
+      <button type="button" class="button_toggle_uncoveredLine show_uncoveredLine" value="uncoveredLine" title="Toggle uncovered lines">0 uncovered</button>
+      <button type="button" class="button_toggle_partialCoveredLine show_partialCoveredLine" value="partialCoveredLine" title="Toggle partial covered lines">0 partial covered</button>
+      <button type="button" class="button_toggle_excludedLine show_excludedLine" value="excludedLine" title="Toggle excluded lines">0 excluded</button>
+    </div>
+    <div class="nav">
+      <a class="nav prev" href="index.cbprintf.c.62352fffae430675a121ad3c11ab249e.html"></a>
+      <a class="nav index" href="index.html"></a>
+      <a class="nav next" href="index.exit.c.fc141aece6a6849f6b839249cfee23ee.html"></a>
+    </div>
+  </div>
+  <div class="source-table-container">
+    <table class="text-mono text-small">
+      <tr>
+        <th align="right">Line</th>
+        <th align="right">Branch</th>
+        <th align="right">Exec</th>
+        <th align="left" style="width: 100%;">Source</th>
+      </tr>
+      <tr class="source-line">
+        <td class="lineno"><a id="l1" href="#l1">1</a></td>
+        <td class="linebranch">
+        </td>
+        <td class="linecount"></td>
+        <td class="src "><span class="cm">/*</span></td>
+      </tr>
+      <tr class="source-line">
+        <td class="lineno"><a id="l2" href="#l2">2</a></td>
+        <td class="linebranch">
+        </td>
+        <td class="linecount"></td>
+        <td class="src "><span class="cm"> * Copyright © 2021, Keith Packard &lt;keithp@keithp.com&gt;</span></td>
+      </tr>
+      <tr class="source-line">
+        <td class="lineno"><a id="l3" href="#l3">3</a></td>
+        <td class="linebranch">
+        </td>
+        <td class="linecount"></td>
+        <td class="src "><span class="cm"> *</span></td>
+      </tr>
+      <tr class="source-line">
+        <td class="lineno"><a id="l4" href="#l4">4</a></td>
+        <td class="linebranch">
+        </td>
+        <td class="linecount"></td>
+        <td class="src "><span class="cm"> * SPDX-License-Identifier: Apache-2.0</span></td>
+      </tr>
+      <tr class="source-line">
+        <td class="lineno"><a id="l5" href="#l5">5</a></td>
+        <td class="linebranch">
+        </td>
+        <td class="linecount"></td>
+        <td class="src "><span class="cm"> */</span></td>
+      </tr>
+      <tr class="source-line">
+        <td class="lineno"><a id="l6" href="#l6">6</a></td>
+        <td class="linebranch">
+        </td>
+        <td class="linecount"></td>
+        <td class="src "></td>
+      </tr>
+      <tr class="source-line">
+        <td class="lineno"><a id="l7" href="#l7">7</a></td>
+        <td class="linebranch">
+        </td>
+        <td class="linecount"></td>
+        <td class="src "><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;picolibc-hooks.h&quot;</span></td>
+      </tr>
+      <tr class="source-line">
+        <td class="lineno"><a id="l8" href="#l8">8</a></td>
+        <td class="linebranch">
+        </td>
+        <td class="linecount"></td>
+        <td class="src "></td>
+      </tr>
+      <tr class="source-line">
+        <td class="lineno"><a id="l9" href="#l9">9</a></td>
+        <td class="linebranch">
+        </td>
+        <td class="linecount"></td>
+        <td class="src "><span class="cm">/* This function gets called if static buffer overflow detection is enabled on</span></td>
+      </tr>
+      <tr class="source-line">
+        <td class="lineno"><a id="l10" href="#l10">10</a></td>
+        <td class="linebranch">
+        </td>
+        <td class="linecount"></td>
+        <td class="src "><span class="cm"> * stdlib side (Picolibc here), in case such an overflow is detected. Picolibc</span></td>
+      </tr>
+      <tr class="source-line">
+        <td class="lineno"><a id="l11" href="#l11">11</a></td>
+        <td class="linebranch">
+        </td>
+        <td class="linecount"></td>
+        <td class="src "><span class="cm"> * provides an implementation not suitable for us, so we override it here.</span></td>
+      </tr>
+      <tr class="source-line">
+        <td class="lineno"><a id="l12" href="#l12">12</a></td>
+        <td class="linebranch">
+        </td>
+        <td class="linecount"></td>
+        <td class="src "><span class="cm"> */</span></td>
+      </tr>
+      <tr class="source-line">
+        <td class="lineno"><a id="l13" href="#l13">13</a></td>
+        <td class="linebranch">
+        </td>
+        <td class="linecount"></td>
+        <td class="src "><span class="n">__weak</span><span class="w"> </span><span class="n">FUNC_NORETURN</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">__chk_fail</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span></td>
+      </tr>
+      <tr class="source-line">
+        <td class="lineno"><a id="l14" href="#l14">14</a></td>
+        <td class="linebranch">
+        </td>
+        <td class="linecount"></td>
+        <td class="src "><span class="p">{</span></td>
+      </tr>
+      <tr class="source-line">
+        <td class="lineno"><a id="l15" href="#l15">15</a></td>
+        <td class="linebranch">
+        </td>
+        <td class="linecount"></td>
+        <td class="src "><span class="w">	</span><span class="n">printk</span><span class="p">(</span><span class="s">&quot;* buffer overflow detected *</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span></td>
+      </tr>
+      <tr class="source-line">
+        <td class="lineno"><a id="l16" href="#l16">16</a></td>
+        <td class="linebranch">
+        </td>
+        <td class="linecount"></td>
+        <td class="src "><span class="w">	</span><span class="n">z_except_reason</span><span class="p">(</span><span class="n">K_ERR_STACK_CHK_FAIL</span><span class="p">);</span></td>
+      </tr>
+      <tr class="source-line">
+        <td class="lineno"><a id="l17" href="#l17">17</a></td>
+        <td class="linebranch">
+        </td>
+        <td class="linecount"></td>
+        <td class="src "><span class="w">	</span><span class="n">CODE_UNREACHABLE</span><span class="p">;</span></td>
+      </tr>
+      <tr class="source-line">
+        <td class="lineno"><a id="l18" href="#l18">18</a></td>
+        <td class="linebranch">
+        </td>
+        <td class="linecount"></td>
+        <td class="src "><span class="p">}</span></td>
+      </tr>
+      <tr class="source-line">
+        <td class="lineno"><a id="l19" href="#l19">19</a></td>
+        <td class="linebranch">
+        </td>
+        <td class="linecount"></td>
+        <td class="src "></td>
+      </tr>
+    </table>
+  </div>
+</div>
+        </main>
+        <hr class="block-separator"/>
+        <footer class="text-center">
+          Created using <a href="http://gcovr.com/en/8.6">GCOVR (Version 8.6)</a>
+          at 2026-10-12 11:52:59
+        </footer>
+      </div>
+    </div>
+  </body>
+
+</html>

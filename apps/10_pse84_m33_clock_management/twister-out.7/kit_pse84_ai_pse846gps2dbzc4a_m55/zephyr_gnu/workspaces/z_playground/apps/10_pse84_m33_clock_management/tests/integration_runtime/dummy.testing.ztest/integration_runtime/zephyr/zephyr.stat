@@ -1,0 +1,99 @@
+ELF Header:
+  Magic:   7f 45 4c 46 01 01 01 00 00 00 00 00 00 00 00 00 
+  Class:                             ELF32
+  Data:                              2's complement, little endian
+  Version:                           1 (current)
+  OS/ABI:                            UNIX - System V
+  ABI Version:                       0
+  Type:                              EXEC (Executable file)
+  Machine:                           ARM
+  Version:                           0x1
+  Entry point address:               0x6059976d
+  Start of program headers:          52 (bytes into file)
+  Start of section headers:          2063432 (bytes into file)
+  Flags:                             0x5000400, Version5 EABI, hard-float ABI
+  Size of this header:               52 (bytes)
+  Size of program headers:           32 (bytes)
+  Number of program headers:         12
+  Size of section headers:           40 (bytes)
+  Number of section headers:         41
+  Section header string table index: 40
+
+Section Headers:
+  [Nr] Name              Type            Addr     Off    Size   ES Flg Lk Inf Al
+  [ 0]                   NULL            00000000 000000 000000 00      0   0  0
+  [ 1] rom_start         PROGBITS        60580000 0001b4 0002f8 00  AX  0   0  4
+  [ 2] .itcm_text_reloc  PROGBITS        00000000 0004b0 0082e8 00  AX  0   0  8
+  [ 3] .itcm_data_reloc  PROGBITS        000082e8 008798 000a78 00  WA  0   0  4
+  [ 4] .itcm_bss_reloc   NOBITS          00008d60 009210 0019a4 00  WA  0   0  8
+  [ 5] text              PROGBITS        60589058 009210 04b6f0 00  AX  0   0  8
+  [ 6] .ARM.exidx        ARM_EXIDX       605d4748 054900 000008 00  AL  5   0  4
+  [ 7] initlevel         PROGBITS        605d4750 054908 0000f0 00   A  0   0  4
+  [ 8] device_area       PROGBITS        605d4840 0549f8 0002bc 00   A  0   0  4
+  [ 9] device_api_area   PROGBITS        605d4afc 054cb4 00005c 00   A  0   0  4
+  [10] ztest             PROGBITS        605d4b58 054d10 00009c 00  WA  0   0  4
+  [11] init_array        INIT_ARRAY      605d4bf4 054dac 000214 04  WA  0   0  4
+  [12] clock_nodes       PROGBITS        605d4e08 054fc0 0001ec 00   A  0   0  4
+  [13] tbss              NOBITS          605d4ff4 0551ac 000004 00 WAT  0   0  4
+  [14] rodata            PROGBITS        605d4ff8 0551b0 011030 00   A  0   0  8
+  [15] nocache           NOBITS          26100000 0001b8 001500 00  WA  0   0  8
+  [16] nocache_load      PROGBITS        26101500 076ec8 000000 00   W  0   0  1
+  [17] .ramfunc          PROGBITS        26101500 076ec8 000000 00   W  0   0  1
+  [18] _GCOV_BSS_SE[...] NOBITS          26101500 0001b8 0187c0 00  WA  0   0  8
+  [19] datas             PROGBITS        26119cc0 0661e0 00f7ac 00  WA  0   0  8
+  [20] sw_isr_table      PROGBITS        2612946c 07598c 000570 00  WA  0   0  4
+  [21] device_states     PROGBITS        261299dc 075efc 000034 00  WA  0   0  1
+  [22] k_heap_area       PROGBITS        26129a10 075f30 000018 00  WA  0   0  4
+  [23] .itcm             PROGBITS        0000a704 075f48 000f7c 00  AX  0   0  4
+  [24] .cy_sharedmem     NOBITS          240ff000 0001c0 00000c 00  WA  0   0 32
+  [25] .comment          PROGBITS        00000000 076ec8 00001f 01  MS  0   0  1
+  [26] .debug_aranges    PROGBITS        00000000 076ee8 005570 00      0   0  8
+  [27] .debug_info       PROGBITS        00000000 07c458 078f4f 00      0   0  1
+  [28] .debug_abbrev     PROGBITS        00000000 0f53a7 01427e 00      0   0  1
+  [29] .debug_line       PROGBITS        00000000 109625 0428bf 00      0   0  1
+  [30] .debug_frame      PROGBITS        00000000 14bee4 019960 00      0   0  4
+  [31] .debug_str        PROGBITS        00000000 165844 02ee43 01  MS  0   0  1
+  [32] .debug_line_str   PROGBITS        00000000 194687 000210 01  MS  0   0  1
+  [33] .debug_rnglists   PROGBITS        00000000 194897 0040af 00      0   0  1
+  [34] .ARM.attributes   ARM_ATTRIBUTES  00000000 198946 000042 00      0   0  1
+  [35] .last_section     PROGBITS        605f6d0c 076ec4 000004 00  WA  0   0  4
+  [36] bss               NOBITS          26129a28 0001b8 00091f 00  WA  0   0  8
+  [37] noinit            NOBITS          2612a348 0001b8 0042c8 00  WA  0   0  8
+  [38] .symtab           SYMTAB          00000000 198988 03b600 10     39 13649  4
+  [39] .strtab           STRTAB          00000000 1d3f88 023af9 00      0   0  1
+  [40] .shstrtab         STRTAB          00000000 1f7a81 0001c7 00      0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), O (extra OS processing required), G (group), T (TLS),
+  C (compressed), x (unknown), o (OS specific), E (exclude),
+  D (mbind), y (purecode), p (processor specific)
+
+Program Headers:
+  Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
+  ARM_EXIDX      0x054900 0x605d4748 0x605d4748 0x00008 0x00008 R   0x4
+  LOAD           0x000000 0x240ff000 0x240ff000 0x00000 0x0000c RW  0x20
+  LOAD           0x000000 0x26100000 0x26100000 0x00000 0x19cc0 RW  0x8
+  LOAD           0x000000 0x26129a28 0x26129a28 0x00000 0x04be8 RW  0x8
+  LOAD           0x0001b4 0x60580000 0x60580000 0x002f8 0x002f8 R E 0x4
+  LOAD           0x0004b0 0x00000000 0x605802f8 0x08d60 0x0a704 RWE 0x8
+  LOAD           0x009210 0x60589058 0x60589058 0x5cfd0 0x5cfd0 RWE 0x8
+  LOAD           0x0661e0 0x26119cc0 0x605e6028 0x0fd68 0x0fd68 RW  0x8
+  LOAD           0x075f48 0x0000a704 0x605f5d90 0x00f7c 0x00f7c R E 0x4
+  LOAD           0x076ec4 0x605f6d0c 0x605f6d0c 0x00004 0x00004 RW  0x4
+  TLS            0x0551ac 0x605d4ff4 0x605d4ff4 0x00000 0x00004 R   0x4
+  GNU_STACK      0x000000 0x00000000 0x00000000 0x00000 0x00000 RW  0x10
+
+ Section to Segment mapping:
+  Segment Sections...
+   00     .ARM.exidx 
+   01     .cy_sharedmem 
+   02     nocache _GCOV_BSS_SECTION_NAME 
+   03     bss noinit 
+   04     rom_start 
+   05     .itcm_text_reloc .itcm_data_reloc .itcm_bss_reloc 
+   06     text .ARM.exidx initlevel device_area device_api_area ztest init_array clock_nodes rodata 
+   07     datas sw_isr_table device_states k_heap_area 
+   08     .itcm 
+   09     .last_section 
+   10     tbss 
+   11     

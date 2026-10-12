@@ -54,7 +54,7 @@
       <tr>
         <th scope="row">Branches:</th>
         <td class="coverage-low">53.7%</td>
-        <td class="coverage-low">29 / 6 / 60</td>
+        <td class="coverage-low">29 / 2 / 56</td>
       </tr>
     </table>
   </div>
@@ -78,7 +78,7 @@
     <div role="gridcell" class="color-fg-muted flex-auto min-width-0 d-flex flex-justify-end flex-wrap flex-items-baseline" data-sort="2">called 2 times</div>
     <div role="gridcell" class="color-fg-muted d-flex flex-justify-end flex-wrap col-2">60.0%</div>
     <div role="gridcell" class="color-fg-muted d-flex flex-justify-end flex-wrap col-2">50.0%</div>
-    <div role="gridcell" class="color-fg-muted d-flex flex-justify-end flex-wrap col-2">37.5%</div>
+    <div role="gridcell" class="color-fg-muted d-flex flex-justify-end flex-wrap col-2">60.0%</div>
   </div>
   <div class="Box-row Box-row--focus-gray py-2 d-flex">
     <div role="gridcell" class="color-fg-muted flex-auto min-width-0 col-md-2"><a href="#l157">convert_uart_parity_z_to_cy (drivers/serial/uart_infineon_pdl.c:157)</a>    </div>
@@ -92,7 +92,7 @@
     <div role="gridcell" class="color-fg-muted flex-auto min-width-0 d-flex flex-justify-end flex-wrap flex-items-baseline" data-sort="2">called 2 times</div>
     <div role="gridcell" class="color-fg-muted d-flex flex-justify-end flex-wrap col-2">60.0%</div>
     <div role="gridcell" class="color-fg-muted d-flex flex-justify-end flex-wrap col-2">50.0%</div>
-    <div role="gridcell" class="color-fg-muted d-flex flex-justify-end flex-wrap col-2">37.5%</div>
+    <div role="gridcell" class="color-fg-muted d-flex flex-justify-end flex-wrap col-2">60.0%</div>
   </div>
   <div class="Box-row Box-row--focus-gray py-2 d-flex">
     <div role="gridcell" class="color-fg-muted flex-auto min-width-0 col-md-2"><a href="#l386">ifx_cat1_uart_config_get (drivers/serial/uart_infineon_pdl.c:386)</a>    </div>
@@ -166,7 +166,7 @@
   </div>
   <div class="Box-row Box-row--focus-gray py-2 d-flex">
     <div role="gridcell" class="color-fg-muted flex-auto min-width-0 col-md-2"><a href="#l323">ifx_cat1_uart_poll_out (drivers/serial/uart_infineon_pdl.c:323)</a>    </div>
-    <div role="gridcell" class="color-fg-muted flex-auto min-width-0 d-flex flex-justify-end flex-wrap flex-items-baseline" data-sort="222988">called 222988 times</div>
+    <div role="gridcell" class="color-fg-muted flex-auto min-width-0 d-flex flex-justify-end flex-wrap flex-items-baseline" data-sort="221702">called 221702 times</div>
     <div role="gridcell" class="color-fg-muted d-flex flex-justify-end flex-wrap col-2">100.0%</div>
     <div role="gridcell" class="color-fg-muted d-flex flex-justify-end flex-wrap col-2">100.0%</div>
     <div role="gridcell" class="color-fg-muted d-flex flex-justify-end flex-wrap col-2">100.0%</div>
@@ -2564,7 +2564,7 @@
         <td class="lineno"><a id="l323" href="#l323">323</a></td>
         <td class="linebranch">
         </td>
-        <td class="linecount coveredLine show_coveredLine">222988</td>
+        <td class="linecount coveredLine show_coveredLine">221702</td>
         <td class="src  coveredLine show_coveredLine"><span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">ifx_cat1_uart_poll_out</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">device</span><span class="w"> </span><span class="o">*</span><span class="n">dev</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">c</span><span class="p">)</span></td>
       </tr>
       <tr class="source-line">
@@ -2578,7 +2578,7 @@
         <td class="lineno"><a id="l325" href="#l325">325</a></td>
         <td class="linebranch">
         </td>
-        <td class="linecount coveredLine show_coveredLine">222988</td>
+        <td class="linecount coveredLine show_coveredLine">221702</td>
         <td class="src  coveredLine show_coveredLine"><span class="w">	</span><span class="k">const</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">ifx_cat1_uart_config</span><span class="w"> </span><span class="o">*</span><span class="k">const</span><span class="w"> </span><span class="n">config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dev</span><span class="o">-&gt;</span><span class="n">config</span><span class="p">;</span></td>
       </tr>
       <tr class="source-line">
@@ -2594,12 +2594,12 @@
           <details class="linebranchDetails">
             <summary class="linebranchSummary">2/2</summary>
             <div class="linebranchContents">
-              <div class="takenBranch">&check; Branch 4 &rightarrow; 5 taken 31658203 times.</div>
-              <div class="takenBranch">&check; Branch 4 &rightarrow; 6 taken 220730 times.</div>
+              <div class="takenBranch">&check; Branch 4 &rightarrow; 5 taken 30924319 times.</div>
+              <div class="takenBranch">&check; Branch 4 &rightarrow; 6 taken 219476 times.</div>
             </div>
           </details>
         </td>
-        <td class="linecount coveredLine show_coveredLine">31881191</td>
+        <td class="linecount coveredLine show_coveredLine">31146021</td>
         <td class="src  coveredLine show_coveredLine"><span class="w">	</span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">Cy_SCB_UART_Put</span><span class="p">(</span><span class="n">config</span><span class="o">-&gt;</span><span class="n">reg_addr</span><span class="p">,</span><span class="w"> </span><span class="n">c</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span></td>
       </tr>
       <tr class="source-line">
@@ -2620,7 +2620,7 @@
         <td class="lineno"><a id="l330" href="#l330">330</a></td>
         <td class="linebranch">
         </td>
-        <td class="linecount coveredLine show_coveredLine">220730</td>
+        <td class="linecount coveredLine show_coveredLine">219476</td>
         <td class="src  coveredLine show_coveredLine"><span class="p">}</span></td>
       </tr>
       <tr class="source-line">
@@ -11053,7 +11053,7 @@
         <hr class="block-separator"/>
         <footer class="text-center">
           Created using <a href="http://gcovr.com/en/8.6">GCOVR (Version 8.6)</a>
-          at 2026-10-04 17:51:51
+          at 2026-10-12 11:16:52
         </footer>
       </div>
     </div>

@@ -5673,6 +5673,9 @@ uart4: &scb4 {
 /{
  dummy_clock_consumer_1: dummy-clock-consumer-1{
   compatible = "infineon,clock-consumer";
+  instance = <0>;
+  allowable-frequencies-1 = <133333330 450000000 16384>;
+  allowable-frequencies-2 = <225000000 50000000 32768>;
   clock-outputs = <&clk_output_hf11 &clk_output_hf13>;
   clock-output-names = "clock_output_1_dummy_1", "clock_output_2_dummy_1";
   clock-request-0 = <&clk_output_hf11_default_state &clk_output_hf13_default_state>;
@@ -5681,10 +5684,13 @@ uart4: &scb4 {
   clock-request-3 = <&clk_output_hf13_iho_state>;
   clock-request-4 = <&clk_output_hf11_default_state &clk_output_hf11_shared_state &clk_output_hf11_fast_state>;
   clock-request-names = "default", "shared", "fast", "iho", "all";
+
  };
 
  dummy_clock_consumer_2: dummy-clock-consumer-2{
   compatible = "infineon,clock-consumer";
+  instance = <1>;
+  allowable-frequencies-1 = <133333330 450000000 16384>;
   clock-outputs = <&clk_output_hf11>;
   clock-output-names = "clock_output_1_dummy_2";
   clock-request-0 = <&clk_output_hf11_default_state>;
@@ -5692,7 +5698,17 @@ uart4: &scb4 {
   clock-request-2 = <&clk_output_hf11_shared_state>;
   clock-request-3 = <&clk_output_hf11_fast_state &clk_output_hf11_shared_state>;
   clock-request-3-locking;
-  clock-request-names = "default", "fast", "shared", "locking";
+  clock-request-4 = <&clk_output_hf11_failed_state>;
+  clock-request-names = "default", "fast", "shared", "locking", "failed";
+ };
+
+ dummy_clock_consumer_3: dummy-clock-consumer-3{
+  compatible = "infineon,clock-consumer";
+  instance = <2>;
+  clock-outputs = <&clk_output_hf10>;
+  clock-output-names = "uart_clk";
+  clock-request-0 = <&clk_output_hf10_default_state>;
+  clock-request-names = "default";
  };
 };
 
@@ -5715,6 +5731,13 @@ uart4: &scb4 {
   clk_output_hf11_shared_state: clk-output-hf11-shared-state {
    compatible = "clock-state";
    clocks = <&clk_pilo 1>, <&path_mux3 4>, <&mux_hf11 3>, <&div_hf11 2>;
+   clock-frequency = <16384>;
+   rank = < 1 >;
+  };
+
+  clk_output_hf11_failed_state: clk-output-hf11-failed-state {
+   compatible = "clock-state";
+   clocks = <&clk_pilo 1>, <&div_hf11 2>, <&path_mux3 7>, <&mux_hf11 8>;
    clock-frequency = <16384>;
    rank = < 1 >;
   };
@@ -5741,6 +5764,19 @@ uart4: &scb4 {
    compatible = "clock-state";
    clocks = <&clk_iho 1>, <&path_mux3 0>, <&mux_hf13 3>, <&div_hf13 1>;
    clock-frequency = <50000000>;
+   rank = < 0 >;
+  };
+ };
+};
+
+&div_hf10{
+ clk_output_hf10: clk_output_hf10 {
+  #clock-cells = <0>;
+  compatible = "clock-output";
+  clk_output_hf10_default_state: clk-output-hf10-default-state {
+   compatible = "clock-state";
+   clocks = <&clk_iho 1>, <&path_mux0 0>, <&mux_hf10 0 >, <&div_hf10 2>;
+   clock-frequency = <225000000>;
    rank = < 0 >;
   };
  };

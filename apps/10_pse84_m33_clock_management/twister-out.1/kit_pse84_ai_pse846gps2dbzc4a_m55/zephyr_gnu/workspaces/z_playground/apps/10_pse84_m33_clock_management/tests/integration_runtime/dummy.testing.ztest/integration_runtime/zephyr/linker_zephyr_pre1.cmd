@@ -883,7 +883,7 @@ ztest :
   *(SORT(.clk_node_leaf*))
   _clk_leaf_list_end = .;
   _clk_list_end = .;
-  _clk_output_21_list_start = .; *(SORT(.clock_output_21*)) _clk_output_21_list_end = .; _clk_output_27_list_start = .; *(SORT(.clock_output_27*)) _clk_output_27_list_end = .;
+  _clk_output_36_list_start = .; *(SORT(.clock_output_36*)) _clk_output_36_list_end = .; _clk_output_21_list_start = .; *(SORT(.clock_output_21*)) _clk_output_21_list_end = .; _clk_output_27_list_start = .; *(SORT(.clock_output_27*)) _clk_output_27_list_end = .;
  } > FLASH
  tdata : ALIGN_WITH_INPUT
  {
