@@ -106,8 +106,9 @@ void prepare_clock_states(void *unused)
 	
 }
 
-/* Decrement the count usage of producers used by both clock outputs. Then it gates off every
- *  producer which is not being used.
+/* 
+ * Decrement the usage count of the producers shared by both clock outputs. Gate off any producer
+ * whose usage count has dropped to zero.
  */
 
 void reset_clock_states(void *unused)
@@ -127,65 +128,73 @@ void reset_clock_states(void *unused)
 
 
 /*
- * Test case. Verifies a specific and well defined functionality;
- * by default all test cases shall be start with test_
- * Checks the rates of the clock outputs after prepare_clock_states(). Then it cheks what happens
- * when a not supported (by the hardware) state is requested.
-*/
+ * Test case: Verifies specific clock management functionality.
+ * By convention, all test cases must start with 'test_'.
+ *
+ * This test checks the rates of clock outputs after prepare_clock_states().
+ * It then verifies the behavior when an unsupported state (by hardware) is requested.
+ */
 
 ZTEST(clk_runtime_tests, test_clock_default)
 {
 	const struct ifx_clock_consumer_config *config_dummy_1 = dummy_device_1->config;
 	const struct ifx_clock_consumer_config *config_dummy_2 = dummy_device_2->config;
 	int ret, ret_1, ret_2;
+	
 	/*
-	 * Getting rate for both clock outputs. Active state: Default
-	 */
-	ret_1 = clock_management_get_rate(config_dummy_1->clk_mgmt,dummy_1_clk_1);
+     	 * Get rates for both clock outputs. Active state: Default.
+     	 */
+	
+	 ret_1 = clock_management_get_rate(config_dummy_1->clk_mgmt,dummy_1_clk_1);
 	zassert_equal(ret_1, output_1_default_freq, "Rate dummy_1_clk_1 dont match, ret=%d", ret_1);
 
 	ret = clock_management_get_rate(config_dummy_1->clk_mgmt,dummy_1_clk_2);
 	zassert_equal(ret, output_2_default_freq, "Rate dummy_1_clk_2 dont match, ret=%d", ret);
 
-	/* 
-	 * dummy_1_clk_1 and dummy_2_clk_1 are the same shared clock output. Its rate must be the same.
-	 */
-	ret_2 = clock_management_get_rate(config_dummy_2->clk_mgmt,dummy_2_clk_1);
+	/*
+     	 * dummy_1_clk_1 and dummy_2_clk_1 map to the same shared clock output.
+     	 * Their rates must be identical.
+     	 */
+	
+	 ret_2 = clock_management_get_rate(config_dummy_2->clk_mgmt,dummy_2_clk_1);
 	zassert_equal(ret_2, output_1_default_freq, "Rate dummy_2_clk_1 dont match, ret=%d", ret_2);
 	zassert_equal(ret_1, ret_2, "Rate dummy_2_clk_1 and dummy_1_clk_1 dont match, ret_1=%d, ret_2=%d", ret_1, ret_2);
 
 	/*
-	 * Clock outputs are 0 biased in each consumers they belong to.  
-	 * Dummy_device_1 has two clock outputs:
-	 * 	-dummy_1_clk_1 is clock output number 0
-	 * 	-dummy_1_clk_2 is clock output number 1
-	 * If we ask for a clock output above it, we will have an error.
-	 */
-	ret = clock_management_get_rate(config_dummy_1->clk_mgmt,2);
+    	 * Clock outputs are 0-based within each consumer.
+     	 * dummy_device_1 has two clock outputs:
+     	 *   - dummy_1_clk_1 is index 0
+     	 *   - dummy_1_clk_2 is index 1
+     	 * Requesting an index out of range should return an error.
+     	 */
+	
+	 ret = clock_management_get_rate(config_dummy_1->clk_mgmt,2);
 	zassert_not_equal(ret, 0, "Test, ret=%d", ret);
 
 	ret = clock_management_off(config_dummy_1->clk_mgmt, dummy_1_clk_2);
 	zassert_equal(ret, 0, "Test, ret=%d", ret);
+	
 	/*
-	 *  dummy_device_1 changes its request in order to free clock output 1. And try the failed state. Otherwise, if the 
-	 *  failed state is requested before doing this, the requested wont happen because there would be two active requests
-	 *  on the same clock output with different states. The voting system wouldnt select the new requested state. 
-	 */
+    	 * dummy_device_1 updates its request to free clock output 1.
+     	 * This ensures the voting system can accept the upcoming unsupported state request
+     	 * from dummy_device_2 without conflict.
+     	 */
+	
 	ret = clock_management_request_state(config_dummy_1->clk_mgmt,iho_req_dummy_1);
 	zassert_equal(ret, 0, "Test, ret=%d", ret);
-
-	/*
-	 * Update the counters usage
-	 */
+	
 	ret = clock_management_on(config_dummy_1->clk_mgmt, dummy_1_clk_2);
 	zassert_equal(ret, 0, "Failed to power on ouput1 from dummy_2, ret=%d", ret);
 
 	ret = clock_management_off(config_dummy_2->clk_mgmt, dummy_1_clk_1);
 	zassert_equal(ret, 0, "Test, ret=%d", ret);
+	
 	/*
-	 * dummy_device_2 requests the failed state. This state tries to select an inexistent input source in the path_mux3
-	 * producer. Return value unsecuseful
-	 */
+     	 * dummy_device_2 requests a failed state.
+     	 * This state attempts to select a non-existent input source in 'path_mux3'.
+     	 * The return value should indicate failure.
+     	 */
+
 	ret = clock_management_request_state(config_dummy_2->clk_mgmt,failed_req_dummy_2);
 	zassert_not_equal(ret, 0, "Test, ret=%d", ret);
 
@@ -193,21 +202,29 @@ ZTEST(clk_runtime_tests, test_clock_default)
 	zassert_equal(ret, 0, "Failed to power on ouput1 from dummy_2, ret=%d", ret);
 
 	/*
-	 * When new request happens, the subsystem takes every producer within the clocks property of the state. 
-	   It configures each producer sequentially. For example in the failed state
-	   clocks = <&clk_pilo 1>, <&div_hf11 2>, <&path_mux3 7>, <&mux_hf11 8>;
-
-	   Root pilo is configured first (enabled). Then the final divider is reconfigured, then the error happens. 
-	   It configured a portion of the clock path, but not totally. The resultant frequency is neither the requested or the before.
-	 */
+     	 * When a new request is processed, the subsystem configures all producers
+     	 * in the state's clock property sequentially.
+     	 *
+     	 * Example: For the failed state:
+     	 *   clocks = <&clk_pilo 1>, <&div_hf11 2>, <&path_mux3 7>, <&mux_hf11 8>;
+     	 *
+     	 * Sequence:
+     	 * 1. Root 'pilo' is enabled.
+     	 * 2. Final divider is reconfigured.
+     	 * 3. Error occurs when configuring 'path_mux3' (invalid input).
+     	 *
+     	 * Result: Only a portion of the clock path is configured.
+     	 * The resultant frequency is neither the requested value nor the previous one.
+     	 */
 	ret = clock_management_get_rate(config_dummy_2->clk_mgmt,dummy_2_clk_1);
 	zassert_not_equal(ret, 0, "Test, ret=%d", ret);
 
-/*
- * Evaluates what happens when a shared clock output does not have a shared state request. 
- */
-
 }
+
+/*
+ * Tests how a shared clock output behaves when its consumers have no state
+ * request in common.
+ */
 
 ZTEST(clk_runtime_tests, test_not_shared_state)
 {
@@ -251,12 +268,31 @@ ZTEST(clk_runtime_tests, test_not_shared_state)
 	zassert_equal(ret, output_1_default_freq, "clk_output_hf11 rate != default, ret=%d", ret);
 
 	/*
-	 * Both dummies request the fast state. So the clk_output_hf11 moves to it.
-	 */
+ 	 * Both dummy consumers request the fast state, so the shared clk_output_hf11
+ 	 * switches to that state.
+ 	 */
 	ret = clock_management_request_state(config_dummy_1->clk_mgmt,fast_req_dummy_1);
 	ret = clock_management_get_rate(config_dummy_2->clk_mgmt, dummy_2_clk_1);
 	zassert_equal(ret, output_1_fast_freq, "clk_output_hf11 rate != fast, ret=%d", ret);
 }
+
+/*
+ * Verifies the behavior of a shared producer when one consumer
+ * moves its clock output to a state that requires a different producer
+ * configuration.
+ *
+ * Scenario:
+ * 1. Both dummy devices request the shared state. This state uses
+ *    <&clk_pilo 1> and <&path_mux3 4> as shared producers with the same
+ *    configuration.
+ * 2. dummy_device_1 requests the iho state on clk_output_hf13, which forces
+ *    the shared path_mux3 multiplexer to switch from input 4 to input 0.
+ *    This changes the rate of clk_output_hf11 as a side effect, even though
+ *    it remains in the shared state. Since both requests target independent
+ *    clock outputs, no conflict is generated and the reconfiguration is
+ *    applied. The affected consumer (dummy_device_2) must handle this
+ *    situation through its CLOCK_MANAGEMENT_QUERY_RATE_CHANGE callback.
+ */
 
 ZTEST(clk_runtime_tests, test_shared_producer){
 	const struct ifx_clock_consumer_config *config_dummy_1 = dummy_device_1->config;
@@ -304,23 +340,65 @@ ZTEST(clk_runtime_tests, test_shared_producer){
 	ret = clock_management_get_rate(config_dummy_1->clk_mgmt, dummy_1_clk_2);
 	zassert_equal(ret, output_2_iho_freq, "clk_output_hf13 rate != shared, ret=%d", ret);
 
+	/*
+     	 * clk_output_hf11 changed as a side effect of the path_mux3
+     	 * reconfiguration: its new rate is neither the shared nor the
+     	 * default one.
+     	 */
 	ret = clock_management_get_rate(config_dummy_1->clk_mgmt, dummy_1_clk_1);
 	zassert_equal(ret, 25000000, "clk_output_hf13 rate != shared, ret=%d", ret);
 }
 
 #ifdef CONFIG_CLOCK_MANAGEMENT_SET_RATE
+
+/*
+ * req_rate() determines the best clock configuration for a given request.
+ * It defines the state of a clock output dynamically. Starting from the leaf
+ * node, it walks up the clock tree:
+ *   - If the node is a mux, it iterates over all of its parents and selects
+ *     the one that produces the frequency closest to the requested one.
+ *   - If the node is a standard clock, it moves directly to its parent and
+ *     keeps going up until it reaches a root.
+ * From the root, it then walks back down, notifying its children along the
+ * way. The mux effectively evaluates each one of its parents during this
+ * phase.
+ */
+
+
 ZTEST(clk_runtime_tests, test_request_rate){
 	const struct ifx_clock_consumer_config *config_dummy_1 = dummy_device_1->config;
 	//const struct ifx_clock_consumer_config *config_dummy_2 = dummy_device_2->config;
 	int ret;
 	clock_freq_t freq = 100000000;
 	ret = clock_management_req_rate(config_dummy_1->clk_mgmt, dummy_1_clk_2, freq);
+
+	/*
+     	 * The closest achievable rate is 99999998 Hz, limited by the producers
+     	 * resolution
+     	 */
+
 	zassert_equal(ret, 99999998, "Req_rate, ret=%d", ret);
 }
 #endif
+
 /*
- * Test case for the clock gating.
+ * Verifies the clock gating mechanism based on producer usage counts.
+ *
+ * Each producer keeps a usage count (subsys_data->usage_cnt) of the active
+ * clock paths that go through it. The count is updated by clock_management_on()
+ * and clock_management_off(), which walk up the clock tree from the clock output
+ * until a root is found. A producer is gated off when its count reaches zero.
+ *
+ * Scenario:
+ * 1. Check the initial usage counts of the producers.
+ * 2. Turn off the clock outputs one by one and verify that the counts decrease
+ *    and that the producers no longer in use reach zero.
+ * 3. Request the fast state while the outputs are off and verify that the
+ *    counts do not change.
+ * 4. Turn the outputs back on and verify that the counts of the producers in
+ *    the fast path increase.
  */
+
 ZTEST(clk_runtime_tests, test_clock_gating){
 	const struct ifx_clock_consumer_config *config_dummy_1 = dummy_device_1->config;
 	const struct ifx_clock_consumer_config *config_dummy_2 = dummy_device_2->config;
@@ -330,17 +408,25 @@ ZTEST(clk_runtime_tests, test_clock_gating){
 	 * account the current state. It walks up the clock tree from the clock output until
 	 * a root is found.
 	*/
+	
 	/*
-	 * There are four clock_management_on requests, two from dummy_1 (one per clock output), 
-	 * one from dummy_2 and one from uart. 
-	 * iho_producer is in the clock path of all four requests. Counter must be four.
-	 */
+     	 * Phase 1: Initial usage counts.
+     	 *
+     	 * There are four clock_management_on() requests: two from dummy_1 (one per
+     	 * clock output), one from dummy_2 and one from uart.
+     	 * iho_producer is in the clock path of all four requests, so its count
+     	 * must be four.
+     	 */
+
 	uint8_t iho_counter = iho_producer->subsys_data->usage_cnt;
 	zassert_equal(iho_counter, 4, "iho counter != 4, counter=%d", iho_counter);
+	
 	/*
-	 * Dummy 1 and dummy 2 are requesting clock paths with mux_hf11 in it. Counter must
-	   be two.
-	 */
+    	 * dummy_1 and dummy_2 each request a clock path that includes mux_hf11,
+     	 * so its count must be two. mux_hf13 is only used by dummy_1's second
+     	 * clock output, so its count must be one.
+     	 */
+	
 	uint8_t mux_hf11_counter = mux_hf11->subsys_data->usage_cnt;
 	zassert_equal(mux_hf11_counter, 2, "mux_hf11 counter != 2, counter=%d", mux_hf11_counter); 
 
@@ -359,6 +445,14 @@ ZTEST(clk_runtime_tests, test_clock_gating){
 	uint8_t path_mux1_counter = path_mux1->subsys_data->usage_cnt;
 	zassert_equal(path_mux1_counter, 2, "path_mux1 counter != 2, counter=%d", path_mux1_counter);
 
+	/*
+     	 * Phase 2: Gate off the shared clock output, one consumer at a time.
+     	 *
+     	 * dummy_1 turns off dummy_1_clk_1. Only one of the two paths through
+     	 * mux_hf11 and pll_lp is released. pll_hp is not part of that path, so
+     	 * its count must not change.
+     	 */
+
 	ret = clock_management_off(config_dummy_1->clk_mgmt, dummy_1_clk_1);
 	zassert_equal(ret, 0, "Fast state not applied, ret=%d", ret);
 	
@@ -371,7 +465,13 @@ ZTEST(clk_runtime_tests, test_clock_gating){
 	pll_hp_counter = pll_hp->subsys_data->usage_cnt; 
 	zassert_equal(pll_hp_counter, 1, "pll_hp counter != 1, counter=%d", pll_hp_counter);
 
-	ret = clock_management_off(config_dummy_2->clk_mgmt, dummy_2_clk_1);
+	/*
+     	 * dummy_2 turns off dummy_2_clk_1. This releases the last path through
+     	 * mux_hf11 and pll_lp, so both reach zero and are gated off. pll_hp is
+     	 * still used by another active request, so it stays on.
+      	 */
+	
+	 ret = clock_management_off(config_dummy_2->clk_mgmt, dummy_2_clk_1);
 	zassert_equal(ret, 0, "Fast state not applied, ret=%d", ret);
 
 	pll_hp_counter = pll_hp->subsys_data->usage_cnt; 
@@ -383,6 +483,14 @@ ZTEST(clk_runtime_tests, test_clock_gating){
 	pll_lp_counter = pll_lp->subsys_data->usage_cnt;
 	zassert_equal(pll_lp_counter, 0, "pll_lp counter != 0, counter=%d", pll_lp_counter);
 
+	/*
+     	 * Phase 3: Request the fast state.
+     	 *
+     	 * The new state is configured, but since the clock outputs are gated
+     	 * off, the usage counts of the producers in the fast path (e.g. pll_hp)
+     	 * must not be increased yet.
+     	 */
+	
 	ret = clock_management_request_state(config_dummy_1->clk_mgmt,fast_req_dummy_1);
 	zassert_equal(ret, 0, "Fast state not applied, ret=%d", ret);
 
@@ -391,6 +499,13 @@ ZTEST(clk_runtime_tests, test_clock_gating){
 	
 	pll_hp_counter = pll_hp->subsys_data->usage_cnt;
 	zassert_not_equal(pll_hp_counter, 3, "pll_hp counter == 3, counter=%d", pll_hp_counter);
+
+	/*
+     	 * Phase 4: Turn the outputs back on.
+     	 *
+     	 * Both consumers now go through pll_hp in the fast state. Together with
+     	 * the request that was already using it, its count must be three.
+     	 */
 
 	ret = clock_management_on(config_dummy_1->clk_mgmt, dummy_1_clk_1);
 	zassert_equal(ret, 0, "Fast state not applied, ret=%d", ret);
@@ -402,31 +517,69 @@ ZTEST(clk_runtime_tests, test_clock_gating){
 	zassert_equal(pll_hp_counter, 3, "pll_hp counter != 3, counter=%d", pll_hp_counter);
 }
 
+/*
+ * Verifies the clock output locking mechanism.
+ *
+ * A consumer can lock a clock output to prevent other consumers from
+ * reconfiguring it. While locked:
+ *   - Only the consumer that performed the lock can request new states.
+ *   - A new state request from the owner removes the lock if the new state
+ *     does not carry the locking suffix.
+ *   - Other consumers cannot lock the same output or request a state on it.
+ *
+ * Scenario:
+ * 1. dummy_1 locks its clock output (success).
+ * 2. dummy_2 tries to lock the same shared clock output (fails).
+ * 3. dummy_1 requests a new non-locking state: the lock is removed.
+ * 4. dummy_2 locks its clock output with a locking state (success).
+ * 5. dummy_1 requests a state on the locked output (fails).
+ * 6. dummy_2 unlocks its clock output (success).
+ */
 
 ZTEST(clk_runtime_tests, test_locking_clocks){
 
 	const struct ifx_clock_consumer_config *config_dummy_1 = dummy_device_1->config;
 	const struct ifx_clock_consumer_config *config_dummy_2 = dummy_device_2->config;
 	int ret;
+
+	/*
+     	 * dummy_1 locks dummy_1_clk_1. This output is shared with dummy_2's
+     	 * clock output, so it protects the whole shared clock output.
+     	 */
 	ret = clock_management_lock(config_dummy_1->clk_mgmt,dummy_1_clk_1);
 	zassert_equal(ret, 0, "Failed locking dummy_1_clk_2, ret=%d", ret);
 
+	/*
+     	 * dummy_2 tries to lock the same shared clock output. It must fail
+     	 * because the output is already locked by another consumer.
+     	 */
 	ret = clock_management_lock(config_dummy_2->clk_mgmt,dummy_2_clk_1);
 	zassert_not_equal(ret, 0, "Success locking dummy_2_clk_1, ret=%d", ret);
 
+	/*
+     	 * dummy_1 requests a new non-locking state on its clock output.
+     	 * This removes the previous lock condition.
+     	 */
 	ret = clock_management_request_state(config_dummy_1->clk_mgmt,all_req_dummy_1);
 	zassert_equal(ret, 0, "All state not applied, ret=%d", ret);
+	
 	/*
-	 * If the consumer that locked a clock ouput requests a new state on that clock output,
-	   the locking condition will be deleted if this new request does not have the
-	   locking suffix.
-	 */
+     	 * dummy_2 requests a locking state on its clock output. Since the
+     	 * previous lock was removed, this succeeds.
+     	 */
 	ret = clock_management_request_state(config_dummy_2->clk_mgmt,locking_req_dummy_2);
 	zassert_equal(ret, 0, "Locking state not applied, ret=%d", ret);
 
+	/*
+     	 * dummy_1 requests a state on the shared clock output, which is now
+     	 * locked by dummy_2. It must fail.
+     	 */
 	ret = clock_management_request_state(config_dummy_1->clk_mgmt,shared_req_dummy_1);
 	zassert_not_equal(ret, 0, "ss, ret=%d", ret);
 
+	/*
+     	 * dummy_2 unlocks its clock output.
+     	 */
 	ret = clock_management_unlock(config_dummy_2->clk_mgmt,dummy_2_clk_1);
 	zassert_equal(ret, 0, "Failed unlocking dummy_2_clk_1, ret=%d", ret);
 }
